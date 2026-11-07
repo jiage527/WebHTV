@@ -158,6 +158,14 @@
             android:text="@string/play_ed" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/abLoop"
+            style="@style/Control"
+            android:layout_marginEnd="8dp"
+            android:fontFeatureSettings="tnum"
+            android:text="@string/play_ab_loop"
+            android:visibility="gone" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/danmaku"
             style="@style/Control"
             android:layout_marginEnd="8dp"

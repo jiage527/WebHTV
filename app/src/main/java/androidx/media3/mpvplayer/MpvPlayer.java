@@ -900,6 +900,37 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
         }
     }
 
+    /**
+     * Arms the native AB loop. Both bounds are required: mpv treats a lone
+     * {@code ab-loop-a} as "loop to the end of the file", so the caller must not
+     * publish an A point before B is known. Either bound below zero clears the
+     * loop instead. Bounds are wall-clock milliseconds on the item timeline and
+     * are written as seconds, mpv's own unit for these options.
+     */
+    public boolean setAbLoop(long startMs, long endMs) {
+        if (!initialized) return false;
+        if (startMs < 0 || endMs < 0) return clearAbLoop();
+        boolean ok = enqueueMpvCommand("set", "ab-loop-a", seconds(startMs));
+        ok &= enqueueMpvCommand("set", "ab-loop-b", seconds(endMs));
+        return ok;
+    }
+
+    /**
+     * Clears both bounds. mpv encodes an unset time option as the literal
+     * {@code no}, which is also the sentinel the file-local AB loop reader in
+     * this class tests for.
+     */
+    public boolean clearAbLoop() {
+        if (!initialized) return false;
+        boolean ok = enqueueMpvCommand("set", "ab-loop-a", "no");
+        ok &= enqueueMpvCommand("set", "ab-loop-b", "no");
+        return ok;
+    }
+
+    private static String seconds(long ms) {
+        return String.format(Locale.US, "%.3f", ms / SECONDS_TO_MS);
+    }
+
     public String getAudioSpdifCodecs() {
         return activeAudioSpdif;
     }

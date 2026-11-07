@@ -399,6 +399,15 @@ public class MpvPlayerEngine implements PlayerEngine {
         return player.sendScriptMessage(message, args);
     }
 
+    /** Arms the native AB loop; either bound below zero clears it instead. */
+    public boolean setAbLoop(long startMs, long endMs) {
+        return player.setAbLoop(startMs, endMs);
+    }
+
+    public boolean clearAbLoop() {
+        return player.clearAbLoop();
+    }
+
     /** Cached track/proxy HLS state; this method never performs a native query. */
     public MpvPlayer.AutoHlsRuntimeSnapshot getAutoHlsRuntimeSnapshot() {
         return player.getAutoHlsRuntimeSnapshot();

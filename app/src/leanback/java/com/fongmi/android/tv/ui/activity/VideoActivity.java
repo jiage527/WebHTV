@@ -711,6 +711,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.cast.setOnClickListener(view -> onCast());
         mBinding.control.action.timer.setOnClickListener(view -> onTimer());
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
+        mBinding.control.action.abLoop.setOnClickListener(view -> onAbLoop());
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
         mBinding.audioNext.setOnClickListener(view -> checkNext());
         mBinding.audioPrev.setOnClickListener(view -> checkPrev());
@@ -732,6 +733,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.reset.setOnLongClickListener(view -> onResetToggle());
         mBinding.control.action.ending.setOnLongClickListener(view -> onEndingReset());
         mBinding.control.action.opening.setOnLongClickListener(view -> onOpeningReset());
+        mBinding.control.action.abLoop.setOnLongClickListener(view -> onAbLoopReset());
         setActionFocusScroll();
         mBinding.video.setOnTouchListener((view, event) -> dispatchDiscMenuTouch(event) || mKeyDown.onTouchEvent(event));
         mBinding.flag.addOnChildViewHolderSelectedListener(new FlagSelectionListener(mBinding.flag, mFlagAdapter, this));
@@ -872,6 +874,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.OPENING, mBinding.control.action.opening);
         addActionButton(PlayerButtonSetting.ENDING, mBinding.control.action.ending);
         addActionButton(PlayerButtonSetting.DANMAKU, mBinding.control.action.danmaku);
+        addActionButton(PlayerButtonSetting.AB_LOOP, mBinding.control.action.abLoop);
         addActionButton(PlayerButtonSetting.TITLE, mBinding.control.action.title);
         addActionButton(PlayerButtonSetting.REPEAT, mBinding.control.action.repeat);
         PlayerButtonSetting.applyOrder(mBinding.control.action.container, mActionButtons);
@@ -982,6 +985,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     private void applyActionButtonVisibility() {
         if (mActionButtons != null) PlayerButtonSetting.applyVisibility(mActionButtons);
+        boolean abLoopAvailable = player().isMpv() && PlayerButtonSetting.isVisible(PlayerButtonSetting.AB_LOOP);
+        mBinding.control.action.abLoop.setVisibility(abLoopAvailable ? View.VISIBLE : View.GONE);
         updateCustomButtonVisibility();
         mBinding.control.action.cast.setVisibility(isFullscreen() ? View.GONE : View.VISIBLE);
         updateImmersiveAudioAction();
@@ -2493,6 +2498,46 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         setAudioRepeatSelected(player().isRepeatOne());
     }
 
+    /**
+     * AB loop follows the usual player convention: first press marks A, second
+     * marks B, third clears. Both bounds live in PlayerManager, which normalises
+     * their order and refuses a zero-length range so a stray tap cannot leave
+     * playback apparently frozen.
+     */
+    private void onAbLoop() {
+        if (!player().isMpv()) {
+            Notify.show(R.string.play_ab_loop_mpv_only);
+            return;
+        }
+        if (player().getAbLoopStartMs() < 0) {
+            player().markAbLoopStart();
+        } else if (player().getAbLoopEndMs() < 0) {
+            if (!player().markAbLoopEnd()) Notify.show(R.string.play_ab_loop_same_point);
+        } else {
+            player().clearAbLoop();
+        }
+        checkAbLoopText();
+    }
+
+    private boolean onAbLoopReset() {
+        if (player().getAbLoopStartMs() < 0) return false;
+        player().clearAbLoop();
+        checkAbLoopText();
+        Notify.show(getString(R.string.play_ab_loop_clear));
+        return true;
+    }
+
+    private void checkAbLoopText() {
+        long start = player().getAbLoopStartMs();
+        long end = player().getAbLoopEndMs();
+        String text;
+        if (start < 0) text = getString(R.string.play_ab_loop);
+        else if (end < 0) text = getString(R.string.play_ab_loop_a, Util.timeMs(start));
+        else text = getString(R.string.play_ab_loop_ab, Util.timeMs(start), Util.timeMs(end));
+        mBinding.control.action.abLoop.setText(text);
+        mBinding.control.action.abLoop.setSelected(start >= 0);
+    }
+
     private void onKaraokeMode() {
         showKaraokeModePanel();
     }
@@ -3657,6 +3702,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (!TextUtils.isEmpty(getMark())) mHistory.setVodRemarks(getMark());
         if (Setting.isIncognito() && mHistory.getKey().equals(getHistoryKey())) mHistory.delete();
         mBinding.control.action.opening.setText(mHistory.getOpening() <= 0 ? getString(R.string.play_op) : Util.timeMs(mHistory.getOpening()));
+        checkAbLoopText();
         mBinding.control.action.ending.setText(mHistory.getEnding() <= 0 ? getString(R.string.play_ed) : Util.timeMs(mHistory.getEnding()));
         mBinding.control.action.speed.setText(player().setSpeed(PlayerSetting.getDefaultSpeed()));
         mHistory.setSpeed(player().getSpeed());

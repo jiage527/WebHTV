@@ -1525,4 +1525,12 @@
     <string name="danmaku_send_close">X</string>
     <string name="danmaku_send_local_only">僅在本機顯示：彈幕介面與播放器只支援渲染，未提供上傳介面。</string>
     <string name="danmaku_send_unavailable">播放器未就緒</string>
+    <string name="play_ab_loop">A-B</string>
+    <string name="play_ab_loop_set">A</string>
+    <string name="play_ab_loop_end">B</string>
+    <string name="play_ab_loop_clear">A-B</string>
+    <string name="play_ab_loop_a">A %s</string>
+    <string name="play_ab_loop_ab">A-B %s - %s</string>
+    <string name="play_ab_loop_same_point">A 與 B 不能是同一位置</string>
+    <string name="play_ab_loop_mpv_only">AB 循環需要 MPV 內核</string>
 </resources>

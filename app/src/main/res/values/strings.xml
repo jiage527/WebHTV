@@ -1549,4 +1549,12 @@
     <string name="danmaku_send_close">X</string>
     <string name="danmaku_send_local_only">Shown on this device only: the danmaku API and player can display a comment but expose no upload endpoint.</string>
     <string name="danmaku_send_unavailable">Player is not ready</string>
+    <string name="play_ab_loop">A-B</string>
+    <string name="play_ab_loop_set">A</string>
+    <string name="play_ab_loop_end">B</string>
+    <string name="play_ab_loop_clear">A-B</string>
+    <string name="play_ab_loop_a">A %s</string>
+    <string name="play_ab_loop_ab">A-B %s - %s</string>
+    <string name="play_ab_loop_same_point">A and B cannot be the same point</string>
+    <string name="play_ab_loop_mpv_only">A-B loop requires the MPV kernel</string>
 </resources>

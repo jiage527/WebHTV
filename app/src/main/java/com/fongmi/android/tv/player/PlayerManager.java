@@ -834,6 +834,81 @@ public class PlayerManager implements ParseCallback {
     }
 
     /**
+     * AB loop state is owned here rather than read back from the native player:
+     * the engine exposes no synchronous property query, and the points must
+     * survive the UI being rebuilt. Both bounds are cleared on every new item.
+     */
+    private long abLoopStartMs = -1;
+    private long abLoopEndMs = -1;
+
+    public long getAbLoopStartMs() {
+        return abLoopStartMs;
+    }
+
+    public long getAbLoopEndMs() {
+        return abLoopEndMs;
+    }
+
+    public boolean hasAbLoop() {
+        return abLoopEndMs >= 0;
+    }
+
+    /**
+     * Records the current position as the loop start. mpv is only told about a
+     * boundary once B exists, because a lone A means "loop to end of file";
+     * until then the point is remembered here and shown in the UI.
+     */
+    public boolean markAbLoopStart() {
+        if (!isMpv()) return false;
+        abLoopStartMs = Math.max(0, getPosition());
+        abLoopEndMs = -1;
+        if (engine instanceof MpvPlayerEngine mpv) mpv.clearAbLoop();
+        return true;
+    }
+
+    /**
+     * Records the current position as the loop end and arms the native loop.
+     * mpv normalises a reversed pair ("as if the points were given in the right
+     * order"), so a B marked before A is stored in ascending order to keep the
+     * button label and the native bounds consistent. A zero-length range is
+     * refused because it would leave playback apparently frozen.
+     */
+    public boolean markAbLoopEnd() {
+        if (!isMpv() || abLoopStartMs < 0) return false;
+        long position = Math.max(0, getPosition());
+        if (position == abLoopStartMs) return false;
+        long start = Math.min(position, abLoopStartMs);
+        abLoopEndMs = Math.max(position, abLoopStartMs);
+        abLoopStartMs = start;
+        return armingMpv();
+    }
+
+    /** Clears both bounds and returns whether the loop was active. */
+    public boolean clearAbLoop() {
+        boolean had = hasAbLoop() || abLoopStartMs >= 0;
+        abLoopStartMs = -1;
+        abLoopEndMs = -1;
+        if (engine instanceof MpvPlayerEngine mpv) mpv.clearAbLoop();
+        return had;
+    }
+
+    private boolean armingMpv() {
+        if (!(engine instanceof MpvPlayerEngine mpv)) return false;
+        return mpv.setAbLoop(abLoopStartMs, abLoopEndMs);
+    }
+
+    /**
+     * AB points are per-item: mpv keeps the properties across a loadfile, so a
+     * stale range would silently clip the next episode.
+     */
+    private void clearAbLoopStateForNewItem() {
+        if (abLoopStartMs < 0 && abLoopEndMs < 0) return;
+        abLoopStartMs = -1;
+        abLoopEndMs = -1;
+        if (engine instanceof MpvPlayerEngine mpv) mpv.clearAbLoop();
+    }
+
+    /**
      * Keep the native player's shutter visible while automatic MPV output is
      * still being selected. This prevents a failed direct DV probe from
      * exposing a stale poster or the last frame before the GPU rebuild.
@@ -5305,6 +5380,7 @@ public class PlayerManager implements ParseCallback {
         resetNetworkProtectionSession("new-media");
         App.removeCallbacks(runnable);
         setDanmakus(spec.getDanmakus());
+        clearAbLoopStateForNewItem();
         prepareLutPipeline();
         initTrack = false;
         waitingLutBeforePlay = false;
