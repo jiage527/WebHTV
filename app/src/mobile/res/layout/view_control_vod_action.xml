@@ -97,6 +97,11 @@
             android:visibility="gone" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/screenshot"
+            style="@style/Control"
+            android:text="@string/play_screenshot" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/danmaku"
             style="@style/Control"
             android:text="@string/danmaku"

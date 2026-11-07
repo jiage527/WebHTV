@@ -1566,4 +1566,8 @@
     <string name="play_ab_loop_ab">A-B %s - %s</string>
     <string name="play_ab_loop_same_point">A and B cannot be the same point</string>
     <string name="play_ab_loop_mpv_only">A-B loop requires the MPV kernel</string>
+    <string name="play_screenshot">Shot</string>
+    <string name="play_screenshot_saved">Screenshot saved: %s</string>
+    <string name="play_screenshot_failed">Screenshot failed</string>
+    <string name="play_screenshot_share">Share</string>
 </resources>

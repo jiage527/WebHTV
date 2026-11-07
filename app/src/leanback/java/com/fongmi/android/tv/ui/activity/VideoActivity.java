@@ -145,6 +145,7 @@ import com.fongmi.android.tv.utils.ImgUtil;
 import com.fongmi.android.tv.utils.KeyUtil;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
+import com.fongmi.android.tv.utils.ScreenshotCapture;
 import com.fongmi.android.tv.utils.Sniffer;
 import com.fongmi.android.tv.utils.Task;
 import com.fongmi.android.tv.utils.Traffic;
@@ -161,6 +162,7 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -712,6 +714,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.timer.setOnClickListener(view -> onTimer());
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
         mBinding.control.action.abLoop.setOnClickListener(view -> onAbLoop());
+        mBinding.control.action.screenshot.setOnClickListener(view -> onScreenshot(false));
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
         mBinding.audioNext.setOnClickListener(view -> checkNext());
         mBinding.audioPrev.setOnClickListener(view -> checkPrev());
@@ -734,6 +737,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.ending.setOnLongClickListener(view -> onEndingReset());
         mBinding.control.action.opening.setOnLongClickListener(view -> onOpeningReset());
         mBinding.control.action.abLoop.setOnLongClickListener(view -> onAbLoopReset());
+        mBinding.control.action.screenshot.setOnLongClickListener(view -> {
+            onScreenshot(true);
+            return true;
+        });
         setActionFocusScroll();
         mBinding.video.setOnTouchListener((view, event) -> dispatchDiscMenuTouch(event) || mKeyDown.onTouchEvent(event));
         mBinding.flag.addOnChildViewHolderSelectedListener(new FlagSelectionListener(mBinding.flag, mFlagAdapter, this));
@@ -875,6 +882,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.ENDING, mBinding.control.action.ending);
         addActionButton(PlayerButtonSetting.DANMAKU, mBinding.control.action.danmaku);
         addActionButton(PlayerButtonSetting.AB_LOOP, mBinding.control.action.abLoop);
+        addActionButton(PlayerButtonSetting.SCREENSHOT, mBinding.control.action.screenshot);
         addActionButton(PlayerButtonSetting.TITLE, mBinding.control.action.title);
         addActionButton(PlayerButtonSetting.REPEAT, mBinding.control.action.repeat);
         PlayerButtonSetting.applyOrder(mBinding.control.action.container, mActionButtons);
@@ -2536,6 +2544,37 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         else text = getString(R.string.play_ab_loop_ab, Util.timeMs(start), Util.timeMs(end));
         mBinding.control.action.abLoop.setText(text);
         mBinding.control.action.abLoop.setSelected(start >= 0);
+    }
+
+    /**
+     * Grabs the current frame. A plain tap saves it and reports the file name;
+     * a long press opens the share sheet instead, mirroring how the other
+     * player buttons use long press for their secondary action.
+     */
+    private void onScreenshot(boolean share) {
+        View surface = getExoView().getVideoSurfaceView();
+        if (surface == null) surface = mBinding.video;
+        ScreenshotCapture.capture(this, surface, (bitmap, error) -> {
+            if (bitmap == null) {
+                Notify.show(R.string.play_screenshot_failed);
+                return;
+            }
+            Task.execute(() -> {
+                File file = null;
+                try {
+                    file = ScreenshotCapture.save(bitmap);
+                } catch (IOException ignored) {
+                } finally {
+                    bitmap.recycle();
+                }
+                File saved = file;
+                App.post(() -> {
+                    if (saved == null) Notify.show(R.string.play_screenshot_failed);
+                    else if (share) ScreenshotCapture.share(this, saved);
+                    else Notify.show(getString(R.string.play_screenshot_saved, saved.getName()));
+                });
+            });
+        });
     }
 
     private void onKaraokeMode() {

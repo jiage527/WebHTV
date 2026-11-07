@@ -1542,4 +1542,8 @@
     <string name="play_ab_loop_ab">A-B %s - %s</string>
     <string name="play_ab_loop_same_point">A 與 B 不能是同一位置</string>
     <string name="play_ab_loop_mpv_only">AB 循環需要 MPV 內核</string>
+    <string name="play_screenshot">擷圖</string>
+    <string name="play_screenshot_saved">擷圖已儲存：%s</string>
+    <string name="play_screenshot_failed">擷圖失敗</string>
+    <string name="play_screenshot_share">分享</string>
 </resources>

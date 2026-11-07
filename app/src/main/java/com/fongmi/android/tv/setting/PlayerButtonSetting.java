@@ -35,6 +35,7 @@ public class PlayerButtonSetting {
     public static final String ENDING = "ending";
     public static final String DANMAKU = "danmaku";
     public static final String AB_LOOP = "ab_loop";
+    public static final String SCREENSHOT = "screenshot";
     public static final String TITLE = "title";
     public static final String PREV = "prev";
     public static final String NEXT = "next";
@@ -61,6 +62,7 @@ public class PlayerButtonSetting {
             new Item(ENDING, R.string.play_ed),
             new Item(DANMAKU, R.string.danmaku),
             new Item(AB_LOOP, R.string.play_ab_loop),
+            new Item(SCREENSHOT, R.string.play_screenshot),
             new Item(TITLE, R.string.play_title),
             new Item(PREV, R.string.play_prev),
             new Item(NEXT, R.string.play_next),
