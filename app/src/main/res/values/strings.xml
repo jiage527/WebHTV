@@ -921,6 +921,7 @@
     <string name="pan_diagnostic_title">Playback link diagnostics</string>
     <string name="player_kernel">Player engine</string>
     <string name="player_scale">Scale</string>
+    <string name="player_seek_step">Seek step</string>
     <string name="player_lut">LUT color</string>
     <string name="player_mpv_config">MPV config manager</string>
     <string name="player_bluray_menu">Blu-ray disc menu</string>
@@ -1324,6 +1325,14 @@
         <item>4:3</item>
         <item>Fill</item>
         <item>Zoom</item>
+    </string-array>
+
+    <string-array name="select_seek_step">
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>15 seconds</item>
+        <item>30 seconds</item>
+        <item>60 seconds</item>
     </string-array>
 
     <string-array name="select_reset">

@@ -8,7 +8,7 @@ import android.view.MotionEvent;
 import androidx.annotation.NonNull;
 
 import com.fongmi.android.tv.App;
-import com.fongmi.android.tv.Constant;
+import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.utils.KeyUtil;
 
 public class CustomKeyDownVod extends GestureDetector.SimpleOnGestureListener {
@@ -80,11 +80,16 @@ public class CustomKeyDownVod extends GestureDetector.SimpleOnGestureListener {
     }
 
     private long addTime() {
-        return holdTime = holdTime + Constant.INTERVAL_SEEK;
+        return holdTime = holdTime + step();
     }
 
     private long subTime() {
-        return holdTime = holdTime - Constant.INTERVAL_SEEK;
+        return holdTime = holdTime - step();
+    }
+
+    /** Read per event so a change in settings applies to the next key press. */
+    private long step() {
+        return PlayerSetting.getSeekStepMs();
     }
 
     public void reset() {

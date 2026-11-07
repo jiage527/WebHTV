@@ -46,6 +46,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     private String[] playCache;
     private String[] render;
     private String[] scale;
+    private String[] seekStep;
     private String[] osd;
 
     public static void start(Activity activity) {
@@ -88,6 +89,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.osdText.setText(getOsdText(osd = ResUtil.getStringArray(R.array.select_player_osd)));
         mBinding.kernelText.setText((kernel = ResUtil.getStringArray(R.array.select_player_kernel))[PlayerSetting.getPlayer()]);
         mBinding.scaleText.setText((scale = ResUtil.getStringArray(R.array.select_scale))[PlayerSetting.getScale()]);
+        mBinding.seekStepText.setText((seekStep = ResUtil.getStringArray(R.array.select_seek_step))[PlayerSetting.getSeekStepIndex()]);
         mBinding.lutText.setText(LutSetting.getSummary());
         setMpvRows();
         mBinding.renderText.setText((render = ResUtil.getStringArray(R.array.select_render))[PlayerSetting.getRender()]);
@@ -101,6 +103,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.aac.setOnClickListener(this::setAAC);
         mBinding.kernel.setOnClickListener(this::setKernel);
         mBinding.scale.setOnClickListener(this::setScale);
+        mBinding.seekStep.setOnClickListener(this::setSeekStep);
         mBinding.lut.setOnClickListener(this::onLut);
         mBinding.mpvConfig.setOnClickListener(view -> MpvConfigDialog.show(this, () -> mBinding.mpvConfigText.setText(MpvConfigStore.summary())));
         mBinding.blurayMenu.setOnClickListener(view -> {
@@ -168,6 +171,12 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         int index = (PlayerSetting.getScale() + 1) % scale.length;
         mBinding.scaleText.setText(scale[index]);
         PlayerSetting.putScale(index);
+    }
+
+    private void setSeekStep(View view) {
+        int index = (PlayerSetting.getSeekStepIndex() + 1) % seekStep.length;
+        PlayerSetting.putSeekStepIndex(index);
+        mBinding.seekStepText.setText(seekStep[index]);
     }
 
     private void onLut(View view) {

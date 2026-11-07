@@ -903,6 +903,7 @@
     <string name="pan_diagnostic_title">播放鏈路診斷</string>
     <string name="player_kernel">播放器內核</string>
     <string name="player_scale">縮放比例</string>
+    <string name="player_seek_step">快進步長</string>
     <string name="player_lut">LUT 調色</string>
     <string name="player_mpv_config">MPV 設定管理</string>
     <string name="player_bluray_menu">藍光原盤選單</string>
@@ -1300,6 +1301,14 @@
         <item>4:3</item>
         <item>填充</item>
         <item>裁剪</item>
+    </string-array>
+
+    <string-array name="select_seek_step">
+        <item>5 秒</item>
+        <item>10 秒</item>
+        <item>15 秒</item>
+        <item>30 秒</item>
+        <item>60 秒</item>
     </string-array>
 
     <string-array name="select_reset">

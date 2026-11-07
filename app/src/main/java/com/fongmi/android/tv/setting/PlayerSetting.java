@@ -6,6 +6,8 @@ import android.provider.Settings;
 import com.fongmi.android.tv.App;
 import com.github.catvod.utils.Prefers;
 
+import java.util.concurrent.TimeUnit;
+
 public class PlayerSetting {
 
     public static final int EXO = 0;
@@ -583,5 +585,28 @@ public class PlayerSetting {
 
     public static boolean isOsdEnabled() {
         return isOsdTitle() || isOsdResolution() || isOsdTime() || isOsdProgress() || isOsdTraffic() || isOsdMini() || isOsdDiagnostics();
+    }
+
+    /**
+     * Seek steps in seconds. Index 1 (10s) is the historical fixed value, so an
+     * untouched install keeps exactly the previous behaviour.
+     */
+    private static final long[] SEEK_STEP_SECONDS = {5L, 10L, 15L, 30L, 60L};
+
+    public static int getSeekStepIndex() {
+        return Math.min(Math.max(Prefers.getInt("seek_step", 1), 0), SEEK_STEP_SECONDS.length - 1);
+    }
+
+    public static void putSeekStepIndex(int index) {
+        Prefers.put("seek_step", Math.min(Math.max(index, 0), SEEK_STEP_SECONDS.length - 1));
+    }
+
+    /**
+     * The seek increment applied per D-pad left/right repeat while holding, in
+     * milliseconds. The media fast-forward/rewind keys keep their own media3
+     * increments and are deliberately not affected.
+     */
+    public static long getSeekStepMs() {
+        return TimeUnit.SECONDS.toMillis(SEEK_STEP_SECONDS[getSeekStepIndex()]);
     }
 }
