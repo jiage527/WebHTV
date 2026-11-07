@@ -1536,4 +1536,9 @@
 
     <string name="player_audio_badge_queue">队列</string>
     <string name="player_audio_repeat">循环</string>
+    <string name="danmaku_send">发送</string>
+    <string name="danmaku_send_hint">输入弹幕内容</string>
+    <string name="danmaku_send_close">X</string>
+    <string name="danmaku_send_local_only">仅在本机显示：弹幕接口与播放器只支持渲染，未提供上传接口。</string>
+    <string name="danmaku_send_unavailable">播放器未就绪</string>
 </resources>

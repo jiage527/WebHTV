@@ -66,6 +66,7 @@ public final class DanmakuDialog extends BaseBottomSheetDialog implements Danmak
         binding.recycler.post(() -> binding.recycler.scrollToPosition(adapter.getSelected()));
         binding.recycler.setVisibility(adapter.getItemCount() == 0 ? View.GONE : View.VISIBLE);
         binding.search.setVisibility(player.getMetadata() == null || !DanmakuSetting.hasValidApiUrl() ? View.GONE : View.VISIBLE);
+        binding.send.setVisibility(player.haveDanmaku() ? View.VISIBLE : View.GONE);
         binding.load.setChecked(DanmakuSetting.isLoad());
         updateLoadUi(DanmakuSetting.isLoad());
     }
@@ -73,6 +74,7 @@ public final class DanmakuDialog extends BaseBottomSheetDialog implements Danmak
     @Override
     protected void initEvent() {
         binding.search.setOnClickListener(this::onSearch);
+        binding.send.setOnClickListener(this::onSend);
         binding.load.setOnCheckedChangeListener((button, checked) -> onLoadChanged(checked));
         binding.choose.setOnClickListener(this::onChoose);
         binding.setting.setOnClickListener(this::onSetting);
@@ -99,6 +101,13 @@ public final class DanmakuDialog extends BaseBottomSheetDialog implements Danmak
 
     private boolean shouldUseInputDialog(FragmentActivity activity) {
         return Util.isMobile() && (!(activity instanceof Host) || !((Host) activity).isDanmakuFullscreen());
+    }
+
+    private void onSend(View view) {
+        FragmentActivity activity = getActivity();
+        if (activity == null) return;
+        dismissAllowingStateLoss();
+        DanmakuSendDialog.create().player(player).show(activity);
     }
 
     private void onChoose(View view) {

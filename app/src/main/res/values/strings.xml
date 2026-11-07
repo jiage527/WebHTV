@@ -1544,4 +1544,9 @@
 
     <string name="player_audio_badge_queue">Queue</string>
     <string name="player_audio_repeat">Repeat</string>
+    <string name="danmaku_send">Send</string>
+    <string name="danmaku_send_hint">Type a comment</string>
+    <string name="danmaku_send_close">X</string>
+    <string name="danmaku_send_local_only">Shown on this device only: the danmaku API and player can display a comment but expose no upload endpoint.</string>
+    <string name="danmaku_send_unavailable">Player is not ready</string>
 </resources>

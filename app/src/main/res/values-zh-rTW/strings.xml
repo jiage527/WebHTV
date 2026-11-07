@@ -1520,4 +1520,9 @@
 
     <string name="player_audio_badge_queue">佇列</string>
     <string name="player_audio_repeat">循環</string>
+    <string name="danmaku_send">發送</string>
+    <string name="danmaku_send_hint">輸入彈幕內容</string>
+    <string name="danmaku_send_close">X</string>
+    <string name="danmaku_send_local_only">僅在本機顯示：彈幕介面與播放器只支援渲染，未提供上傳介面。</string>
+    <string name="danmaku_send_unavailable">播放器未就緒</string>
 </resources>
