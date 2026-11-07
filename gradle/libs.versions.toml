@@ -31,7 +31,6 @@ glide = "5.0.7"
 greenrobot = "3.3.1"
 gson = "2.14.0"
 guava = "33.6.0-android"
-jna = "5.18.1"
 jupnp = "3.0.4"
 junit = "4.13.2"
 juniversalchardet = "1.0.3"
@@ -49,7 +48,6 @@ nextlib = "1.10.0-0.12.1-fongmi-softload-av3a-avs3-ffmpeg901-r5"
 okhttp = "5.4.0"
 permissionx = "1.8.1"
 quickjs = "3.2.3"
-rtmpClient = "v3.2.0.m2"
 sardine = "0.9"
 simpleXml = "2.7.1"
 smbj = "0.14.0"
@@ -91,11 +89,9 @@ glide-compiler = { group = "com.github.bumptech.glide", name = "compiler", versi
 glide-okhttp3-integration = { group = "com.github.bumptech.glide", name = "okhttp3-integration", version.ref = "glide" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 guava = { group = "com.google.guava", name = "guava", version.ref = "guava" }
-jna = { group = "net.java.dev.jna", name = "jna", version.ref = "jna" }
 juniversalchardet = { group = "com.googlecode.juniversalchardet", name = "juniversalchardet", version.ref = "juniversalchardet" }
 jgit = { group = "org.eclipse.jgit", name = "org.eclipse.jgit", version.ref = "jgit" }
 jsoup = { group = "org.jsoup", name = "jsoup", version.ref = "jsoup" }
-rtmp-client = { group = "com.github.mcxinyu", name = "LibRtmp-Client-for-Android", version.ref = "rtmpClient" }
 logger = { group = "com.orhanobut", name = "logger", version.ref = "logger" }
 lottie = { group = "com.airbnb.android", name = "lottie", version.ref = "lottie" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
