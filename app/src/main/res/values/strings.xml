@@ -106,17 +106,9 @@
     <string name="danmaku_color_colorful">Colorful</string>
     <string name="danmaku_color_gradient">Gradient</string>
     <string name="danmaku_color_override_hint">Original colors will be ignored</string>
-    <string name="danmaku_auto">Auto</string>
     <string name="danmaku_duration">Scroll duration</string>
     <string name="danmaku_fixed_duration">Fixed duration</string>
     <string name="danmaku_time_offset">Time offset</string>
-    <string name="danmaku_max_on_screen">Max on screen</string>
-    <string name="danmaku_scroll_area_ratio">Scroll area</string>
-    <string name="danmaku_max_scroll_lines">Max scroll rows</string>
-    <string name="danmaku_max_top_lines">Max top rows</string>
-    <string name="danmaku_max_bottom_lines">Max bottom rows</string>
-    <string name="danmaku_top_rows">Top rows</string>
-    <string name="danmaku_bottom_rows">Bottom rows</string>
     <string name="danmaku_display_rows">Display rows</string>
     <string name="danmaku_rows_1">1 row</string>
     <string name="danmaku_rows_2">2 rows</string>
@@ -125,17 +117,8 @@
     <string name="danmaku_rows_5">5 rows</string>
     <string name="danmaku_line_spacing">Line gap</string>
     <string name="danmaku_scroll_gap_ratio">Row gap</string>
-    <string name="danmaku_show_scroll">Scrolling</string>
-    <string name="danmaku_show_top">Top pinned</string>
-    <string name="danmaku_show_bottom">Bottom pinned</string>
-    <string name="danmaku_show_reverse">Reverse scroll</string>
-    <string name="danmaku_show_positioned">Positioned</string>
-    <string name="danmaku_show_subtitle">Subtitle type</string>
-    <string name="danmaku_show_special">Special type</string>
-    <string name="danmaku_section_appearance">Appearance</string>
     <string name="danmaku_section_display">Display</string>
     <string name="danmaku_section_timing">Timing</string>
-    <string name="danmaku_section_density">Density</string>
     <string name="danmaku_reset">Reset</string>
 
     <!-- Parse -->
@@ -152,7 +135,6 @@
     <string name="setting_live">Live</string>
     <string name="setting_wall">Wallpaper</string>
     <string name="setting_config_dialog_title">%1$s %2$s</string>
-    <string name="setting_builtin_wall">Built-in wallpapers</string>
     <string name="setting_player">Player setting</string>
     <string name="setting_danmaku">Danmaku setting</string>
     <string name="setting_enhance">Enhancements</string>
@@ -168,13 +150,8 @@
     <string name="remote_trust_server_url">Relay server URL</string>
     <string name="remote_trust_enable">Enable this relay</string>
     <string name="remote_trust_keep_online">Keep remote trust online</string>
-    <string name="remote_trust_save_register">Save / Register</string>
-    <string name="remote_trust_create_bind_code">Binding code</string>
     <string name="remote_trust_file_permission">File permission</string>
-    <string name="remote_trust_clear">Clear trust</string>
     <string name="remote_trust_clear_message">Clear all remote trust profiles, device tokens, groups, and pending binding codes on this device?</string>
-    <string name="remote_trust_no_bind_code">No binding code</string>
-    <string name="remote_trust_dialog_hint">Enter your relay server URL, then save/register this device. Create a binding code when adding this device to a controller.</string>
     <string name="remote_trust_bind_code_hint">Tap the code to copy it. It is valid for a short time and can be used by the Web console or another WebHTV device.</string>
     <string name="remote_trust_file_permission_hint">File permission is recommended so trust data can be restored after reinstall.</string>
     <string name="remote_trust_server_required">Enter a valid relay server URL</string>
@@ -187,10 +164,6 @@
     <string name="remote_trust_status_online">Online</string>
     <string name="remote_trust_current_status_summary">%1$s · Groups %2$d · Devices %3$d</string>
     <string name="remote_trust_notification_title">Remote trust online</string>
-    <string name="remote_trust_section_local">This device</string>
-    <string name="remote_trust_section_local_hint">Register this WebHTV device with the relay. Generate a code when another device needs to manage it.</string>
-    <string name="remote_trust_section_manage">Manage devices</string>
-    <string name="remote_trust_section_manage_hint">Enter the binding code shown on another WebHTV device, then manage it from here.</string>
     <string name="remote_trust_bind_code">Binding code</string>
     <string name="remote_trust_device_alias">Device alias</string>
     <string name="remote_trust_add_device">Add device</string>
@@ -199,7 +172,6 @@
     <string name="remote_trust_wait_devices">Device group added. Waiting for the target device to sync and come online.</string>
     <string name="remote_trust_device_online">Online</string>
     <string name="remote_trust_device_offline">Offline</string>
-    <string name="remote_trust_selected_device">Selected: %1$s</string>
     <string name="remote_trust_action_status">Status</string>
     <string name="remote_trust_action_search">Search playback</string>
     <string name="remote_trust_action_push">Push</string>
@@ -211,30 +183,23 @@
     <string name="remote_trust_add_done">Device added</string>
     <string name="remote_trust_no_self_add">Cannot add this device to itself</string>
     <string name="remote_trust_no_profile">Save/register the relay first</string>
-    <string name="remote_trust_no_group">No trusted group yet</string>
     <string name="remote_trust_no_device_selected">Select a device first</string>
     <string name="remote_trust_code_required">Enter binding code</string>
     <string name="remote_trust_group_title">Group %1$s</string>
     <string name="remote_trust_self_device">This device</string>
     <string name="remote_trust_controlled_device">Managed device</string>
-    <string name="remote_trust_command_result">Command %1$s · %2$s</string>
     <string name="remote_trust_command_success">Success</string>
     <string name="remote_trust_command_failed">Failed</string>
     <string name="remote_trust_command_waiting">Waiting for target device. If it is offline, the command will run after it reconnects.</string>
     <string name="remote_trust_empty_result">Command sent, no result yet</string>
-    <string name="remote_trust_tab_devices">Devices</string>
-    <string name="remote_trust_tab_settings">Settings</string>
     <string name="remote_trust_local_status">This device</string>
     <string name="remote_trust_device_list">Managed devices</string>
-    <string name="remote_trust_bind_local">Bind this device</string>
-    <string name="remote_trust_go_settings">Open settings</string>
     <string name="remote_trust_service_entry">Service</string>
     <string name="remote_trust_done">Done</string>
     <string name="remote_trust_bind_code_inline">Code %1$s</string>
     <string name="remote_trust_bind_code_empty">Code --</string>
     <string name="remote_trust_bind_code_loading">Code ...</string>
     <string name="remote_trust_bind_code_unavailable">Not configured</string>
-    <string name="remote_trust_command_result_title">Result</string>
     <string name="remote_trust_command_log_title">Log</string>
     <string name="remote_trust_result_action">Action</string>
     <string name="remote_trust_result_status">Status</string>
@@ -261,7 +226,6 @@
     <string name="remote_trust_back_devices">Back</string>
     <string name="remote_trust_send_search">Send search</string>
     <string name="remote_trust_send_push">Push playback</string>
-    <string name="remote_trust_config_hint">Choose a local config or enter a URL manually.</string>
     <string name="remote_trust_config_type">Type</string>
     <string name="remote_trust_config_type_vod">VOD</string>
     <string name="remote_trust_config_type_live">Live</string>
@@ -273,7 +237,6 @@
     <string name="remote_trust_config_list">List configs</string>
     <string name="remote_trust_config_add">Add</string>
     <string name="remote_trust_config_edit">Edit</string>
-    <string name="remote_trust_config_active">Active</string>
     <string name="remote_trust_config_loading">Loading remote configs…</string>
     <string name="remote_trust_config_load_failed">Failed to load configs</string>
     <string name="remote_trust_config_remote_empty">No configs on the remote device</string>
@@ -282,8 +245,6 @@
     <string name="remote_trust_config_add_local_summary">Local %1$s config</string>
     <string name="remote_trust_config_add_manual_summary">Manual %1$s config</string>
     <string name="remote_trust_config_edit_summary">Edit %1$s config</string>
-    <string name="remote_trust_config_save">Continue</string>
-    <string name="remote_trust_config_save_remote">Save to remote</string>
     <string name="remote_trust_config_upsert">Save config</string>
     <string name="remote_trust_config_use">Switch config</string>
     <string name="remote_trust_config_home">Home site</string>
@@ -310,16 +271,13 @@
     <string name="remote_trust_result_site_count">Sites: %1$d</string>
     <string name="remote_trust_config_home_empty">No sites found after parsing this config</string>
     <string name="remote_trust_sync_confirm">Send this device default sync data to %1$s and overwrite related target data?</string>
-    <string name="remote_trust_sync_started">Sync task created. The source device uploads data first, then the target device restores it.</string>
     <string name="remote_trust_sync_self_forbidden">Cannot sync this device to itself</string>
     <string name="remote_trust_sync_missing_id">Sync task failed: missing task ID</string>
     <string name="remote_trust_sync_device">Device</string>
-    <string name="remote_trust_sync_task">Task</string>
     <string name="remote_trust_sync_uploaded">Uploaded</string>
     <string name="remote_trust_sync_message">Info</string>
     <string name="remote_trust_sync_running">Syncing</string>
     <string name="remote_trust_sync_progress">Progress: %1$d/%2$d</string>
-    <string name="remote_trust_sync_background_hint">You can close this window; sync continues in the background. Reopen it to view recent progress.</string>
     <string name="remote_trust_sync_step_line">%1$d. %2$s: %3$s</string>
     <string name="remote_trust_sync_step_create">Create task</string>
     <string name="remote_trust_sync_step_export">Export this device</string>
@@ -416,7 +374,6 @@
     <string name="playback_webhook_summary">Active %1$d · Total %2$d</string>
     <string name="playback_webhook_name">Name</string>
     <string name="playback_webhook_url">Endpoint URL</string>
-    <string name="playback_webhook_token">Server token</string>
     <string name="playback_webhook_token_optional">Server token, optional</string>
     <string name="playback_webhook_site_keys">Site keys, blank for all</string>
     <string name="playback_webhook_preset">Field preset</string>
@@ -425,7 +382,6 @@
     <string name="playback_webhook_preset_full">Complete</string>
     <string name="playback_webhook_preset_anonymous">Anonymous</string>
     <string name="playback_webhook_preset_custom">Custom</string>
-    <string name="playback_webhook_fields">Custom fields</string>
     <string name="playback_webhook_fields_summary">Fields: %1$s</string>
     <string name="playback_webhook_select_fields">Select fields</string>
     <string name="playback_webhook_interval">Progress interval</string>
@@ -478,22 +434,13 @@
     <string name="web_home_extension_add_source">Add</string>
     <string name="web_home_extension_debug">Debug</string>
     <string name="web_home_extension_refresh">Refresh</string>
-    <string name="web_home_extension_clear_cache">Clear</string>
-    <string name="web_home_extension_user_sources">User sources</string>
-    <string name="web_home_extension_loaded_extensions">Loaded extensions</string>
-    <string name="web_home_extension_user_source_status">User source · %1$s</string>
-    <string name="web_home_extension_site_scope">Site: %1$s</string>
     <string name="web_home_extension_add_file">File</string>
     <string name="web_home_extension_add_link">Link</string>
     <string name="web_home_extension_add_code">Code</string>
-    <string name="web_home_extension_add_form">Form</string>
     <string name="web_home_extension_form_mode">Form</string>
     <string name="web_home_extension_text_mode">Text (JSON)</string>
     <string name="web_home_extension_source_type">Source type</string>
-    <string name="web_home_extension_choose_file">Choose file</string>
     <string name="web_home_extension_edit_source">Edit source</string>
-    <string name="web_home_extension_edit_code">Edit local code</string>
-    <string name="web_home_extension_edit_form">Edit form</string>
     <string name="web_home_extension_link_hint">Extension link</string>
     <string name="web_home_extension_json_hint">User extension sources JSON</string>
     <string name="web_home_extension_name_hint">Name</string>
@@ -543,18 +490,14 @@
     <string name="web_home_extension_save_preview">Save</string>
     <string name="web_home_extension_network_all">All</string>
     <string name="web_home_extension_network_web">Resources</string>
-    <string name="web_home_extension_network_fetch">Fetch</string>
-    <string name="web_home_extension_network_xhr">XHR</string>
     <string name="web_home_extension_network_script">Scripts</string>
     <string name="web_home_extension_network_error">Errors</string>
-    <string name="web_home_extension_network_native">Native</string>
     <string name="web_home_extension_network_detail">Request detail</string>
     <string name="web_home_extension_network_detail_smaller">-</string>
     <string name="web_home_extension_network_detail_bigger">+</string>
     <string name="web_home_extension_network_filter">Filter URL / status / detail</string>
     <string name="web_home_extension_network_empty">No requests captured for this filter</string>
     <string name="web_home_extension_network_select">Select a request to view details.</string>
-    <string name="web_home_extension_network_clear">Clear requests</string>
     <string name="setting_shell_proxy">Proxy</string>
     <string name="setting_shell_proxy_config">Proxy</string>
     <string name="setting_custom_csp">Site Injection</string>
@@ -584,7 +527,6 @@
     <string name="setting_custom_csp_ext">ext</string>
     <string name="setting_custom_csp_home">Home</string>
     <string name="setting_custom_csp_home_page">homePage</string>
-    <string name="setting_custom_csp_home_page_optional">homePage</string>
     <string name="setting_custom_csp_extensions_toggle">Extensions</string>
     <string name="setting_custom_csp_extensions">Extension URL / JSON</string>
     <string name="setting_custom_csp_extensions_file">File</string>
@@ -602,7 +544,6 @@
     <string name="setting_custom_csp_live_name">Live %1$d</string>
     <string name="setting_custom_csp_other_name">Other %1$d</string>
     <string name="setting_custom_csp_other_fields">field</string>
-    <string name="setting_custom_csp_other_json">value JSON</string>
     <string name="setting_custom_csp_key">key</string>
     <string name="setting_custom_csp_type">type</string>
     <string name="setting_custom_csp_player_type">playerType</string>
@@ -624,7 +565,6 @@
     <string name="setting_custom_csp_searchable">searchable</string>
     <string name="setting_custom_csp_changeable">changeable</string>
     <string name="setting_custom_csp_quick_search">quickSearch</string>
-    <string name="setting_custom_csp_insert">Insert position</string>
     <string name="setting_custom_csp_insert_decrease">Decrease insert position</string>
     <string name="setting_custom_csp_insert_increase">Increase insert position</string>
     <string name="setting_custom_csp_import">File</string>
@@ -633,10 +573,7 @@
     <string name="setting_custom_csp_jar">Jar</string>
     <string name="setting_custom_csp_link">Link</string>
     <string name="setting_custom_csp_up">Move up</string>
-    <string name="setting_proxy_url">socks5://127.0.0.1:9978</string>
     <string name="setting_proxy_hosts">Matched hosts</string>
-    <string name="setting_proxy_rules">Proxy rules</string>
-    <string name="setting_proxy_rules_raw">Raw rules</string>
     <string name="setting_proxy_rules_hint">Raw JSON: {&quot;proxy&quot;:[{&quot;hosts&quot;:[&quot;example.com&quot;],&quot;urls&quot;:[&quot;socks5://127.0.0.1:1080&quot;]}]}</string>
     <string name="setting_proxy_default_url">Default proxy URL</string>
     <string name="setting_proxy_rule_url">Proxy URL</string>
@@ -676,12 +613,10 @@
     <string name="setting_ui_scale">Interface size</string>
     <string name="dialog_close">Close</string>
     <string name="setting_doh">DoH</string>
-    <string name="setting_proxy">Proxy</string>
     <string name="setting_cache">Cache</string>
     <string name="setting_backup">Backup</string>
     <string name="setting_restore">Restore</string>
     <string name="setting_about">About</string>
-    <string name="setting_version">Version</string>
     <string name="setting_choose">Choose</string>
     <string name="setting_delete">Delete</string>
     <string name="setting_disable">Disable</string>
@@ -719,9 +654,7 @@
     <string name="sync_remote_device">Selected device</string>
     <string name="sync_sender">Sender</string>
     <string name="sync_receiver">Receiver</string>
-    <string name="sync_direction_change">Switch sync direction</string>
     <string name="sync_change_device">Select</string>
-    <string name="sync_switch_short">Switch</string>
     <string name="sync_push">Push</string>
     <string name="sync_pull">Pull</string>
     <string name="sync_select_all">Select all</string>
@@ -741,7 +674,6 @@
     <string name="sync_device_tv">TV</string>
     <string name="sync_discovering">Discovering devices...</string>
     <string name="sync_no_device">No device found. Keep both devices on the same LAN with WebHTV open, then refresh.</string>
-    <string name="sync_selected">Selected: %1$s · %2$s</string>
     <string name="sync_start">Start sync</string>
     <string name="sync_cancel">Cancel sync</string>
     <string name="sync_prepare_files">Preparing sync files...</string>
@@ -755,7 +687,6 @@
     <string name="sync_receive_success">Sync data received</string>
     <string name="apk_push_url_busy">Another APK link download is already active</string>
     <string name="apk_push_url_schedule_failed">Unable to start the APK link download</string>
-    <string name="apk_push_url_downloading">APK link received. Downloading on this device...</string>
     <string name="apk_push_url_install_ready">APK downloaded. Confirm installation.</string>
     <string name="apk_push_url_download_failed">APK link download failed: %1$s</string>
     <string name="apk_push_url_progress_title">Receiving APK</string>
@@ -768,8 +699,6 @@
     <string name="apk_push_url_canceled">APK download canceled</string>
     <string name="sync_paths_title">Sync folders</string>
     <string name="sync_paths_edit">Edit</string>
-    <string name="sync_paths_desc">One external-storage relative path per line. TV, TVBox and TVData are synced by default. You can add local package folders; folder contents are synced with Jar/script saved data.</string>
-    <string name="sync_paths_hint">TV&#10;TVBox&#10;TVData</string>
     <string name="sync_paths_up">Collapse</string>
     <string name="sync_paths_refresh">Refresh</string>
     <string name="sync_paths_enter">Open folder</string>
@@ -797,14 +726,10 @@
     <string name="login_state_preview_truncated">Read-only preview, content is truncated</string>
     <string name="login_state_paths_title">Login state paths</string>
     <string name="login_state_manage_paths">Manage paths</string>
-    <string name="login_state_paths_empty_selected">No login state paths selected</string>
-    <string name="login_state_paths_selected_count">%1$d selected, %2$d ready, %3$d missing</string>
     <string name="login_state_paths_empty_selected_with_pending">No login state paths selected · %1$d pending</string>
     <string name="login_state_paths_selected_count_with_pending">%1$d selected, %2$d ready, %3$d missing · %4$d pending</string>
     <string name="login_state_confirm_pending">Select pending</string>
-    <string name="login_state_confirm_pending_count">Select pending %1$d</string>
     <string name="login_state_confirm_empty">No items waiting for confirmation</string>
-    <string name="login_state_confirm_done">%1$d pending items selected</string>
     <string name="login_state_reveal_pending">Show pending</string>
     <string name="login_state_reveal_pending_count">Show pending %1$d</string>
     <string name="login_state_pending_revealed">%1$d pending items are shown in the tree</string>
@@ -822,7 +747,6 @@
     <string name="login_state_state_missing">Missing</string>
 
     <!-- Player -->
-    <string name="player">Player</string>
     <string name="player_render">Render</string>
     <string name="player_button_config">Player buttons</string>
     <string name="player_button_config_summary">%1$d/%2$d shown</string>
@@ -833,90 +757,13 @@
     <string name="player_exo_4k_compat">Playback performance</string>
     <string name="player_immersive_audio_mode">Immersive audio mode</string>
     <string name="player_performance">Playback performance</string>
-    <string name="player_performance_recommended">Balanced</string>
     <string name="player_performance_auto">Auto</string>
-    <string name="player_performance_compatible">Compatible</string>
     <string name="player_performance_lightweight">Light</string>
     <string name="player_performance_help">Guide</string>
     <string name="player_performance_help_title">Playback performance guide</string>
     <string name="player_performance_help_close">Close</string>
     <string name="player_performance_help_intro">Current player engine: %1$s. Most users should leave the profile on Auto. Light targets lower-end devices, combines stability choices from the former Compatible profile with lower fixed resource budgets, and replaces that separate profile. Engine-specific decode, output, and protocol controls remain available below for unusual devices and create a Custom profile when changed. Most low-level changes take effect after playback restarts or the player is rebuilt.</string>
     <string name="player_performance_common_section">Common settings</string>
-    <string name="player_performance_profile_merge">Balanced profile merge</string>
-    <string name="player_performance_profile_merge_enabled">Merged into Auto · rollback available</string>
-    <string name="player_performance_profile_merge_rolled_back">Legacy Balanced restored</string>
-    <string name="player_performance_profile_merge_help">Balanced is merged into Auto by default. Legacy Balanced selections are migrated independently for EXO, MPV and IJK, while Compatible, Light and Custom selections are preserved. Local rollback restores only migrated engines that still remain on Auto; choices made after migration are not overwritten. The historical A/B report stays available, but real device acceptance has not been established by build or JVM tests.</string>
-    <string name="player_performance_profile_merge_rollback_title">Restore the legacy Balanced profile?</string>
-    <string name="player_performance_profile_merge_rollback_message">The Balanced tab will return. Engines migrated from Balanced will be restored only if they are still on Auto. Compatible, Light or Custom choices made after migration will not be changed. A/B collection remains off until you explicitly enroll again.</string>
-    <string name="player_performance_profile_merge_rollback_confirm">Restore Balanced</string>
-    <string name="player_performance_profile_merge_enable_title">Merge Balanced into Auto again?</string>
-    <string name="player_performance_profile_merge_enable_message">Legacy Balanced selections will be migrated to Auto independently for each engine and the Balanced tab will be hidden. Existing A/B samples are retained, while new collection is disabled. Compatible, Light and Custom choices are preserved.</string>
-    <string name="player_performance_profile_merge_enable_confirm">Merge into Auto</string>
-    <string name="player_performance_lightweight_assessment_collection">Auto/Light assessment collection</string>
-    <string name="player_performance_lightweight_assessment_help">This is an internal, device-local observational V-06A assessment. It is off by default, has no user-facing enrollment entry and never randomizes profiles. It observes only the selected Auto or Light profile, and admits only hardware-decoded sessions on low-RAM devices or sessions that actually use software decoding. Internal experiment authorization and the current engine domain must both be enabled. Passing only permits a further product review; it never hides or removes Light automatically.</string>
-    <string name="player_performance_lightweight_assessment_enable_title">Join the Auto/Light assessment?</string>
-    <string name="player_performance_lightweight_assessment_enable_message">Samples stay on this device, are not uploaded or backed up, and never switch profiles automatically. Only low-RAM hardware decoding or actual software decoding enters the report. Every valid group needs at least 20 usable Auto and 20 usable Light samples. Pause, seek, speed changes, profile changes and experimental interventions invalidate the current sample.</string>
-    <string name="player_performance_lightweight_assessment_enable_confirm">Join assessment</string>
-    <string name="player_performance_lightweight_assessment_report">Auto/Light assessment report</string>
-    <string name="player_performance_lightweight_assessment_report_value">Auto %1$d · Light %2$d · %3$s</string>
-    <string name="player_performance_lightweight_assessment_report_title">Auto/Light device-local assessment</string>
-    <string name="player_performance_lightweight_assessment_report_summary">Status: %1$s\nAuto samples: %2$d\nLight samples: %3$d\nGroups: %4$d\nEvaluable groups: %5$d\nPassed: %6$d\nFailed: %7$d\nInsufficient or missing: %8$d\nCritical coverage: %9$d / %10$d\n\nFurther retention review requires all six EXO, MPV and IJK low-RAM hardware/software cells and every group to pass. This report never removes the Light profile automatically.</string>
-    <string name="player_performance_lightweight_assessment_coverage_missing">Coverage cells missing</string>
-    <string name="player_performance_lightweight_assessment_missing_coverage">Missing coverage</string>
-    <string name="player_performance_lightweight_assessment_coverage_low_ram_hardware">low-RAM hardware</string>
-    <string name="player_performance_lightweight_assessment_coverage_software">software decode</string>
-    <string name="player_performance_lightweight_assessment_clear">Clear Light assessment</string>
-    <string name="player_performance_lightweight_assessment_clear_title">Clear Auto/Light samples?</string>
-    <string name="player_performance_lightweight_assessment_clear_message">All device-local Auto/Light assessment samples will be deleted. Enrollment remains and eligible sessions can be collected again. The historical Auto/Balanced A/B report is unaffected.</string>
-    <string name="player_performance_lightweight_assessment_clear_confirm">Clear samples</string>
-    <string name="player_performance_compatibility_assessment">Compatible retention assessment</string>
-    <string name="player_performance_compatibility_assessment_help">V-06B is a fail-closed audit of whether the Compatible profile can ever be reconsidered. It checks EXO, MPV and IJK coverage for codec failures, hardware capability misreporting, output-mode faults, and protocol/Range faults, plus visual-correctness detection and long-term problem-device evidence. Existing recovery is bounded and depends on explicit errors or observable metrics. Green screens, wrong colors or an incorrect picture without a decoder error cannot currently be detected reliably, so the present conclusion is to retain Compatible. This report never hides, migrates or removes a profile.</string>
-    <string name="player_performance_compatibility_assessment_value">%1$s · reliable %2$d / %3$d</string>
-    <string name="player_performance_compatibility_assessment_title">Compatible profile retention assessment</string>
-    <string name="player_performance_compatibility_assessment_summary">Current conclusion: %1$s\nReliable coverage: %2$d / %3$d\nLimited: %4$d\nUnverified: %5$d\nUnobservable: %6$d\nMissing: %7$d\n\nEvery requirement must have reliable automated recovery and long-term device evidence before further review. Even full coverage would only permit another product decision; this report never removes Compatible automatically.</string>
-    <string name="player_performance_compatibility_assessment_blockers">Current blockers</string>
-    <string name="player_performance_compatibility_assessment_retain">Retain Compatible</string>
-    <string name="player_performance_compatibility_assessment_review">Further review possible</string>
-    <string name="player_performance_compatibility_coverage_reliable">reliable</string>
-    <string name="player_performance_compatibility_coverage_limited">limited</string>
-    <string name="player_performance_compatibility_coverage_unverified">unverified</string>
-    <string name="player_performance_compatibility_coverage_unobservable">unobservable</string>
-    <string name="player_performance_compatibility_coverage_missing">missing</string>
-    <string name="player_performance_compatibility_area_codec">codec initialization/runtime recovery</string>
-    <string name="player_performance_compatibility_area_hardware_misreport">hardware capability misreport recovery</string>
-    <string name="player_performance_compatibility_area_output">output-mode fault recovery</string>
-    <string name="player_performance_compatibility_area_protocol">protocol and Range fault recovery</string>
-    <string name="player_performance_compatibility_area_visual">green-screen, wrong-color and incorrect-picture detection</string>
-    <string name="player_performance_compatibility_area_device_evidence">long-term evidence from problem devices</string>
-    <string name="player_performance_experiment_profile_ab_collection">Auto/balanced A/B collection</string>
-    <string name="player_performance_experiment_profile_ab_invalid">Invalid or stale enrollment</string>
-    <string name="player_performance_experiment_profile_ab_enable_title">Join Auto/balanced validation?</string>
-    <string name="player_performance_experiment_profile_ab_enable_message">This internal collection is off by default, has no user-facing enrollment entry and stays on this device. It observes only the selected Auto or balanced profile; it never randomizes or changes profiles. Samples are admitted only while internal experiment authorization and the current engine domain are enabled. They store bounded numeric metrics and enum/digest grouping facts, never URLs, hosts, paths, headers, raw fingerprints or decoder names. The report cannot merge or migrate profiles automatically.</string>
-    <string name="player_performance_experiment_profile_ab_enable_confirm">Join validation</string>
-    <string name="player_performance_experiment_profile_ab_help">Device-local, opt-in infrastructure for comparing Auto and balanced within the same device, engine, decoder, protocol, stream, MIME/HDR and path group. Successful samples require at least 30 seconds of valid playback; attributable playback errors can be retained to avoid survivor bias. Data expires after 30 days and is bounded. The report needs at least 20 usable samples per arm for every group and never changes a profile.</string>
-    <string name="player_performance_experiment_profile_ab_report">Auto/balanced A/B report</string>
-    <string name="player_performance_experiment_profile_ab_report_value">Auto %1$d · Balanced %2$d · %3$s</string>
-    <string name="player_performance_experiment_profile_ab_report_title">Auto/balanced local validation report</string>
-    <string name="player_performance_experiment_profile_ab_report_summary">Status: %1$s\nAuto samples: %2$d\nBalanced samples: %3$d\nGroups: %4$d\nEvaluable groups: %5$d\nPassed: %6$d\nFailed: %7$d\nInsufficient or missing: %8$d\n\nThis device-local report is evidence only and never changes the current merge state by itself.</string>
-    <string name="player_performance_experiment_profile_ab_no_data">No data</string>
-    <string name="player_performance_experiment_profile_ab_insufficient">Insufficient samples</string>
-    <string name="player_performance_experiment_profile_ab_metrics_missing">Metrics missing</string>
-    <string name="player_performance_experiment_profile_ab_passed">Passed</string>
-    <string name="player_performance_experiment_profile_ab_failed">Failed</string>
-    <string name="player_performance_experiment_profile_ab_failed_metrics">Regressed metrics</string>
-    <string name="player_performance_experiment_profile_ab_missing_metrics">Missing metrics</string>
-    <string name="player_performance_experiment_profile_ab_metric_first_frame">first frame</string>
-    <string name="player_performance_experiment_profile_ab_metric_rebuffer_ratio">rebuffer ratio</string>
-    <string name="player_performance_experiment_profile_ab_metric_rebuffer_count">rebuffer count</string>
-    <string name="player_performance_experiment_profile_ab_metric_peak_pss">peak PSS</string>
-    <string name="player_performance_experiment_profile_ab_metric_dropped">dropped-frame rate</string>
-    <string name="player_performance_experiment_profile_ab_metric_live_lag">live lag</string>
-    <string name="player_performance_experiment_profile_ab_metric_error_rate">playback error rate</string>
-    <string name="player_performance_experiment_profile_ab_clear">Clear local report</string>
-    <string name="player_performance_experiment_profile_ab_clear_title">Clear Auto/balanced samples?</string>
-    <string name="player_performance_experiment_profile_ab_clear_message">All device-local Auto/balanced validation samples will be deleted. If legacy Balanced is restored, collection can be explicitly enrolled again.</string>
-    <string name="player_performance_experiment_profile_ab_clear_confirm">Clear samples</string>
-    <string name="pan_diagnostic_section">Diagnostics</string>
     <string name="pan_diagnostic_entry">Link test</string>
     <string name="pan_diagnostic_title">Playback link diagnostics</string>
     <string name="player_kernel">Player engine</string>
@@ -936,21 +783,16 @@
     <string name="disc_menu_open_hint">Open the disc top menu. Long press for navigation controls.</string>
     <string name="disc_menu_navigation">Menu navigation</string>
     <string name="disc_menu_touch_hint">Tap the disc buttons directly, or select with these controls.</string>
-    <string name="mpv_config_target">%1$s · %2$s</string>
     <string name="mpv_config_default">Default</string>
     <string name="mpv_config_local">Local mpv.conf</string>
     <string name="mpv_config_url">URL mpv.conf</string>
-    <string name="mpv_config_name_hint">Name (optional)</string>
-    <string name="mpv_config_history">History</string>
     <string name="mpv_config_history_empty">No MPV config history</string>
-    <string name="mpv_config_script_hint">Script URL or choose local script</string>
     <string name="mpv_config_scripts_count">%1$d scripts</string>
     <string name="mpv_config_custom_buttons">Script buttons</string>
     <string name="mpv_config_custom_button_new">New script button</string>
     <string name="mpv_config_custom_button_new_desc">Add a button to the player controls</string>
     <string name="mpv_config_custom_button_title">Script buttons</string>
     <string name="mpv_config_custom_button_subtitle">Manage playback buttons in the script list</string>
-    <string name="mpv_config_custom_button_empty">No custom buttons yet</string>
     <string name="mpv_config_custom_button_empty_slot">Empty slot</string>
     <string name="mpv_config_custom_button_drag">Drag to reorder</string>
     <string name="mpv_config_custom_button_import_export">Import / Export</string>
@@ -961,7 +803,6 @@
     <string name="mpv_config_custom_button_exported">Buttons exported</string>
     <string name="mpv_config_custom_button_file_invalid">Unable to read or write the selected file</string>
     <string name="mpv_config_custom_button_lua_section">Lua scripts</string>
-    <string name="mpv_config_custom_button_add">New script button</string>
     <string name="mpv_config_custom_button_edit">Edit script button</string>
     <string name="mpv_config_custom_button_name">Button title</string>
     <string name="mpv_config_custom_button_name_hint">For example: Change quality</string>
@@ -969,12 +810,9 @@
     <string name="mpv_config_custom_button_long">Long press Lua</string>
     <string name="mpv_config_custom_button_startup">Run on MPV startup</string>
     <string name="mpv_config_custom_button_enabled">Enable button</string>
-    <string name="mpv_config_custom_button_enabled_short">ON</string>
-    <string name="mpv_config_custom_button_disabled_short">OFF</string>
     <string name="mpv_config_custom_button_delete">Delete button</string>
     <string name="mpv_config_custom_button_delete_message">Delete “%1$s”?</string>
     <string name="mpv_config_custom_button_saved">Custom button saved</string>
-    <string name="mpv_config_custom_buttons_limit">You can add up to 8 custom buttons</string>
     <string name="mpv_config_custom_buttons_invalid">Invalid custom button id</string>
     <string name="mpv_config_custom_button_trigger">Trigger</string>
     <string name="mpv_config_custom_button_trigger_click">Click</string>
@@ -993,7 +831,6 @@
     <string name="mpv_config_script_import_url_desc">Download and save a remote Lua/JS script</string>
     <string name="mpv_config_script_import_file">Import script file</string>
     <string name="mpv_config_script_import_file_desc">Choose a Lua/JS script file from this device</string>
-    <string name="mpv_config_saved">MPV config saved. Reopen playback to apply it.</string>
     <string name="mpv_config_empty">MPV config is empty</string>
     <string name="mpv_config_file_invalid">Invalid mpv.conf file</string>
     <string name="mpv_config_url_invalid">Invalid mpv.conf URL</string>
@@ -1011,8 +848,6 @@
     <string name="mpv_config_delete_message">Delete “%1$s”? This cannot be undone.</string>
     <string name="mpv_config_create_title">New config</string>
     <string name="mpv_config_create_desc">Choose how to start. Leave the name blank to generate one automatically.</string>
-    <string name="mpv_config_done">Done</string>
-    <string name="mpv_config_name">Name</string>
     <string name="mpv_config_name_optional">Name (optional)</string>
     <string name="mpv_config_name_example">For example: 4K playback</string>
     <string name="mpv_config_name_required">Enter a config name</string>
@@ -1041,10 +876,7 @@
     <string name="mpv_config_write_failed">Unable to write the MPV config file</string>
     <string name="mpv_config_script_exists">A script with this name already exists</string>
     <string name="mpv_config_default_copy">Default config copy</string>
-    <string name="mpv_config_current">Currently using: %1$s</string>
-    <string name="mpv_config_apply_selected">Apply selected</string>
     <string name="mpv_config_close">Close</string>
-    <string name="player_libass">libass</string>
     <string name="player_caption">Caption style</string>
     <string name="player_background">Background play</string>
     <string name="player_audio_decode">Audio software decode</string>
@@ -1080,7 +912,6 @@
     <string name="lut_title_value">%1$s · %2$s</string>
     <string name="lut_strength_value">Strength %1$d%%</string>
     <string name="lut_preview_delay_value">%1$ds</string>
-    <string name="lut_import">Import</string>
     <string name="lut_local">Local</string>
     <string name="lut_reset">Reset</string>
     <string name="lut_all">All</string>
@@ -1165,14 +996,12 @@
     <string name="error_play_stage_output">Audio/video output failed. Reopen playback or try another decode mode.</string>
     <string name="error_play_stage_drm">DRM authorization or protected-media handling failed. Choose another line or player.</string>
     <string name="error_play_stage_unknown">Playback failed. Retry or switch player.</string>
-    <string name="error_play_flag">No flag data</string>
     <string name="error_play_timeout">Timed out</string>
     <string name="error_play_tvbus">Error code: <xliff:g name="name">%s</xliff:g></string>
     <string name="error_detail">No play data</string>
     <string name="error_empty">Nothing here 👀</string>
 
     <!-- Update -->
-    <string name="update_version">New version <xliff:g name="name">%s</xliff:g></string>
     <string name="update_title">Version update</string>
     <string name="update_hint">Choose a version to view release notes and update.</string>
     <string name="update_check">Checking for updates…</string>
@@ -1201,7 +1030,6 @@
     <string name="update_status_latest">Latest</string>
     <string name="update_status_unavailable">Unavailable</string>
     <string name="update_expand">Expand</string>
-    <string name="update_collapse">Collapse</string>
     <string name="update_settings">Update settings</string>
     <string name="update_settings_title">Update settings</string>
     <string name="update_settings_source">Download method</string>
@@ -1260,7 +1088,6 @@
     <string name="yes">Yes</string>
     <string name="none">None</string>
     <string name="times">times</string>
-    <string name="lines">lines</string>
 
     <string-array name="select_decode">
         <item>Soft</item>
@@ -1518,16 +1345,12 @@
     <string name="player_lyrics_result_item">%1$s · %2$s · %3$d\n%4$s - %5$s</string>
     <string name="player_lyrics_rows_value">%1$d rows</string>
 
-
     <string-array name="select_lyrics_size">
         <item>Small</item>
         <item>Default</item>
         <item>Large</item>
         <item>Extra large</item>
     </string-array>
-
-
-
 
     <string-array name="select_lyrics_source">
         <item>Auto</item>
@@ -1541,15 +1364,11 @@
         <item>Migu</item>
     </string-array>
 
-
-
-
     <string-array name="select_karaoke_difficulty">
         <item>Easy</item>
         <item>Standard</item>
         <item>Strict</item>
     </string-array>
-
 
     <string name="player_audio_badge_queue">Queue</string>
     <string name="player_audio_repeat">Repeat</string>
@@ -1559,8 +1378,6 @@
     <string name="danmaku_send_local_only">Shown on this device only: the danmaku API and player can display a comment but expose no upload endpoint.</string>
     <string name="danmaku_send_unavailable">Player is not ready</string>
     <string name="play_ab_loop">A-B</string>
-    <string name="play_ab_loop_set">A</string>
-    <string name="play_ab_loop_end">B</string>
     <string name="play_ab_loop_clear">A-B</string>
     <string name="play_ab_loop_a">A %s</string>
     <string name="play_ab_loop_ab">A-B %s - %s</string>
@@ -1569,5 +1386,4 @@
     <string name="play_screenshot">Shot</string>
     <string name="play_screenshot_saved">Screenshot saved: %s</string>
     <string name="play_screenshot_failed">Screenshot failed</string>
-    <string name="play_screenshot_share">Share</string>
 </resources>
