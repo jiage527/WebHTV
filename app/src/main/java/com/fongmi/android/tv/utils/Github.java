@@ -1,13 +1,19 @@
 package com.fongmi.android.tv.utils;
 
+import com.fongmi.android.tv.BuildConfig;
+
 public class Github {
 
-    private static final String GITHUB_LATEST = "https://github.com/fish2018/webhtv/releases/latest/download";
-    private static final String GITHUB_RELEASE = "https://github.com/fish2018/webhtv/releases/download";
-    private static final String GITHUB_API = "https://api.github.com/repos/fish2018/webhtv/releases/tags";
-    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/fish2018/webhtv/releases";
-    private static final String GITHUB_RELEASE_ASSETS_API = "https://api.github.com/repos/fish2018/webhtv/releases/assets";
-    private static final String CNB = "https://cnb.cool/fish2035/webhtv-release/-/git/raw/main";
+    private static final String GITHUB_LATEST = "https://github.com/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/latest/download";
+    private static final String GITHUB_RELEASE = "https://github.com/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/download";
+    private static final String GITHUB_API = "https://api.github.com/repos/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/tags";
+    private static final String GITHUB_RELEASES_API = "https://api.github.com/repos/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases";
+    private static final String GITHUB_RELEASE_ASSETS_API = "https://api.github.com/repos/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/assets";
+    private static final String CNB = BuildConfig.UPDATE_CNB_BASE;
+
+    public static String getRepoUrl() {
+        return BuildConfig.UPDATE_REPO_URL;
+    }
 
     public static String getCnbAsset(String name) {
         return CNB + "/apk/" + name;
