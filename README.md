@@ -363,10 +363,10 @@ keyPassword=your_key_password
 - `third_party/maven`:已生成的 `androidx.media3:*:1.11.0-alpha01-fongmi` 本地 Maven 产物，以及定制 `nextlib-media3ext`。
 - `third_party/media-lock.json`:记录 Media3、nextlib、FFmpeg、NDK 与 CMake 的精确构建输入，配套脚本为 `scripts/build_media_deps.sh`。
 - `third_party/patches/media3-*.patch`:在锁定的 FongMi Media3 源码上叠加本项目补丁；`media3-upstream-playback-fixes-2026-08.patch` 选择性移植 AV1/HEVC HDR 元数据、scrub、DASH、LL-HLS、MP4 IT.35、MediaSession 和 detached Surface 等上游修复，`media3-danmaku-live.patch` 提供 WebSocket 实时弹幕的批量接收、有界队列、TTL、每帧处理上限和聚合统计，`media3-dolby-vision-matroska.patch` 将 MKV `BlockAdditional` 中的 Dolby Vision RPU 追加到对应 HEVC sample，供 Exo 的 DV7 转换链处理。
-- `third_party/patches/nextlib-*.patch`:在 `anilbeesetti/nextlib@6ff6cf9d0820382b3c233d018c52e4163b09d345` 上叠加 FFmpeg 软解负载控制和 AV3A/libarcdav3a 支持。
+- `third_party/patches/nextlib-*.patch`:在 `anilbeesetti/nextlib@6ff6cf9d0820382b3c233d018c52e4163b09d345` 上叠加 FFmpeg 软解负载控制、AV3A/libarcdav3a、APE 支持和 AVS3 支持，当前修订为 `r5`。
 - `third_party/mpv-player-jni`:MPV `libplayer.so` JNI 桥接源码，修改后用 `scripts/build_mpv_player_jni.sh` 重建。
 - `app/src/*/assets/mpv-libs/*`:随 APK 打包的 MPV native 库和 JNI 桥接库。
-- `nextlib-media3ext`:`io.github.anilbeesetti:nextlib-media3ext:1.10.0-0.12.1-fongmi-softload-av3a-ffmpeg901-r1`，提供 FFmpeg renderer；内置 FongMi FFmpeg `177f090e0503b7e013922ca903bde14b1c375f18`（9.0.1）和静态链接的 `libarcdav3a`，Exo 可软解 `audio/av3a`，并在输出设备不接受源多声道 PCM 时下混到立体声。MPV C0-M 现在使用同一 FFmpeg 源 revision，但仍独立构建 `libmv*`/`libmw*`，不能共用该 AAR 内的 `.so`。
+- `nextlib-media3ext`:`io.github.anilbeesetti:nextlib-media3ext:1.10.0-0.12.1-fongmi-softload-av3a-avs3-ffmpeg901-r5`，提供 FFmpeg renderer；内置 FongMi FFmpeg `177f090e0503b7e013922ca903bde14b1c375f18`（9.0.1）、静态链接的 `libarcdav3a` 和 AVS3，Exo 可软解 `audio/av3a` 与 AVS3，并在输出设备不接受源多声道 PCM 时下混到立体声。精确修订与补丁清单见下文[依赖版本清单与升级路径](#依赖版本清单与升级路径)。MPV C0-M 现在使用同一 FFmpeg 源 revision，但仍独立构建 `libmv*`/`libmw*`，不能共用该 AAR 内的 `.so`。
 - `ExoplayerHdrUtils`:`com.suyashbelekar:exoplayerhdrutils:0.4.0`，提供基于 libdovi 的实时 HEVC RPU 转换。Exo 按“原生 DV7 硬解 → P8.1 转换硬解 → HDR10/HEVC 硬解”选择整次播放路径：原生 DV7 可用时保持原码流；原生 DV7 不可用但 P8.1 可用时使用 mode 2 转换并移除增强层；两者都不可用而设备支持 HDR10/HEVC 时，起播前直接使用 HDR10 基底层。能力查询误报或 P8.1 实际初始化/解码失败时，同一会话最多回退 HDR10 一次，不自动切软解或循环重试；用户选择 HDR10 模式时仍整次使用 HDR10 基底层。
 
 `settings.gradle` 中的依赖顺序是仓库本地 `third_party/maven`、Maven Central、Google Maven、`app/libs` 和 JitPack。`app/build.gradle` 会强制所有 `androidx.media3` 依赖使用 `1.11.0-alpha01-fongmi`，避免传递依赖拉回官方版本。
@@ -389,6 +389,63 @@ scripts/build_media_deps.sh --nextlib-only
 ```
 
 该命令使用 NDK `28.2.13676358`、CMake `3.22.1` 为 `arm64-v8a` 和 `armeabi-v7a` 重编 FFmpeg/libarcdav3a，校验两端 `libavcodec.so` 的 AV3A 标记后发布到 `third_party/maven`。真实样片来源、SHA-256、实机步骤和验收结果见 [Exo AV3A 验收记录](docs/exo-av3a-acceptance-2026-08-11.md)。
+
+### 依赖版本清单与升级路径
+
+各层依赖各有唯一事实来源，本节数值取自这些文件；改动依赖时同步更新本表。
+
+| 层 | 版本声明位置 |
+| --- | --- |
+| 应用层（AndroidX、第三方库、插件） | `gradle/libs.versions.toml` |
+| 定制 Media3 与 nextlib | `third_party/media-lock.json` |
+| Native 播放栈（MPV 栈、IJK、DVD） | `third_party/mpv-native-lock.json`、`third_party/ijk-native-lock.json`、`third_party/dvd-native-lock.json` |
+| 上游仓库基线 | `third_party/fongmi-repositories-lock.json`（人读版见[上游基线](#上游基线)） |
+| 工具链 | `gradle/wrapper/gradle-wrapper.properties`、`libs.versions.toml`、`app/build.gradle` |
+
+#### 应用层与工具链
+
+| 项目 | 当前值 | 升级方式 |
+| --- | --- | --- |
+| Gradle Wrapper | 9.5.1 | 改 `distributionUrl` |
+| Android Gradle Plugin | 9.2.1 | 改 `libs.versions.toml` 的 `agp`，与 Wrapper 配套升级 |
+| Chaquopy | 17.0.0 | 改 `python`；主机需 Python 3.10 |
+| JDK / Java 源级别 | 21 | 改 `app/build.gradle` 的 `sourceCompatibility`/`targetCompatibility` |
+| compileSdk / minSdk / targetSdk | 37 / 24 / 28 | 改 `compileSdk`/`minSdk`/`targetSdk` |
+| okhttp | 5.4.0（强制） | 改 `okhttp`；`app/build.gradle` 的 `resolutionStrategy.force` 自动跟随 |
+| media3 | `1.11.0-alpha01-fongmi`（强制） | 见下节，必须同时重建 `third_party/maven` |
+
+`libs.versions.toml` 的 `[versions]`/`[libraries]`/`[plugins]`/`[bundles]` 是唯一声明入口；新增依赖需同时加版本键与库条目。`app/build.gradle` 用 `eachDependency` 把所有 `androidx.media3` 强制到 `libs.versions.media3`，避免传递依赖拉回官方版本。
+
+#### 定制 Media3 与 nextlib
+
+Media3 使用 `fish2018/webhtv` 分支 `media/release-1.11.0-alpha01-fongmi` @ `e3e922d5`（原始上游为 `FongMi/media`），锁定于 `third_party/media-lock.json`，叠加 19 个 `third_party/patches/media3-*.patch`。
+
+nextlib 锁定 `anilbeesetti/nextlib` 分支 `release/1.10.0-0.12.1` @ `6ff6cf9d`，当前版本 `1.10.0-0.12.1-fongmi-softload-av3a-avs3-ffmpeg901-r5`，叠加 `nextlib-ffmpeg-soft-load-shedding.patch`、`nextlib-av3a.patch`、`nextlib-ape-support.patch`、`nextlib-avs3.patch`。**修订号 `rN` 是同一上游 commit 上的本地补丁级别，不是上游发布号**：
+
+| 修订 | 引入提交 | 内容 |
+| --- | --- | --- |
+| r1 | `0b09fc09` | 基线：FFmpeg 升到 9.0.1-fongmi（`177f090e`） |
+| r2 | `c826ee32` | AV3A 5.1 混合声道下混 |
+| r3 | `e5dd86b3` | APE 解封装与软解 |
+| r4 | `769e5347` | 基线 AVS3（新增 `nextlib-avs3.patch`） |
+| r5 | `edf43240` | AVS3 High 10-bit（隔离 HPM-15.0 高位深后端） |
+
+升级 nextlib 或 FFmpeg 用上文 `scripts/build_media_deps.sh --nextlib-only`；升级 Media3 补丁或 fork 用 `scripts/build_media_deps.sh`。两者都写回 `third_party/maven`，并须同步 `media-lock.json` 的版本、补丁与校验值。历史修订的 AAR（r1–r4、`-av3a-r1`、`-fongmi-softload` 等）仍留在 `third_party/maven`，只有 r5 被构建引用。
+
+#### Native 播放栈
+
+MPV 栈（mpv/FFmpeg/libplacebo/curl/nghttp2/MbedTLS）与 IJK、DVD/Blu-ray 的当前版本见[上游基线](#上游基线)及各自 lock 文件；exo-dv5 只以预编译 `.a` 形式交付（`third_party/exo-dv5-native/` + `MANIFEST.sha256`）。
+
+MPV/FFmpeg/libplacebo 必须**成套构建**（同 ABI、同 lock），不可只替换其中一个 `.so`；重建分别走 `scripts/build_mpv_native.sh`（NDK r29）、`scripts/build_ijk_native.sh`（NDK r28c），只改 JNI 桥接时用 `scripts/build_mpv_player_jni.sh`（不重编 `libmpv.so`）。更换 NDK 或 native 源时须同时更新对应 lock 的 `ndk_version`、commit 与产物校验。
+
+`fongmi-repositories-lock.json` 的 `audit_in_progress` 段只记录**观察到**的上游新提交，不代表已采用；采用前须走上游集成评估流程。
+
+#### 升级通用步骤
+
+1. 只改对应声明文件中的版本（一次一组，保持可回滚）。
+2. 双端编译验证：`bash ./gradlew :app:assembleMobileArm64_v8aDebug :app:assembleLeanbackArm64_v8aDebug`。
+3. 涉及定制 AAR 或 native 时先重建产物，再把新版本与校验值写回 lock。
+4. native 变更后按上文检查 `SONAME`/`DT_NEEDED` 与资产完整性。
 
 ### 常见构建失败
 
