@@ -2,6 +2,7 @@ package com.fongmi.android.tv.player.exo;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.media.MediaCrypto;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
@@ -9,6 +10,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Range;
 import android.view.Display;
 import android.view.accessibility.CaptioningManager;
@@ -53,6 +55,7 @@ import androidx.media3.exoplayer.video.VideoRendererEventListener;
 import androidx.media3.exoplayer.video.MediaCodecVideoRenderer;
 import androidx.media3.ui.CaptionStyleCompat;
 import androidx.media3.ui.PlayerView;
+import androidx.media3.ui.SubtitleView;
 
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.BuildConfig;
@@ -78,6 +81,7 @@ import com.fongmi.android.tv.setting.PlaybackPerformanceCatalog;
 import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.setting.SubtitleStyleSetting;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.UrlUtil;
 import com.github.catvod.crawler.SpiderDebug;
@@ -110,6 +114,17 @@ public class ExoUtil {
         view.getSubtitleView().setApplyEmbeddedFontSizes(false);
         if (PlayerSetting.getSubtitlePosition() != 0) view.getSubtitleView().setBottomPosition(PlayerSetting.getSubtitlePosition());
         if (PlayerSetting.getSubtitleTextSize() != 0) view.getSubtitleView().setFractionalTextSize(PlayerSetting.getSubtitleTextSize());
+    }
+
+    /**
+     * Re-applies the caption style to a subtitle view that is already on screen, so
+     * a colour or font change is visible immediately instead of at the next start.
+     */
+    public static void applyCaptionStyle(SubtitleView view) {
+        if (view == null) return;
+        view.setStyle(getCaptionStyle());
+        view.setApplyEmbeddedStyles(true);
+        view.setApplyEmbeddedFontSizes(false);
     }
 
     public static ExoPlayer buildPlayer(int decode, Player.Listener listener) {
@@ -315,7 +330,62 @@ public class ExoUtil {
     }
 
     public static CaptionStyleCompat getCaptionStyle() {
+        // An explicit app style wins over the system caption style; when it is
+        // off the previous behaviour is preserved exactly.
+        if (SubtitleStyleSetting.isEnabled()) return appCaptionStyle();
         return PlayerSetting.isCaption() ? CaptionStyleCompat.createFromCaptionStyle(((CaptioningManager) App.get().getSystemService(Context.CAPTIONING_SERVICE)).getUserStyle()) : new CaptionStyleCompat(Color.WHITE, Color.TRANSPARENT, Color.TRANSPARENT, CaptionStyleCompat.EDGE_TYPE_OUTLINE, Color.BLACK, null);
+    }
+
+    /**
+     * Maps the user's subtitle appearance onto {@link CaptionStyleCompat}. The
+     * style is normalised in {@link SubtitleStyleSetting}, so every value here is
+     * already inside a renderable range.
+     */
+    private static CaptionStyleCompat appCaptionStyle() {
+        int edgeType = switch (SubtitleStyleSetting.getOutlineStyle()) {
+            case SubtitleStyleSetting.OUTLINE_NONE -> CaptionStyleCompat.EDGE_TYPE_NONE;
+            case SubtitleStyleSetting.OUTLINE_SHADOW -> CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW;
+            // A box is an outlined glyph on a background, matching how mpv's
+            // "background-box" border style renders the same choice.
+            case SubtitleStyleSetting.OUTLINE_BOX -> CaptionStyleCompat.EDGE_TYPE_OUTLINE;
+            default -> CaptionStyleCompat.EDGE_TYPE_OUTLINE;
+        };
+        // The box style is expressed as a background, not an edge; a background is
+        // drawn only when its colour carries a non-zero alpha.
+        int background = SubtitleStyleSetting.getOutlineStyle() == SubtitleStyleSetting.OUTLINE_BOX
+                ? boxBackground() : SubtitleStyleSetting.getBackgroundWithOpacity();
+        // An explicit outline thickness cannot be passed to Media3, so it uses the
+        // platform's fixed edge width; the control still applies to the MPV engine
+        // and is documented as such in the panel.
+        Typeface typeface = buildTypeface();
+        // CaptionStyleCompat(foreground, background, window, edgeType, edgeColor, typeface):
+        // the window colour only applies to EDGE_TYPE_WINDOW, so it stays transparent.
+        return new CaptionStyleCompat(
+                SubtitleStyleSetting.getFontColor(),
+                background,
+                Color.TRANSPARENT,
+                edgeType,
+                SubtitleStyleSetting.getOutlineColor(),
+                typeface);
+    }
+
+    /**
+     * A box always needs a visible background, so a box with the opacity slider at
+     * zero falls back to a readable minimum instead of drawing no box at all.
+     */
+    private static int boxBackground() {
+        int opacity = Math.max(20, SubtitleStyleSetting.getBackgroundOpacity());
+        return (SubtitleStyleSetting.getBackgroundColor() & 0x00FFFFFF) | (opacity * 255 / 100 << 24);
+    }
+
+    private static Typeface buildTypeface() {
+        String family = SubtitleStyleSetting.getFontFamilyName();
+        int style = (SubtitleStyleSetting.isBold() ? Typeface.BOLD : 0)
+                | (SubtitleStyleSetting.isItalic() ? Typeface.ITALIC : 0);
+        // An empty family keeps the platform default, which is what the player
+        // used before this setting, so "default" remains a real choice.
+        if (TextUtils.isEmpty(family)) return style == 0 ? null : Typeface.create((String) null, style);
+        return Typeface.create(family, style);
     }
 
     private static DefaultTrackSelector buildTrackSelector(int decode, boolean tunnelingFallbackAttempted) {

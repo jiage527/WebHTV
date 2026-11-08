@@ -118,6 +118,25 @@
     <string name="danmaku_scroll_gap_ratio">水平間距</string>
     <string name="danmaku_section_display">顯示</string>
     <string name="danmaku_section_timing">時間</string>
+    <string name="subtitle_style">字幕樣式</string>
+    <string name="subtitle_style_on">開啟</string>
+    <string name="subtitle_style_off">關閉</string>
+    <string name="subtitle_style_font_family">字型</string>
+    <string name="subtitle_style_font_default">預設</string>
+    <string name="subtitle_style_font_sans">無襯線</string>
+    <string name="subtitle_style_font_serif">襯線</string>
+    <string name="subtitle_style_font_mono">等寬</string>
+    <string name="subtitle_style_font_style">字形</string>
+    <string name="subtitle_style_bold">粗體</string>
+    <string name="subtitle_style_italic">斜體</string>
+    <string name="subtitle_style_font_color">文字顏色</string>
+    <string name="subtitle_style_outline">描邊</string>
+    <string name="subtitle_style_outline_none">無</string>
+    <string name="subtitle_style_outline_line">描邊</string>
+    <string name="subtitle_style_outline_shadow">陰影</string>
+    <string name="subtitle_style_outline_box">底框</string>
+    <string name="subtitle_style_background">背景</string>
+    <string name="subtitle_style_secondary_position">上方字幕位置</string>
     <string name="danmaku_reset">重設</string>
 
     <!-- Parse -->

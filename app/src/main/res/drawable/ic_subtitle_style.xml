@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Subtitle appearance: a character with an outline and a shadow, matching the
+     icons the other subtitle dialogs use. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:tint="@color/white"
+    android:viewportWidth="960"
+    android:viewportHeight="960">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M240,660L240,300L300,300L300,660L240,660ZM420,800L420,160L480,160L480,800L420,800ZM600,700L600,260L660,260L660,700L600,700ZM780,560L780,400L840,400L840,560L780,560Z" />
+</vector>

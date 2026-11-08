@@ -119,6 +119,25 @@
     <string name="danmaku_scroll_gap_ratio">Row gap</string>
     <string name="danmaku_section_display">Display</string>
     <string name="danmaku_section_timing">Timing</string>
+    <string name="subtitle_style">Subtitle style</string>
+    <string name="subtitle_style_on">On</string>
+    <string name="subtitle_style_off">Off</string>
+    <string name="subtitle_style_font_family">Font</string>
+    <string name="subtitle_style_font_default">Default</string>
+    <string name="subtitle_style_font_sans">Sans</string>
+    <string name="subtitle_style_font_serif">Serif</string>
+    <string name="subtitle_style_font_mono">Mono</string>
+    <string name="subtitle_style_font_style">Style</string>
+    <string name="subtitle_style_bold">Bold</string>
+    <string name="subtitle_style_italic">Italic</string>
+    <string name="subtitle_style_font_color">Text colour</string>
+    <string name="subtitle_style_outline">Outline</string>
+    <string name="subtitle_style_outline_none">None</string>
+    <string name="subtitle_style_outline_line">Outline</string>
+    <string name="subtitle_style_outline_shadow">Shadow</string>
+    <string name="subtitle_style_outline_box">Box</string>
+    <string name="subtitle_style_background">Background</string>
+    <string name="subtitle_style_secondary_position">Top subtitle position</string>
     <string name="danmaku_reset">Reset</string>
 
     <!-- Parse -->

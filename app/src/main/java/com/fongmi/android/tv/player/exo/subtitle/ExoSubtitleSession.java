@@ -137,6 +137,15 @@ public final class ExoSubtitleSession {
         if (view != null) view.setCues(cues);
     }
 
+    /**
+     * Re-applies the caption style to the secondary subtitle view. The view is only
+     * created once, so a style change made while playing would otherwise not reach
+     * it until the next track change.
+     */
+    public void refreshStyle() {
+        if (view != null) view.setStyle(ExoUtil.getCaptionStyle());
+    }
+
     private void publish(DualSubtitleTrackSelector source, DualSubtitleTrackSelector.Request request, CueGroup group) {
         handler.post(() -> {
             if (released || selector != source || source.request() != request) return;

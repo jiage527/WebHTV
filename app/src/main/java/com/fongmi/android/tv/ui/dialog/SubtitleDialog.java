@@ -14,7 +14,9 @@ import androidx.viewbinding.ViewBinding;
 
 import com.fongmi.android.tv.databinding.DialogSubtitleBinding;
 import com.fongmi.android.tv.player.PlayerManager;
+import com.fongmi.android.tv.player.exo.ExoUtil;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.setting.SubtitleStyleSetting;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.github.bassaer.library.MDColor;
@@ -74,7 +76,25 @@ public final class SubtitleDialog extends BaseBottomSheetDialog {
         binding.down.setOnClickListener(this::onDown);
         binding.large.setOnClickListener(this::onLarge);
         binding.small.setOnClickListener(this::onSmall);
+        binding.style.setOnClickListener(this::onStyle);
         binding.reset.setOnClickListener(this::onReset);
+    }
+
+    /**
+     * Opens the appearance panel. Its changes are applied to the running player as
+     * they happen, so the effect stays visible while the panel is open.
+     */
+    private void onStyle(View view) {
+        SubtitleStyleDialog.show(requireActivity(), this::applyStyle);
+    }
+
+    /** Push the stored appearance onto the running engine and the on-screen views. */
+    private void applyStyle() {
+        if (isNativeSubtitleStyle()) player.setSubtitleStyle(PlayerSetting.getSubtitleTextSize(), PlayerSetting.getSubtitlePosition());
+        else ExoUtil.applyCaptionStyle(subtitleView);
+        // The secondary (dual) subtitle draws into its own view, so it needs the
+        // same refresh; otherwise a colour change would only show after a restart.
+        if (player != null && player.getSubtitleSession() != null) player.getSubtitleSession().refreshStyle();
     }
 
     private void onUp(View view) {
@@ -120,11 +140,13 @@ public final class SubtitleDialog extends BaseBottomSheetDialog {
     private void onReset(View view) {
         PlayerSetting.putSubtitleTextSize(0.0f);
         PlayerSetting.putSubtitlePosition(0.0f);
-        if (isNativeSubtitleStyle()) {
-            player.setSubtitleStyle(0.0f, 0.0f);
-        } else if (subtitleView != null) {
-            subtitleView.reset();
-        }
+        SubtitleStyleSetting.reset();
+        // The view keeps its own text size and position, so it needs the reset that
+        // the pixel-based path used before; the native path scales through the
+        // engine instead, exactly as it did prior to this panel.
+        if (isNativeSubtitleStyle()) player.setSubtitleStyle(0.0f, 0.0f);
+        else if (subtitleView != null) subtitleView.reset();
+        applyStyle();
     }
 
     private boolean isNativeSubtitleStyle() {

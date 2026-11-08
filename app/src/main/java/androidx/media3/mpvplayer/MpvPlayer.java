@@ -62,6 +62,7 @@ import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.MpvPerformanceSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.setting.SubtitleStyleSetting;
 import com.fongmi.android.tv.utils.FileUtil;
 import com.github.catvod.crawler.SpiderDebug;
 import com.google.common.collect.ImmutableList;
@@ -5964,6 +5965,13 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
         if (initialized) safeSetPropertyDouble("audio-delay", audioOffsetMs / SECONDS_TO_MS);
     }
 
+    /**
+     * Maps the user's subtitle appearance onto mpv's {@code sub-*} properties.
+     *
+     * <p>{@code sub-ass-override=scale} is kept: it scales ASS scripts without
+     * overriding each script's named styles, so an ASS subtitle keeps its own
+     * fonts and colours while plain text follows these settings.
+     */
     private void applySubtitleStyle() {
         if (!initialized) return;
         CaptionStyle style = captionStyle();
@@ -5979,10 +5987,35 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
         safeSetPropertyString("sub-border-style", style.borderStyle);
         safeSetPropertyDouble("sub-border-size", style.borderSize);
         safeSetPropertyDouble("sub-shadow-offset", style.shadowOffset);
+        applySecondarySubtitlePosition();
         // sub-* supplies the plain-text/default caption style. ASS keeps its own
         // font/style under sub-ass-override=scale; writing FontName through
         // sub-ass-style-overrides would override every script's named styles.
         // Leave explicit mpv.conf/Lua overrides under their existing ownership.
+    }
+
+    /**
+     * The secondary subtitle sits above the primary one.
+     *
+     * <p>{@code secondary-sub-pos} uses the same 0-150 scale as {@code sub-pos}
+     * (mpv {@code options.c}: both are {@code M_RANGE(0.0, 150.0)}), where a larger
+     * value moves the subtitle further down, so 0 is the top of the screen and 100
+     * is the original bottom position. mpv's default for the secondary track is 0
+     * (top), because its option table only seeds the primary
+     * ({@code .sub_pos[0] = 100}); see mpv {@code sd_ass.c}, which renders the
+     * value as {@code ass_set_line_position(100 - sub_pos[order])}.
+     *
+     * <p>The stored value is the distance from the top as a fraction, so it maps
+     * straight onto that scale and keeps the same "larger means lower" direction as
+     * the Exo path.
+     */
+    private void applySecondarySubtitlePosition() {
+        // While the app style is off, write mpv's own default (0, the top) so turning
+        // the switch back off restores the previous behaviour instead of leaving the
+        // last custom position in place.
+        double position = SubtitleStyleSetting.isEnabled()
+                ? SubtitleStyleSetting.getSecondaryPosition() * 100.0 : 0.0;
+        safeSetPropertyDouble("secondary-sub-pos", Math.max(0.0, Math.min(150.0, position)));
     }
 
     private double subtitleScale() {
@@ -5995,6 +6028,9 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
     }
 
     private CaptionStyle captionStyle() {
+        // An explicit app style wins over the system caption style; when it is off
+        // the previous behaviour is preserved exactly.
+        if (SubtitleStyleSetting.isEnabled()) return appCaptionStyle();
         if (!PlayerSetting.isCaption()) return defaultCaptionStyle();
         try {
             CaptioningManager manager = (CaptioningManager) context.getSystemService(Context.CAPTIONING_SERVICE);
@@ -6026,6 +6062,45 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
 
     private CaptionStyle defaultCaptionStyle() {
         return new CaptionStyle("sans-serif", false, false, Color.WHITE, Color.BLACK, Color.TRANSPARENT, "outline-and-shadow", 3.0, 0.0);
+    }
+
+    /**
+     * Maps the user's subtitle appearance onto mpv's caption model. A box style is
+     * expressed as a background (mpv's own {@code background-box}), everything
+     * else as an outline or a shadow.
+     */
+    private CaptionStyle appCaptionStyle() {
+        int style = SubtitleStyleSetting.getOutlineStyle();
+        int background = style == SubtitleStyleSetting.OUTLINE_BOX
+                ? boxBackground() : SubtitleStyleSetting.getBackgroundWithOpacity();
+        boolean box = Color.alpha(background) > 0;
+        String borderStyle = box ? "background-box" : "outline-and-shadow";
+        double borderSize = switch (style) {
+            case SubtitleStyleSetting.OUTLINE_NONE -> 0.0;
+            case SubtitleStyleSetting.OUTLINE_SHADOW -> 0.0;
+            default -> SubtitleStyleSetting.getOutlineSize();
+        };
+        double shadowOffset = style == SubtitleStyleSetting.OUTLINE_SHADOW ? Math.max(1.0, SubtitleStyleSetting.getOutlineSize()) : 0.0;
+        String font = SubtitleStyleSetting.getFontFamilyName();
+        if (font.isEmpty()) font = "sans-serif";
+        return new CaptionStyle(font,
+                SubtitleStyleSetting.isBold(),
+                SubtitleStyleSetting.isItalic(),
+                SubtitleStyleSetting.getFontColor(),
+                SubtitleStyleSetting.getOutlineColor(),
+                box ? background : SubtitleStyleSetting.getOutlineColor(),
+                borderStyle,
+                borderSize,
+                shadowOffset);
+    }
+
+    /**
+     * A box always needs a visible background, so a box with the opacity slider at
+     * zero falls back to a readable minimum instead of drawing no box at all.
+     */
+    private int boxBackground() {
+        int opacity = Math.max(20, SubtitleStyleSetting.getBackgroundOpacity());
+        return (SubtitleStyleSetting.getBackgroundColor() & 0x00FFFFFF) | (opacity * 255 / 100 << 24);
     }
 
     private String captionFont(@Nullable Typeface typeface) {

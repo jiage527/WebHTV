@@ -4,13 +4,20 @@ import android.text.Layout;
 
 import androidx.media3.common.text.Cue;
 
+import com.fongmi.android.tv.setting.SubtitleStyleSetting;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 /** MPV's default secondary-sub-ass-override=strip policy, applied to already decoded Cues. */
 final class SecondarySubtitleCues {
-    static final float TOP_PADDING = 0.08f;
+    /** The secondary subtitle's distance from the top, configurable and previously fixed. */
+    private static float topPadding() {
+        return SubtitleStyleSetting.isEnabled()
+                ? SubtitleStyleSetting.getSecondaryPosition()
+                : SubtitleStyleSetting.DEFAULT_SECONDARY_POSITION;
+    }
 
     private SecondarySubtitleCues() { }
 
@@ -28,18 +35,19 @@ final class SecondarySubtitleCues {
             }
         }
         List<Cue> output = new ArrayList<>();
+        float topPadding = topPadding();
         if (text.length() > 0) {
             output.add(new Cue.Builder().setText(text.toString())
                     .setTextAlignment(Layout.Alignment.ALIGN_CENTER)
                     .setPosition(0.5f).setPositionAnchor(Cue.ANCHOR_TYPE_MIDDLE)
-                    .setLine(TOP_PADDING, Cue.LINE_TYPE_FRACTION).setLineAnchor(Cue.ANCHOR_TYPE_START)
+                    .setLine(topPadding, Cue.LINE_TYPE_FRACTION).setLineAnchor(Cue.ANCHOR_TYPE_START)
                     .setSize(0.9f).build());
         }
         for (Cue cue : input) {
             if (cue.bitmap == null) continue;
             // Move the whole bitmap composition, retaining its width, height and relative regions.
             output.add(cue.buildUpon()
-                    .setLine(TOP_PADDING + bitmapTop(cue) - firstBitmapTop, Cue.LINE_TYPE_FRACTION)
+                    .setLine(topPadding + bitmapTop(cue) - firstBitmapTop, Cue.LINE_TYPE_FRACTION)
                     .setLineAnchor(Cue.ANCHOR_TYPE_START).build());
         }
         return Collections.unmodifiableList(output);
