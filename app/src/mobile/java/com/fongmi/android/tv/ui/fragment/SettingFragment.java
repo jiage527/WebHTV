@@ -27,6 +27,7 @@ import com.fongmi.android.tv.impl.SiteListener;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.activity.HomeActivity;
 import com.fongmi.android.tv.ui.base.BaseFragment;
+import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
 import com.fongmi.android.tv.ui.dialog.AboutDialog;
 import com.fongmi.android.tv.ui.dialog.AppearanceDialog;
 import com.fongmi.android.tv.ui.dialog.ChoiceDialog;
@@ -90,6 +91,7 @@ public class SettingFragment extends BaseFragment implements ConfigListener, Sit
         mBinding.versionText.setText(AppVersion.fullName());
         setOtherText();
         setCacheText();
+        SettingsSearchBar.attachToPage(mBinding.getRoot());
     }
 
     private void setOtherText() {

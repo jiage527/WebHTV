@@ -13,6 +13,7 @@ import com.fongmi.android.tv.databinding.ActivitySettingDanmakuBinding;
 import com.fongmi.android.tv.impl.DanmakuListener;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
+import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
 import com.fongmi.android.tv.ui.dialog.DanmakuApiDialog;
 
 public class SettingDanmakuActivity extends BaseActivity implements DanmakuListener {
@@ -44,6 +45,7 @@ public class SettingDanmakuActivity extends BaseActivity implements DanmakuListe
         mBinding.danmakuLoadText.setText(getSwitch(DanmakuSetting.isLoad()));
         mBinding.danmakuSpiderText.setText(getSwitch(DanmakuSetting.isSpiderFirst()));
         updateApiVisibility();
+        SettingsSearchBar.attachToPage(mBinding.getRoot());
     }
 
     @Override

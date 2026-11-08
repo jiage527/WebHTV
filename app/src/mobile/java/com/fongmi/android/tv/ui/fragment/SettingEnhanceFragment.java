@@ -23,6 +23,7 @@ import com.fongmi.android.tv.setting.ProxySetting;
 import com.fongmi.android.tv.setting.SiteHealthStore;
 import com.fongmi.android.tv.ui.activity.HomeActivity;
 import com.fongmi.android.tv.ui.base.BaseFragment;
+import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
 import com.fongmi.android.tv.ui.dialog.CspWarmupDialog;
 import com.fongmi.android.tv.ui.dialog.CustomCspDialog;
 import com.fongmi.android.tv.ui.dialog.DebugLogDialog;
@@ -66,6 +67,7 @@ public class SettingEnhanceFragment extends BaseFragment {
     protected void initView() {
         reorderItems();
         setText();
+        SettingsSearchBar.attachToPage(mBinding.getRoot());
     }
 
     @Override
