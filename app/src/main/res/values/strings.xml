@@ -1407,4 +1407,27 @@
     <string name="play_screenshot">Shot</string>
     <string name="play_screenshot_saved">Screenshot saved: %s</string>
     <string name="play_screenshot_failed">Screenshot failed</string>
+    <string name="subtitle_translate">Translate subtitle</string>
+    <string name="subtitle_translate_language">Target language</string>
+    <string name="subtitle_translate_mode">Translation style</string>
+    <string name="subtitle_translate_pick">Choose subtitle</string>
+    <string name="subtitle_translate_replace">Replace original text</string>
+    <string name="subtitle_translate_bilingual">Keep original (bilingual)</string>
+    <string name="subtitle_translate_working">Translating subtitle…</string>
+    <string name="subtitle_translate_applied">Translated subtitle applied</string>
+    <string name="subtitle_translate_read_failed">Subtitle could not be read</string>
+    <string name="subtitle_translate_write_failed">Translated subtitle could not be saved</string>
+    <string name="subtitle_translate_no_change">Nothing to translate in this subtitle</string>
+    <string name="subtitle_translate_no_subtitle">No external subtitle is active</string>
+    <string name="subtitle_translate_name">Translated subtitle</string>
+    <string name="subtitle_translate_name_bilingual">Translated subtitle (bilingual)</string>
+    <string name="subtitle_translate_lang_zh_cn">Simplified Chinese</string>
+    <string name="subtitle_translate_lang_zh_tw">Traditional Chinese</string>
+    <string name="subtitle_translate_lang_en">English</string>
+    <string name="subtitle_translate_lang_ja">Japanese</string>
+    <string name="subtitle_translate_lang_ko">Korean</string>
+    <string name="subtitle_translate_lang_es">Spanish</string>
+    <string name="subtitle_translate_lang_fr">French</string>
+    <string name="subtitle_translate_lang_de">German</string>
+    <string name="subtitle_translate_lang_ru">Russian</string>
 </resources>

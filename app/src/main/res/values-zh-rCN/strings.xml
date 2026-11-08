@@ -1399,4 +1399,27 @@
     <string name="play_screenshot">截图</string>
     <string name="play_screenshot_saved">截图已保存：%s</string>
     <string name="play_screenshot_failed">截图失败</string>
+    <string name="subtitle_translate">字幕翻译</string>
+    <string name="subtitle_translate_language">目标语言</string>
+    <string name="subtitle_translate_mode">翻译方式</string>
+    <string name="subtitle_translate_pick">选择字幕</string>
+    <string name="subtitle_translate_replace">替换原文</string>
+    <string name="subtitle_translate_bilingual">保留原文（双语）</string>
+    <string name="subtitle_translate_working">正在翻译字幕…</string>
+    <string name="subtitle_translate_applied">已应用翻译字幕</string>
+    <string name="subtitle_translate_read_failed">字幕读取失败</string>
+    <string name="subtitle_translate_write_failed">翻译字幕保存失败</string>
+    <string name="subtitle_translate_no_change">该字幕没有可翻译的文本</string>
+    <string name="subtitle_translate_no_subtitle">当前没有外挂字幕</string>
+    <string name="subtitle_translate_name">翻译字幕</string>
+    <string name="subtitle_translate_name_bilingual">翻译字幕（双语）</string>
+    <string name="subtitle_translate_lang_zh_cn">简体中文</string>
+    <string name="subtitle_translate_lang_zh_tw">繁體中文</string>
+    <string name="subtitle_translate_lang_en">英语</string>
+    <string name="subtitle_translate_lang_ja">日语</string>
+    <string name="subtitle_translate_lang_ko">韩语</string>
+    <string name="subtitle_translate_lang_es">西班牙语</string>
+    <string name="subtitle_translate_lang_fr">法语</string>
+    <string name="subtitle_translate_lang_de">德语</string>
+    <string name="subtitle_translate_lang_ru">俄语</string>
 </resources>

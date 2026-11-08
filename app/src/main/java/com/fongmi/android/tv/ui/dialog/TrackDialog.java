@@ -87,6 +87,15 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         return type == C.TRACK_TYPE_TEXT && player.supportsSecondarySubtitle() && player.haveTrack(type);
     }
 
+    /**
+     * Translation only applies to an external subtitle: embedded tracks are read
+     * through the decoder, so they have no document this dialog could rewrite.
+     */
+    private boolean hasTranslatableSubtitle() {
+        if (secondarySubtitle || type != C.TRACK_TYPE_TEXT || player == null) return false;
+        return SubtitleTranslateDialog.hasExternalSubtitle(player);
+    }
+
     @Override
     protected ViewBinding getBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container) {
         return binding = DialogTrackBinding.inflate(inflater, container, false);
@@ -107,6 +116,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.offset.setOnClickListener(this::onOffset);
         binding.choose.setOnClickListener(this::onChoose);
         binding.subtitle.setOnClickListener(this::onSubtitle);
+        binding.translate.setOnClickListener(this::onTranslate);
     }
 
     private void refreshTrackList() {
@@ -120,6 +130,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.offset.setVisibility(hasText() || hasAudio() ? View.VISIBLE : View.GONE);
         binding.choose.setVisibility(hasChoose() ? View.VISIBLE : View.GONE);
         binding.subtitle.setVisibility(hasText() ? View.VISIBLE : View.GONE);
+        binding.translate.setVisibility(hasTranslatableSubtitle() ? View.VISIBLE : View.GONE);
     }
 
     private String getTitle() {
@@ -144,6 +155,11 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
     private void onSubtitle(View view) {
         Listener listener = (Listener) requireActivity();
         App.post(listener::onSubtitleClick, 100);
+        dismiss();
+    }
+
+    private void onTranslate(View view) {
+        SubtitleTranslateDialog.show(requireActivity(), player);
         dismiss();
     }
 
