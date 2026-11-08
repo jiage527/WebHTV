@@ -22,11 +22,29 @@ import java.util.List;
 
 public class ScanActivity extends BaseActivity implements BarcodeCallback {
 
+    /**
+     * Callers that hand the scanned text to something other than the remote-trust
+     * flow set this extra. Without it the activity keeps its original behaviour:
+     * only http payloads are accepted and every result is forwarded to
+     * {@link RemoteTrustDialog}, so existing cast and sync scans are unaffected.
+     */
+    private static final String EXTRA_RAW_TEXT = "raw_text";
+
     private ActivityScanBinding mBinding;
     private CaptureManager mCapture;
+    private boolean rawText;
 
     public static void start(Activity activity) {
         activity.startActivity(new Intent(activity, ScanActivity.class));
+    }
+
+    /**
+     * Starts the scanner and returns any payload verbatim, including site JSON or a
+     * header block. Used by the site-injection form, where the QR code carries a
+     * site definition rather than a server address.
+     */
+    public static Intent rawIntent(Activity activity) {
+        return new Intent(activity, ScanActivity.class).putExtra(EXTRA_RAW_TEXT, true);
     }
 
     @Override
@@ -37,6 +55,7 @@ public class ScanActivity extends BaseActivity implements BarcodeCallback {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        rawText = getIntent() != null && getIntent().getBooleanExtra(EXTRA_RAW_TEXT, false);
         Util.hideSystemUI(this);
     }
 
@@ -48,9 +67,15 @@ public class ScanActivity extends BaseActivity implements BarcodeCallback {
 
     @Override
     public void barcodeResult(BarcodeResult result) {
-        if (!result.getText().startsWith("http")) return;
-        RemoteTrustDialog.onScanResult(result.getText());
-        setResult(RESULT_OK, new Intent().putExtra("address", result.getText()));
+        String text = result.getText();
+        if (!rawText) {
+            if (!text.startsWith("http")) return;
+            RemoteTrustDialog.onScanResult(text);
+            setResult(RESULT_OK, new Intent().putExtra("address", text));
+            finish();
+            return;
+        }
+        setResult(RESULT_OK, new Intent().putExtra("address", text));
         finish();
     }
 

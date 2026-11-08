@@ -49,6 +49,7 @@ import com.fongmi.android.tv.databinding.AdapterCustomCspBinding;
 import com.fongmi.android.tv.databinding.DialogCustomCspBinding;
 import com.fongmi.android.tv.impl.Callback;
 import com.fongmi.android.tv.setting.CustomCspSetting;
+import com.fongmi.android.tv.ui.activity.ScanActivity;
 import com.fongmi.android.tv.ui.custom.CustomTextListener;
 import com.fongmi.android.tv.ui.custom.SafeScrollEditText;
 import com.fongmi.android.tv.ui.custom.SettingClipboardOverlay;
@@ -113,6 +114,7 @@ public class CustomCspDialog extends BaseAlertDialog {
     private long lastAddTime;
     private String cachedJsonText;
     private SettingClipboardOverlay clipboardOverlay;
+    private CustomCspDialog.CspEditor scanEditor;
 
     public static void show(Fragment fragment, Runnable callback) {
         if (fragment == null || !fragment.isAdded() || fragment.isStateSaved() || fragment.getActivity() == null || fragment.getChildFragmentManager().isStateSaved()) return;
@@ -1060,7 +1062,19 @@ public class CustomCspDialog extends BaseAlertDialog {
     }
 
     private final ActivityResultLauncher<Intent> launcher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || pendingImport == null) return;
+        // One launcher serves both file picking and QR scanning. A scan result is
+        // recognized by `scanEditor` being armed and is consumed before the file
+        // branch, so the two flows can never read each other's payload.
+        CustomCspDialog.CspEditor scanTarget = scanEditor;
+        scanEditor = null;
+        boolean cancelled = result.getResultCode() != Activity.RESULT_OK || result.getData() == null;
+        if (scanTarget != null) {
+            if (cancelled) return;
+            String scanned = result.getData().getStringExtra("address");
+            if (!TextUtils.isEmpty(scanned)) scanTarget.onScanText(scanned);
+            return;
+        }
+        if (cancelled || pendingImport == null) return;
         List<String> paths = FileChooser.getPathsFromIntent(result.getData());
         if (paths.isEmpty()) return;
         String path = paths.get(0);
@@ -1568,6 +1582,7 @@ public class CustomCspDialog extends BaseAlertDialog {
         private boolean autoName;
         private boolean autoKey;
         private boolean otherInvalid;
+        private boolean probing;
         private TextInputEditText fileTarget;
 
         CspEditor(@NonNull AdapterCustomCspBinding binding) {
@@ -1590,6 +1605,7 @@ public class CustomCspDialog extends BaseAlertDialog {
             binding.origin.addTextChangedListener(new TextSync(this));
             binding.timeZone.addTextChangedListener(new TextSync(this));
             binding.timeout.addTextChangedListener(new TextSync(this));
+            binding.header.addTextChangedListener(new TextSync(this));
             binding.otherValue.addTextChangedListener(new TextSync(this));
             binding.enabled.setOnClickListener(view -> toggleEnabled());
             binding.typeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> onTypeChecked(checkedId, isChecked));
@@ -1606,6 +1622,10 @@ public class CustomCspDialog extends BaseAlertDialog {
             binding.extensionsToggle.setOnClickListener(view -> toggleExtensions());
             binding.extensionsFile.setOnClickListener(view -> chooseExtensionFile(item));
             binding.otherField.setOnClickListener(view -> showOtherFieldMenu());
+            binding.headerPaste.setOnClickListener(view -> pasteClipboard());
+            binding.headerClear.setOnClickListener(view -> clearHeader());
+            binding.headerTest.setOnClickListener(view -> runProbe());
+            binding.headerScan.setOnClickListener(view -> startScan());
             trackFileTarget(binding.api, binding.ext, binding.jar, binding.homePage, binding.liveUrl, binding.logo, binding.epg, binding.click, binding.playUrl, binding.ua, binding.referer, binding.origin);
             binding.home.setVisibility(View.GONE);
             binding.up.setVisibility(View.GONE);
@@ -1613,6 +1633,7 @@ public class CustomCspDialog extends BaseAlertDialog {
             binding.delete.setVisibility(View.GONE);
             setupScrollableText(binding.extensions, false);
             setupScrollableText(binding.otherValue, true);
+            setupScrollableText(binding.header, true);
         }
 
         void bind(CustomCspSetting.Item item) {
@@ -1642,6 +1663,8 @@ public class CustomCspDialog extends BaseAlertDialog {
             setText(binding.origin, item.getOrigin());
             setText(binding.timeZone, item.getTimeZone());
             setText(binding.timeout, item.getTimeout() == null ? "" : String.valueOf(item.getTimeout()));
+            setText(binding.header, item.getHeader());
+            setProbeResult(null);
             binding.liveTypeGroup.check(liveTypeId(item.getType()));
             binding.playerTypeGroup.check(playerTypeId(item.getPlayerType()));
             binding.hide.setChecked(item.getHide() == 1);
@@ -1756,6 +1779,8 @@ public class CustomCspDialog extends BaseAlertDialog {
             binding.localFiles.setVisibility(!webHome && !live && !other ? View.VISIBLE : View.GONE);
             binding.playPanel.setVisibility(!webHome && !live && !other ? View.VISIBLE : View.GONE);
             binding.playUrlLayout.setVisibility(live || other ? View.GONE : View.VISIBLE);
+            binding.headerPanel.setVisibility(other ? View.GONE : View.VISIBLE);
+            binding.headerScan.setVisibility(live || other ? View.GONE : View.VISIBLE);
         }
 
         TextInputEditText getFileTarget() {
@@ -1803,6 +1828,7 @@ public class CustomCspDialog extends BaseAlertDialog {
                 item.setOrigin(binding.origin.getText().toString().trim());
                 item.setTimeZone(binding.timeZone.getText().toString().trim());
                 item.setTimeout(parseOptionalInt(binding.timeout.getText().toString()));
+                item.setHeader(binding.header.getText().toString());
                 item.setHomePage("");
                 item.setPlayUrl("");
             } else if (!item.isWebHome()) {
@@ -1831,6 +1857,7 @@ public class CustomCspDialog extends BaseAlertDialog {
                 item.setClick("");
                 item.setPlayUrl("");
             }
+            if (!item.isOther()) item.setHeader(binding.header.getText().toString());
             updateExtensionsToggle();
             updateExtensionsError();
             updateValidity();
@@ -1838,6 +1865,138 @@ public class CustomCspDialog extends BaseAlertDialog {
 
         boolean hasInvalidOther() {
             return otherInvalid;
+        }
+
+        /**
+         * Fills the header box from the clipboard. TV remotes make typing painful,
+         * so the practical flow is to paste a header block once and reuse it. The
+         * paste never overwrites a value the user already typed without asking.
+         */
+        private void pasteClipboard() {
+            CharSequence clip = Util.getClipText();
+            String text = clip == null ? "" : clip.toString().trim();
+            if (TextUtils.isEmpty(text)) {
+                Notify.show(R.string.setting_custom_csp_paste_empty);
+                return;
+            }
+            if (!TextUtils.isEmpty(binding.header.getText().toString().trim()) && !looksLikeHeader(text)) {
+                Notify.show(R.string.setting_custom_csp_scan_mismatch);
+                return;
+            }
+            setText(binding.header, text);
+            sync();
+            setProbeResult(null);
+            Notify.show(R.string.setting_custom_csp_paste_done);
+        }
+
+        private void clearHeader() {
+            setText(binding.header, "");
+            sync();
+            setProbeResult(null);
+            binding.header.requestFocus();
+        }
+
+        /**
+         * Scanning is the only sane way to move a site definition from the phone to
+         * a TV. The scanner returns raw text, so accept either a header block or a
+         * full site JSON object: JSON is unpacked into the individual fields, while
+         * anything else is treated as a header list and left for the user to save.
+         */
+        void onScanText(String text) {
+            if (item == null) return;
+            String value = CustomCspSetting.normalizeHeader(text);
+            if (TextUtils.isEmpty(value)) {
+                Notify.show(R.string.setting_custom_csp_scan_mismatch);
+                return;
+            }
+            String json = CustomCspSetting.headerJsonText(text);
+            if (!TextUtils.isEmpty(json)) {
+                applyScanJson(json);
+                return;
+            }
+            if (!looksLikeHeader(value)) {
+                Notify.show(R.string.setting_custom_csp_scan_mismatch);
+                return;
+            }
+            setText(binding.header, value);
+            sync();
+            Notify.show(R.string.setting_custom_csp_scan_filled);
+        }
+
+        private void applyScanJson(String json) {
+            try {
+                CustomCspSetting.Item scanned = CustomCspSetting.parseItem(json);
+                if (scanned == null || !scanned.isValid()) {
+                    Notify.show(R.string.setting_custom_csp_scan_mismatch);
+                    return;
+                }
+                bindingItem = true;
+                setText(binding.name, scanned.getName());
+                setText(binding.api, scanned.getApi());
+                setText(binding.ext, scanned.getExt());
+                setText(binding.jar, scanned.getJar());
+                setText(binding.header, scanned.getHeader());
+                setText(binding.homePage, scanned.getHomePage());
+                setText(binding.click, scanned.getClick());
+                setText(binding.playUrl, scanned.getPlayUrl());
+                setText(binding.liveUrl, scanned.getUrl());
+                setText(binding.timeout, scanned.getTimeout() == null ? "" : String.valueOf(scanned.getTimeout()));
+                bindingItem = false;
+                sync();
+                Notify.show(R.string.setting_custom_csp_scan_filled);
+            } catch (Exception e) {
+                Notify.show(R.string.setting_custom_csp_scan_mismatch);
+            }
+        }
+
+        private boolean looksLikeHeader(String text) {
+            String value = CustomCspSetting.normalizeHeader(text);
+            return !TextUtils.isEmpty(value) && !value.startsWith("{") && !value.startsWith("[");
+        }
+
+        /**
+         * Probes the entry as currently typed, without saving it. Runs on the task
+         * executor because a spider load can block for seconds; the result is shown
+         * inline so the user can fix the entry before committing it to the list.
+         */
+        private void runProbe() {
+            if (item == null || probing) return;
+            sync();
+            if (!item.isValid()) {
+                setProbeResult(App.get().getString(R.string.setting_custom_csp_test_invalid));
+                return;
+            }
+            probing = true;
+            setProbeResult(App.get().getString(R.string.setting_custom_csp_testing));
+            binding.headerTest.setEnabled(false);
+            CustomCspSetting.Item target = copy(item);
+            Task.execute(() -> {
+                CustomCspSetting.ProbeResult result = CustomCspSetting.probe(target);
+                App.post(() -> finishProbe(result));
+            });
+        }
+
+        private void finishProbe(CustomCspSetting.ProbeResult result) {
+            probing = false;
+            if (binding == null) return;
+            binding.headerTest.setEnabled(true);
+            if (result == null || !result.valid()) {
+                setProbeResult(App.get().getString(R.string.setting_custom_csp_test_invalid));
+                return;
+            }
+            setProbeResult(getString(result.success() ? R.string.setting_custom_csp_test_pass : R.string.setting_custom_csp_test_fail, result.message(), result.cost()));
+        }
+
+        private void setProbeResult(String text) {
+            if (binding == null) return;
+            binding.headerResult.setVisibility(TextUtils.isEmpty(text) ? View.GONE : View.VISIBLE);
+            binding.headerResult.setText(text == null ? "" : text);
+        }
+
+        private void startScan() {
+            if (item == null) return;
+            scanEditor = this;
+            launcher.launch(ScanActivity.rawIntent(requireActivity()));
         }
 
         private void showOtherFieldMenu() {

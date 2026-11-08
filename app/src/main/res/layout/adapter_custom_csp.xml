@@ -855,6 +855,109 @@
     </androidx.appcompat.widget.LinearLayoutCompat>
 
     <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/headerPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/setting_custom_csp_header"
+            app:boxBackgroundColor="@color/white"
+            app:boxStrokeColor="@color/dialog_outlined_button_stroke"
+            app:hintTextColor="#5F6368">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="start|top"
+                android:importantForAutofill="no"
+                android:inputType="textMultiLine|textNoSuggestions"
+                android:maxLines="6"
+                android:minLines="2"
+                android:textColor="@color/black"
+                android:textColorHint="#666666" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/headerPaste"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_weight="1"
+                android:focusable="true"
+                android:minHeight="40dp"
+                android:minWidth="0dp"
+                android:text="@string/setting_custom_csp_paste"
+                android:textColor="@color/dialog_tonal_button_text"
+                app:backgroundTint="@color/dialog_tonal_button_bg" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/headerClear"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:focusable="true"
+                android:minHeight="40dp"
+                android:minWidth="0dp"
+                android:text="@string/setting_custom_csp_clear"
+                android:textColor="@color/dialog_tonal_button_text"
+                app:backgroundTint="@color/dialog_tonal_button_bg" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/headerTest"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:focusable="true"
+                android:minHeight="40dp"
+                android:minWidth="0dp"
+                android:text="@string/setting_custom_csp_test"
+                android:textColor="@color/dialog_tonal_button_text"
+                app:backgroundTint="@color/dialog_tonal_button_bg" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/headerScan"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:focusable="true"
+                android:minHeight="40dp"
+                android:minWidth="0dp"
+                android:text="@string/setting_custom_csp_scan"
+                android:textColor="@color/dialog_tonal_button_text"
+                app:backgroundTint="@color/dialog_tonal_button_bg" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/headerResult"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#5F6368"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
         android:id="@+id/flagsPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

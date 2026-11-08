@@ -5,13 +5,16 @@ import android.text.TextUtils;
 
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.R;
+import com.fongmi.android.tv.api.SiteApi;
 import com.fongmi.android.tv.bean.Live;
 import com.fongmi.android.tv.bean.Site;
 import com.fongmi.android.tv.bean.Style;
 import com.fongmi.android.tv.gson.ExtAdapter;
+import com.fongmi.android.tv.gson.HeaderAdapter;
 import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.utils.UrlUtil;
 import com.github.catvod.crawler.SpiderDebug;
+import com.github.catvod.net.OkHttp;
 import com.github.catvod.utils.Json;
 import com.github.catvod.utils.Path;
 import com.github.catvod.utils.Util;
@@ -30,8 +33,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -54,6 +59,9 @@ public class CustomCspSetting {
     private static final Set<String> ROOT_OTHER_STRING_FIELDS = Set.of("spider", "wallpaper", "logo", "notice", "home", "parse", "msg");
     private static final Pattern PYTHON_LIVE_METHOD = Pattern.compile("(?m)^\\s*def\\s+liveContent\\s*\\(");
     private static final Pattern JS_LIVE_METHOD = Pattern.compile("(?m)(?:^|[,{;]\\s*)(?:async\\s+)?liveContent\\s*(?:[:=]\\s*(?:async\\s*)?(?:function\\s*)?|\\()", Pattern.CASE_INSENSITIVE);
+    private static final long PROBE_TIMEOUT_MS = 8000;
+    private static final int PROBE_MAX_BODY = 8192;
+    private static final Pattern PROBE_ERROR = Pattern.compile("\"?(?:error|errMsg|msg|message)\"?\\s*[:=]\\s*\"([^\"]{1,160})\"");
 
     public static Registry load() {
         String text = Path.read(registryFile());
@@ -494,6 +502,126 @@ public class CustomCspSetting {
         }
     }
 
+    /**
+     * Bounded reachability check for one form entry, run off the UI thread. It
+     * reuses the exact loaders playback already uses, so a probe that succeeds
+     * here is the same code path that later resolves the site: spider entries get
+     * one {@code homeContent} call, plain HTTP entries get one body fetch with the
+     * user's headers. Nothing is cached or persisted; the entry only becomes
+     * visible after the user saves.
+     */
+    public static ProbeResult probe(Item item) {
+        if (item == null || !item.isValid()) return ProbeResult.invalid();
+        long start = System.currentTimeMillis();
+        try {
+            if (item.isLive()) return probeLive(item, start);
+            if (item.isOther()) return ProbeResult.invalid();
+            Site site = item.site();
+            com.fongmi.android.tv.bean.Result result = SiteApi.homeContent(site);
+            int count = result.getList().size();
+            return ProbeResult.ok(describe(result), count, System.currentTimeMillis() - start);
+        } catch (Throwable e) {
+            return ProbeResult.fail(message(e), System.currentTimeMillis() - start);
+        }
+    }
+
+    private static ProbeResult probeLive(Item item, long start) throws Exception {
+        Live live = item.live("");
+        String body = live.getUrl().isEmpty() ? OkHttp.string(UrlUtil.convert(live.getApi()), live.getHeaders(), PROBE_TIMEOUT_MS) : OkHttp.string(live.getUrl(), live.getHeaders(), PROBE_TIMEOUT_MS);
+        if (body.isEmpty()) return ProbeResult.fail(App.get().getString(R.string.setting_custom_csp_test_empty), System.currentTimeMillis() - start);
+        return ProbeResult.ok(bodySummary(body), 0, System.currentTimeMillis() - start);
+    }
+
+    private static String describe(com.fongmi.android.tv.bean.Result result) {
+        if (!result.getList().isEmpty()) return App.get().getString(R.string.setting_custom_csp_test_items, result.getList().size());
+        if (!result.getTypes().isEmpty()) return App.get().getString(R.string.setting_custom_csp_test_types, result.getTypes().size());
+        return App.get().getString(R.string.setting_custom_csp_test_ok_empty);
+    }
+
+    /**
+     * A body that parses as JSON but carries an explicit error string is the most
+     * common failure shape for hand-typed CSP sources, so surface that message
+     * instead of a generic "ok".
+     */
+    private static String bodySummary(String body) {
+        String head = body.length() > PROBE_MAX_BODY ? body.substring(0, PROBE_MAX_BODY) : body;
+        java.util.regex.Matcher matcher = PROBE_ERROR.matcher(head);
+        if (matcher.find()) throw new IllegalStateException(matcher.group(1));
+        return App.get().getString(R.string.setting_custom_csp_test_bytes, body.length());
+    }
+
+    private static String message(Throwable e) {
+        String value = e == null ? "" : e.getMessage();
+        return TextUtils.isEmpty(value) ? (e == null ? "unknown" : e.getClass().getSimpleName()) : value;
+    }
+
+    public record ProbeResult(boolean success, boolean valid, String message, int count, long cost) {
+
+        public static ProbeResult ok(String message, int count, long cost) {
+            return new ProbeResult(true, true, message, count, cost);
+        }
+
+        public static ProbeResult fail(String message, long cost) {
+            return new ProbeResult(false, true, message, 0, cost);
+        }
+
+        public static ProbeResult invalid() {
+            return new ProbeResult(false, false, "", 0, 0);
+        }
+    }
+
+    /**
+     * Parses a single site definition coming from a scanned QR code. Only the first
+     * usable entry is returned because the form edits exactly one site; anything
+     * that is not a site-like object yields {@code null} so the caller can fall
+     * back to treating the payload as a header block.
+     */
+    public static Item parseItem(String json) {
+        if (TextUtils.isEmpty(json)) return null;
+        try {
+            List<Item> items = parse(json).getItems();
+            for (Item item : items) if (item != null && item.isValid() && !item.isOther()) return item;
+            return null;
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    /**
+     * Trims a header block and drops lines without a {@code Name: Value} shape.
+     * Shared with the form so the box shows exactly what will be saved.
+     */
+    public static String normalizeHeader(String text) {
+        if (TextUtils.isEmpty(text)) return "";
+        List<String> lines = new ArrayList<>();
+        for (String line : text.split("\\r?\\n")) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.indexOf(':') <= 0) continue;
+            lines.add(trimmed);
+        }
+        return String.join("\n", lines);
+    }
+
+    /**
+     * Recognizes a payload that is structurally site JSON rather than a header
+     * list, so a scanned value can be routed to the right part of the form.
+     */
+    public static String headerJsonText(String text) {
+        if (TextUtils.isEmpty(text)) return "";
+        String value = text.trim();
+        if (!value.startsWith("{") && !value.startsWith("[")) return "";
+        try {
+            JsonElement element = parseFlexible(value);
+            if (element.isJsonArray()) return value;
+            if (!element.isJsonObject()) return "";
+            JsonObject object = element.getAsJsonObject();
+            boolean siteLike = object.has("api") || object.has("site") || object.has("kind") || object.has("live") || object.has("items") || object.has("sites");
+            return siteLike ? value : "";
+        } catch (Throwable ignored) {
+            return "";
+        }
+    }
+
     public static Item createDefaultItem() {
         Item item = new Item();
         item.setId("local_" + System.currentTimeMillis() + "_" + Long.toHexString(System.nanoTime()));
@@ -689,6 +817,9 @@ public class CustomCspSetting {
         private String timeZone;
         @SerializedName("timeout")
         private Integer timeout;
+        @SerializedName("header")
+        @JsonAdapter(HeaderAdapter.class)
+        private Map<String, String> header;
         @SerializedName("hide")
         private Integer hide;
         @SerializedName("searchable")
@@ -1147,10 +1278,74 @@ public class CustomCspSetting {
             return timeout == null ? getLiveInt("timeout", null) : timeout;
         }
 
+        /**
+         * Request headers as the user typed them, one {@code Name: Value} pair per
+         * line. Stored in the same map shape both {@code Site} and {@code Live}
+         * already deserialize, so no new on-disk format is introduced. Blank or
+         * malformed lines are dropped rather than failing the whole save.
+         */
+        public String getHeader() {
+            if (header != null && !header.isEmpty()) return headerText(header);
+            return headerText(headerMap());
+        }
+
+        public void setHeader(String text) {
+            Map<String, String> map = headerObject(text);
+            this.header = map.isEmpty() ? null : map;
+            if (isLive()) {
+                if (map.isEmpty()) removeLive("header");
+                else putLive("header", headerJson(map));
+                return;
+            }
+            if (map.isEmpty()) removeSite("header");
+            else putSite("header", headerJson(map));
+        }
+
+        private Map<String, String> headerMap() {
+            JsonObject object = isLive() ? live : site;
+            JsonElement value = object == null ? null : object.get("header");
+            if (value == null || !value.isJsonObject()) return Collections.emptyMap();
+            Map<String, String> map = new LinkedHashMap<>();
+            for (String key : value.getAsJsonObject().keySet()) {
+                JsonElement child = value.getAsJsonObject().get(key);
+                if (child == null || child.isJsonNull()) continue;
+                map.put(key, child.getAsString());
+            }
+            return map;
+        }
+
+        private static String headerText(Map<String, String> map) {
+            if (map == null || map.isEmpty()) return "";
+            List<String> lines = new ArrayList<>();
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                if (TextUtils.isEmpty(entry.getKey())) continue;
+                lines.add(entry.getKey() + ": " + (entry.getValue() == null ? "" : entry.getValue()));
+            }
+            return String.join("\n", lines);
+        }
+
+        private static Map<String, String> headerObject(String text) {
+            if (TextUtils.isEmpty(text)) return Collections.emptyMap();
+            Map<String, String> map = new LinkedHashMap<>();
+            for (String line : text.split("\\r?\\n")) {
+                int index = line.indexOf(':');
+                if (index <= 0) continue;
+                String key = line.substring(0, index).trim();
+                if (!key.isEmpty()) map.put(key, line.substring(index + 1).trim());
+            }
+            return map;
+        }
+
+        private static JsonObject headerJson(Map<String, String> map) {
+            JsonObject object = new JsonObject();
+            for (Map.Entry<String, String> entry : map.entrySet()) object.addProperty(entry.getKey(), entry.getValue());
+            return object;
+        }
+
         public Site site() {
             if (isLive() || isOther()) return new Site();
             normalize();
-            if (site != null) return siteFromJson();
+            if (site != null) return withHeader(siteFromJson());
             Site site = new Site();
             boolean webHomeOnly = isWebHome();
             site.setKey(getKey());
@@ -1168,7 +1363,23 @@ public class CustomCspSetting {
             site.setQuickSearch(getQuickSearch());
             if (webHomeOnly && getExtensions() != null) site.setExtensions(getExtensions().deepCopy());
             site.setStyle(Style.rect());
-            return site;
+            return withHeader(site);
+        }
+
+        /**
+         * {@code Site} exposes {@code header} as a read-only map, so a value typed
+         * into the form cannot be attached field by field. Round-tripping through
+         * the same JSON shape the loader already accepts keeps one code path for
+         * header handling and is skipped entirely when the field is empty, which
+         * leaves the previous behaviour byte-identical for untouched site lists.
+         */
+        private Site withHeader(Site site) {
+            Map<String, String> headers = headerObject(getHeader());
+            if (headers.isEmpty()) return site;
+            JsonObject object = App.gson().toJsonTree(site).getAsJsonObject();
+            object.add("header", headerJson(headers));
+            Site result = Site.objectFrom(object, getJar());
+            return result.isEmpty() ? site : result;
         }
 
         public Live live(String spider) {
@@ -1194,6 +1405,9 @@ public class CustomCspSetting {
             if (!TextUtils.isEmpty(referer)) object.addProperty("referer", referer.trim());
             if (!TextUtils.isEmpty(timeZone)) object.addProperty("timeZone", timeZone.trim());
             if (timeout != null) object.addProperty("timeout", timeout);
+            Map<String, String> headers = headerObject(getHeader());
+            if (headers.isEmpty()) object.remove("header");
+            else object.add("header", headerJson(headers));
             return object;
         }
 
@@ -1214,6 +1428,9 @@ public class CustomCspSetting {
             if (searchable != null) object.addProperty("searchable", searchable);
             if (changeable != null) object.addProperty("changeable", changeable);
             if (quickSearch != null) object.addProperty("quickSearch", quickSearch);
+            Map<String, String> headers = headerObject(getHeader());
+            if (headers.isEmpty()) object.remove("header");
+            else object.add("header", headerJson(headers));
             if (isWebHome()) {
                 object.addProperty("type", getType());
                 object.addProperty("api", API_BUILTIN);
@@ -1380,6 +1597,10 @@ public class CustomCspSetting {
 
         private void removeSite(String key) {
             if (site != null) site.remove(key);
+        }
+
+        private void putLive(String key, JsonObject value) {
+            if (live != null && value != null) live.add(key, value);
         }
 
         private void putLive(String key, String value) {
