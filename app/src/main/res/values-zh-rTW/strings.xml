@@ -585,6 +585,9 @@
     <string name="setting_one_key_sync">一鍵同步</string>
     <string name="setting_incognito">無痕模式</string>
     <string name="setting_drive_check">網盤檢測</string>
+    <string name="setting_dlna_renderer">接收投屏（DLNA）</string>
+    <string name="setting_dlna_renderer_on">已開啟投屏接收，同一網路下的裝置可投屏到本機。</string>
+    <string name="setting_dlna_renderer_off">已關閉投屏接收。</string>
     <string name="setting_theme_color">主題色彩</string>
     <string name="setting_appearance">外觀與語言</string>
     <string name="setting_appearance_summary">4 項</string>

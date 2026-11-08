@@ -134,6 +134,11 @@
             android:exported="false" />
 
         <service
+            android:name=".service.DLNARendererService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
+
+        <service
             android:name=".service.DLNACastService"
             android:exported="false" />
 

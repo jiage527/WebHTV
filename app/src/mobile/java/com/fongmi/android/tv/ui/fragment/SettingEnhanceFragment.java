@@ -21,6 +21,7 @@ import com.fongmi.android.tv.databinding.FragmentSettingEnhanceBinding;
 import com.fongmi.android.tv.setting.CustomCspSetting;
 import com.fongmi.android.tv.setting.ProxySetting;
 import com.fongmi.android.tv.setting.SiteHealthStore;
+import com.fongmi.android.tv.service.DLNARendererService;
 import com.fongmi.android.tv.ui.activity.HomeActivity;
 import com.fongmi.android.tv.ui.base.BaseFragment;
 import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
@@ -92,6 +93,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         mBinding.webHomeFullscreen.setOnClickListener(this::setWebHomeFullscreen);
         mBinding.cspWarmup.setOnClickListener(this::setCspWarmup);
         mBinding.playbackArtworkWall.setOnClickListener(this::setPlaybackArtworkWall);
+        mBinding.dlnaRenderer.setOnClickListener(this::setDlnaRenderer);
         mBinding.playbackWebhook.setOnClickListener(view -> ViewingRecordSyncDialog.show(this, this::setText));
         mBinding.managePage.setOnClickListener(view -> ManagePageDialog.show(this));
         mBinding.remoteTrust.setOnClickListener(view -> RemoteTrustDialog.show(this, this::setText));
@@ -123,6 +125,7 @@ public class SettingEnhanceFragment extends BaseFragment {
                 mBinding.webHomeFullscreen,
                 mBinding.cspWarmup,
                 mBinding.playbackArtworkWall,
+                mBinding.dlnaRenderer,
                 mBinding.driveCheck,
                 mBinding.siteHealthSort,
                 mBinding.debugLog,
@@ -144,6 +147,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         safeSet("webHomeFullscreen", mBinding.webHomeFullscreenText, () -> getSwitch(Setting.isWebHomeFullscreen()));
         safeSet("cspWarmup", mBinding.cspWarmupText, this::getCspWarmupText);
         safeSet("playbackArtworkWall", mBinding.playbackArtworkWallText, () -> getSwitch(Setting.isPlaybackArtworkWall()));
+        safeSet("dlnaRenderer", mBinding.dlnaRendererText, () -> getSwitch(Setting.isDlnaRenderer()));
         safeSet("playbackWebhook", mBinding.playbackWebhookText, () -> ViewingRecordSyncStore.summary(requireContext()));
         safeSet("managePage", mBinding.managePageText, () -> getString(R.string.manage_page_web));
         safeSet("remoteTrust", mBinding.remoteTrustText, () -> RemoteStore.summary(requireContext()));
@@ -224,6 +228,15 @@ public class SettingEnhanceFragment extends BaseFragment {
     private void setPlaybackArtworkWall(View view) {
         Setting.putPlaybackArtworkWall(!Setting.isPlaybackArtworkWall());
         mBinding.playbackArtworkWallText.setText(getSwitch(Setting.isPlaybackArtworkWall()));
+    }
+
+    private void setDlnaRenderer(View view) {
+        boolean enabled = !Setting.isDlnaRenderer();
+        Setting.putDlnaRenderer(enabled);
+        if (enabled) DLNARendererService.start(requireContext());
+        else DLNARendererService.stop(requireContext());
+        mBinding.dlnaRendererText.setText(getSwitch(enabled));
+        Notify.show(enabled ? R.string.setting_dlna_renderer_on : R.string.setting_dlna_renderer_off);
     }
 
     private void setWebHomeFullscreen(View view) {

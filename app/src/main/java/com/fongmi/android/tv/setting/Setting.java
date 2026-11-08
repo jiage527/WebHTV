@@ -515,6 +515,14 @@ public class Setting {
         Prefers.put("playback_artwork_wall", artworkWall);
     }
 
+    public static boolean isDlnaRenderer() {
+        return Prefers.getBoolean("dlna_renderer");
+    }
+
+    public static void putDlnaRenderer(boolean renderer) {
+        Prefers.put("dlna_renderer", renderer);
+    }
+
     public static boolean isCspWarmup() {
         return getCspWarmupMode() != CSP_WARMUP_DISABLED;
     }

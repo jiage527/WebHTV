@@ -1,13 +1,11 @@
 package com.fongmi.android.tv.dlna;
 
 import android.content.Context;
-import android.content.Intent;
 
 import androidx.media3.common.Player;
 
 import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.player.PlayerManager;
-import com.fongmi.android.tv.ui.activity.CastActivity;
 import com.google.gson.reflect.TypeToken;
 
 import org.jupnp.model.types.UnsignedIntegerFourBytes;
@@ -51,8 +49,15 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
     private volatile long cachedPosition = -1;
     private volatile long cachedDuration = -1;
 
+    private volatile Runnable onCast;
+
     public DLNAAvTransportImpl(Context context) {
         this.context = context;
+    }
+
+    /** Run before a pushed item starts, so the renderer is bound to the player. */
+    public void setOnCast(Runnable onCast) {
+        this.onCast = onCast;
     }
 
     public void setPlayerManager(PlayerManager player) {
@@ -100,7 +105,7 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
         this.pendingSeekMs = -1;
         this.currentURI = currentURI != null ? currentURI : "";
         this.currentMetaData = currentURIMetaData != null ? currentURIMetaData : "";
-        startCastActivity(new CastAction(this.currentURI, this.currentMetaData, parseHeaders(this.currentMetaData)));
+        openCast(new CastAction(this.currentURI, this.currentMetaData, parseHeaders(this.currentMetaData)));
     }
 
     private Map<String, String> parseHeaders(String metaData) {
@@ -166,7 +171,7 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
             if (player == null || !dlnaActive) return;
             int state = player.getPlaybackState();
             if (!currentURI.isEmpty() && (state == Player.STATE_ENDED || state == Player.STATE_IDLE)) {
-                startCastActivity(new CastAction(currentURI, currentMetaData, parseHeaders(currentMetaData)));
+                openCast(new CastAction(currentURI, currentMetaData, parseHeaders(currentMetaData)));
             } else {
                 player.play();
             }
@@ -192,6 +197,9 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
         if (dlnaActive) {
             PlayerManager local = player;
             if (local != null) App.post(() -> local.seekTo(ms));
+            // The player is bound but not attached yet, so hold the position
+            // instead of dropping it; it is applied once playback starts.
+            else pendingSeekMs = ms;
         } else {
             pendingSeekMs = ms;
         }
@@ -201,7 +209,7 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
     public void next(UnsignedIntegerFourBytes instanceId) {
         if (!dlnaActive) return;
         CastAction action = popNext();
-        if (action != null) startCastActivity(action);
+        if (action != null) openCast(action);
     }
 
     @Override
@@ -234,11 +242,13 @@ public class DLNAAvTransportImpl extends AbstractAVTransportService {
         };
     }
 
-    private void startCastActivity(CastAction action) {
-        Intent intent = new Intent(context, CastActivity.class);
-        intent.putExtra(CastAction.KEY_EXTRA, action);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        context.startActivity(intent);
+    /** Hands a pushed item to the flavour-specific player. */
+    private void openCast(CastAction action) {
+        // Bind the player before playing so the control point's play, pause and
+        // seek reach the item that is about to start. On a TV the cast screen
+        // has already done this, and binding twice is a no-op.
+        if (onCast != null) onCast.run();
+        CastPlayback.play(context, action);
     }
 
     public boolean hasNext() {

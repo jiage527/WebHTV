@@ -603,6 +603,9 @@
     <string name="setting_one_key_sync">One-key sync</string>
     <string name="setting_incognito">Incognito mode</string>
     <string name="setting_drive_check">Drive link check</string>
+    <string name="setting_dlna_renderer">Receive casting (DLNA)</string>
+    <string name="setting_dlna_renderer_on">Casting receiver is on. Devices on the same network can cast to this device.</string>
+    <string name="setting_dlna_renderer_off">Casting receiver is off.</string>
     <string name="setting_theme_color">Theme color</string>
     <string name="setting_appearance">Appearance &amp; language</string>
     <string name="setting_appearance_summary">4 options</string>

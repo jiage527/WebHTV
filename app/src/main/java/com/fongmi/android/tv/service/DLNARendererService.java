@@ -94,6 +94,7 @@ public class DLNARendererService extends AndroidUpnpServiceImpl implements Servi
     @SuppressWarnings("unchecked")
     private LocalService<DLNAAvTransportImpl> createAvTransport() {
         avTransportImpl = new DLNAAvTransportImpl(this);
+        avTransportImpl.setOnCast(() -> setDlnaActive(true));
         LocalService<DLNAAvTransportImpl> service = new AnnotationLocalServiceBinder().read(DLNAAvTransportImpl.class);
         service.setManager(new LastChangeAwareServiceManager<>(service, new AVTransportLastChangeParser()) {
             @Override
@@ -196,6 +197,7 @@ public class DLNARendererService extends AndroidUpnpServiceImpl implements Servi
         avTransportImpl.setPlayerManager(player);
         currentListenerPlayer = player.getPlayer();
         currentListenerPlayer.addListener(listener);
+        applyPendingSeek();
         App.post(positionUpdater, 1000);
     }
 
@@ -203,6 +205,12 @@ public class DLNARendererService extends AndroidUpnpServiceImpl implements Servi
     public void onServiceDisconnected(ComponentName name) {
         bound = false;
         cleanupPlaybackRefs();
+    }
+
+    private void applyPendingSeek() {
+        if (player == null || player.isEmpty()) return;
+        long seekMs = consumePendingSeekMs();
+        if (seekMs >= 0) player.seekTo(seekMs);
     }
 
     private void notifyState() {
@@ -218,6 +226,8 @@ public class DLNARendererService extends AndroidUpnpServiceImpl implements Servi
             default -> null;
         };
         if (renderState != null) avTransportImpl.fireStateChange(renderState);
+        // A seek that raced with the player becoming ready is applied here.
+        if (state == Player.STATE_READY) applyPendingSeek();
     }
 
     private final Runnable positionUpdater = new Runnable() {
