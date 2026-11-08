@@ -1461,4 +1461,36 @@
     <string name="subtitle_translate_lang_fr">French</string>
     <string name="subtitle_translate_lang_de">German</string>
     <string name="subtitle_translate_lang_ru">Russian</string>
+
+    <string name="keep_organize">Playlists &amp; tags</string>
+    <string name="keep_playlist">Playlist</string>
+    <string name="keep_playlist_all">All</string>
+    <string name="keep_playlist_unfiled">Unfiled</string>
+    <string name="keep_playlist_new">New playlist</string>
+    <string name="keep_playlist_name_hint">Playlist name</string>
+    <string name="keep_playlist_rename">Rename</string>
+    <string name="keep_playlist_delete">Delete playlist</string>
+    <string name="keep_playlist_delete_confirm">Items in this playlist will move to Unfiled. Nothing is removed from your favorites.</string>
+    <string name="keep_playlist_created">Playlist created</string>
+    <string name="keep_playlist_exists">That playlist already exists</string>
+    <string name="keep_playlist_renamed">Playlist renamed</string>
+    <string name="keep_playlist_deleted">Playlist deleted</string>
+    <string name="keep_playlist_name_required">Enter a playlist name</string>
+    <string name="keep_tags">Tags</string>
+    <string name="keep_tag_hint">Tag name</string>
+    <string name="keep_tag_saved">Tags saved</string>
+    <string name="keep_tag_none">No tags yet</string>
+    <string name="keep_manage_move">Move to playlist</string>
+    <string name="keep_manage_move_done">Moved %1$d item(s)</string>
+    <string name="keep_manage_tag">Edit tags</string>
+    <string name="keep_manage_none">Select at least one item</string>
+    <string name="keep_export">Export</string>
+    <string name="keep_export_done">Playlist data copied to clipboard</string>
+    <string name="keep_export_empty">Nothing to export yet</string>
+    <string name="keep_import">Import</string>
+    <string name="keep_import_merge">Merge with existing</string>
+    <string name="keep_import_done">Playlist data imported</string>
+    <string name="keep_import_failed">Import failed: not a valid playlist file</string>
+    <string name="keep_tag_remove_confirm">Remove this tag from %1$d item(s)?</string>
+    <string name="keep_import_empty">No valid playlist data found</string>
 </resources>

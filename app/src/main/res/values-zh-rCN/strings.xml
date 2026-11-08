@@ -1453,4 +1453,36 @@
     <string name="subtitle_translate_lang_fr">法语</string>
     <string name="subtitle_translate_lang_de">德语</string>
     <string name="subtitle_translate_lang_ru">俄语</string>
+
+    <string name="keep_organize">片单与标签</string>
+    <string name="keep_playlist">片单</string>
+    <string name="keep_playlist_all">全部</string>
+    <string name="keep_playlist_unfiled">未分类</string>
+    <string name="keep_playlist_new">新建片单</string>
+    <string name="keep_playlist_name_hint">片单名称</string>
+    <string name="keep_playlist_rename">重命名</string>
+    <string name="keep_playlist_delete">删除片单</string>
+    <string name="keep_playlist_delete_confirm">该片单内的收藏将退回「未分类」，不会从收藏中移除。</string>
+    <string name="keep_playlist_created">已新建片单</string>
+    <string name="keep_playlist_exists">同名片单已存在</string>
+    <string name="keep_playlist_renamed">已重命名片单</string>
+    <string name="keep_playlist_deleted">已删除片单</string>
+    <string name="keep_playlist_name_required">请输入片单名称</string>
+    <string name="keep_tags">标签</string>
+    <string name="keep_tag_hint">标签名称</string>
+    <string name="keep_tag_saved">已保存标签</string>
+    <string name="keep_tag_none">暂无标签</string>
+    <string name="keep_manage_move">移动到片单</string>
+    <string name="keep_manage_move_done">已移动 %1$d 项</string>
+    <string name="keep_manage_tag">编辑标签</string>
+    <string name="keep_manage_none">请先选择条目</string>
+    <string name="keep_export">导出</string>
+    <string name="keep_export_done">片单数据已复制到剪贴板</string>
+    <string name="keep_export_empty">暂无可导出的片单数据</string>
+    <string name="keep_import">导入</string>
+    <string name="keep_import_merge">与现有数据合并</string>
+    <string name="keep_import_done">已导入片单数据</string>
+    <string name="keep_import_failed">导入失败：不是有效的片单文件</string>
+    <string name="keep_tag_remove_confirm">从 %1$d 项中移除该标签？</string>
+    <string name="keep_import_empty">没有找到有效的片单数据</string>
 </resources>
