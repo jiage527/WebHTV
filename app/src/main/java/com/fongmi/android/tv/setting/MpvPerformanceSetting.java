@@ -1,5 +1,6 @@
 package com.fongmi.android.tv.setting;
 
+import com.fongmi.android.tv.player.mpv.MpvHlsQualityPolicy;
 import com.github.catvod.utils.Prefers;
 
 public final class MpvPerformanceSetting {
@@ -43,6 +44,7 @@ public final class MpvPerformanceSetting {
     private static final String KEY_SOFT_TUNE = "perf_mpv_soft_tune";
     private static final String KEY_FRAME_RATE = "perf_mpv_frame_rate";
     private static final String KEY_HLS_BITRATE = "perf_mpv_hls_bitrate";
+    private static final String KEY_HLS_BITRATE_MANUAL = "perf_mpv_hls_bitrate_manual";
     private static final String KEY_REBUFFER_MS = "perf_mpv_rebuffer_ms";
     private static final String KEY_OPTION_PRIORITY = "perf_mpv_option_priority";
     private static final String KEY_VULKAN_BACKEND = "perf_mpv_vulkan_backend";
@@ -199,10 +201,17 @@ public final class MpvPerformanceSetting {
 
     public static void putHlsBitrateMode(int value) {
         Prefers.put(KEY_HLS_BITRATE, clamp(value, HLS_HIGHEST, HLS_LOWEST));
+        // Picking a preset replaces any per-stream choice, so the settings menu cannot
+        // show a value that the running player would ignore.
+        clearHlsBitrateManual();
         PlaybackPerformanceSetting.markOverride(PlaybackPerformanceCatalog.MPV_HLS_BITRATE);
     }
 
     public static String getHlsBitrateOption() {
+        // A stream-specific choice wins over the preset: it was made while looking at
+        // that stream's real ladder, so it is the more informed of the two.
+        String manual = getHlsBitrateManual();
+        if (!manual.isEmpty()) return manual;
         return switch (getHlsBitrateMode()) {
             case HLS_15_MBPS -> "15000000";
             case HLS_8_MBPS -> "8000000";
@@ -220,12 +229,68 @@ public final class MpvPerformanceSetting {
 
     public static String getHlsBitrateText(boolean automatic) {
         if (automatic) return "自动 · ≤15Mbps起步";
+        String manual = getHlsBitrateManual();
+        if (!manual.isEmpty()) return describeHlsBitrateOption(manual);
         return switch (getHlsBitrateMode()) {
             case HLS_15_MBPS -> "不超过15Mbps";
             case HLS_8_MBPS -> "不超过8Mbps";
             case HLS_LOWEST -> "最低码率";
             default -> "最高码率";
         };
+    }
+
+    /**
+     * A quality chosen for the stream currently playing, overriding the coarse
+     * preset. Held as the mpv option value itself (a number, or {@code min}/{@code max})
+     * so the stored value is exactly what mpv was given and can be compared with the
+     * live option without a second representation.
+     */
+    public static String getHlsBitrateManual() {
+        String value = Prefers.getString(KEY_HLS_BITRATE_MANUAL, "").trim();
+        return isValidHlsBitrateOption(value) ? value : "";
+    }
+
+    public static void putHlsBitrateManual(String value) {
+        String option = value == null ? "" : value.trim();
+        if (option.isEmpty()) {
+            Prefers.remove(KEY_HLS_BITRATE_MANUAL);
+            return;
+        }
+        if (!isValidHlsBitrateOption(option)) return;
+        Prefers.put(KEY_HLS_BITRATE_MANUAL, option);
+        // A hand-picked quality is a manual override in the same sense as the preset
+        // menu, so it must also retire the automatic path for this option.
+        PlaybackPerformanceSetting.markOverride(PlaybackPerformanceCatalog.MPV_HLS_BITRATE);
+    }
+
+    public static void clearHlsBitrateManual() {
+        Prefers.remove(KEY_HLS_BITRATE_MANUAL);
+    }
+
+    public static boolean hasHlsBitrateManual() {
+        return !getHlsBitrateManual().isEmpty();
+    }
+
+    /**
+     * True for the values mpv accepts for {@code hls-bitrate}. Delegates to the policy so
+     * the settings layer, the menu and the native staging check cannot drift apart.
+     */
+    public static boolean isValidHlsBitrateOption(String value) {
+        return MpvHlsQualityPolicy.isValidOption(value);
+    }
+
+    /** A readable description of a stored option value for the settings row. */
+    public static String describeHlsBitrateOption(String option) {
+        String value = option == null ? "" : option.trim();
+        if (MpvHlsQualityPolicy.OPTION_LOWEST.equals(value)) return "最低码率";
+        if (MpvHlsQualityPolicy.OPTION_HIGHEST.equals(value)) return "最高码率";
+        long bits = 0;
+        try {
+            bits = Long.parseLong(value);
+        } catch (NumberFormatException ignored) {
+        }
+        if (bits <= 0) return "最高码率";
+        return "手动 · " + MpvHlsQualityPolicy.formatBitsPerSecond(bits);
     }
 
     public static int getRebufferMs() {
@@ -340,6 +405,10 @@ public final class MpvPerformanceSetting {
         Prefers.put(KEY_SOFT_TUNE, SOFT_TUNE_MILD);
         Prefers.put(KEY_FRAME_RATE, FRAME_RATE_SEAMLESS);
         Prefers.put(KEY_HLS_BITRATE, HLS_HIGHEST);
+        // A profile switch replaces the coarse preset, so any per-stream choice made
+        // against the previous settings must go too; otherwise the new profile would
+        // appear not to apply.
+        clearHlsBitrateManual();
         Prefers.put(KEY_VULKAN_BACKEND, VULKAN_BACKEND_DIRECT);
         Prefers.put(KEY_MULTICHANNEL_AUDIO, MULTICHANNEL_STEREO_COMPAT);
         applyRebufferPreset(PlaybackPerformanceSetting.PROFILE_RECOMMENDED);
@@ -355,6 +424,10 @@ public final class MpvPerformanceSetting {
         Prefers.put(KEY_SOFT_TUNE, SOFT_TUNE_MILD);
         Prefers.put(KEY_FRAME_RATE, FRAME_RATE_SEAMLESS);
         Prefers.put(KEY_HLS_BITRATE, HLS_HIGHEST);
+        // A profile switch replaces the coarse preset, so any per-stream choice made
+        // against the previous settings must go too; otherwise the new profile would
+        // appear not to apply.
+        clearHlsBitrateManual();
         Prefers.put(KEY_VULKAN_BACKEND, VULKAN_BACKEND_DIRECT);
         Prefers.put(KEY_MULTICHANNEL_AUDIO, MULTICHANNEL_STEREO_COMPAT);
         applyRebufferPreset(PlaybackPerformanceSetting.PROFILE_AUTO);
@@ -374,6 +447,7 @@ public final class MpvPerformanceSetting {
         Prefers.put(KEY_SOFT_TUNE, SOFT_TUNE_MILD);
         Prefers.put(KEY_FRAME_RATE, FRAME_RATE_OFF);
         Prefers.put(KEY_HLS_BITRATE, HLS_8_MBPS);
+        clearHlsBitrateManual();
         Prefers.put(KEY_VULKAN_BACKEND, VULKAN_BACKEND_DIRECT);
         Prefers.put(KEY_MULTICHANNEL_AUDIO, MULTICHANNEL_STEREO_COMPAT);
         applyRebufferPreset(PlaybackPerformanceSetting.PROFILE_LIGHTWEIGHT);

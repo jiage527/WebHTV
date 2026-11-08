@@ -90,6 +90,7 @@ import com.fongmi.android.tv.player.mpv.MpvConfigStore;
 import com.fongmi.android.tv.player.mpv.MpvForwardCacheController;
 import com.fongmi.android.tv.player.mpv.MpvForwardCachePolicy;
 import com.fongmi.android.tv.player.mpv.MpvHlsVariantController;
+import com.fongmi.android.tv.player.mpv.MpvHlsQualityPolicy;
 import com.fongmi.android.tv.player.mpv.MpvHlsVariantPolicy;
 import com.fongmi.android.tv.player.mpv.MpvPreloadController;
 import com.fongmi.android.tv.player.mpv.MpvPreloadPolicy;
@@ -751,6 +752,37 @@ public class PlayerManager implements ParseCallback {
 
     public void setSubtitleStyle(float textSize, float position) {
         if (engine != null) engine.setSubtitleStyle(textSize, position);
+    }
+
+    /**
+     * The HLS variant ladder of the stream currently playing, or an empty list when
+     * the current stream is not an HLS stream the app proxies. Read from cached state
+     * only, so opening a menu never queries the native player.
+     */
+    public List<MpvPlayer.HlsVariant> getHlsVariants() {
+        if (!isMpv() || !(engine instanceof MpvPlayerEngine mpv)) return List.of();
+        return mpv.getAutoHlsRuntimeSnapshot().variants();
+    }
+
+    /** The bitrate the running stream is believed to be playing at, or 0 when unknown. */
+    public long getHlsSelectedBitsPerSecond() {
+        if (!isMpv() || !(engine instanceof MpvPlayerEngine mpv)) return 0;
+        MpvPlayer.AutoHlsRuntimeSnapshot snapshot = mpv.getAutoHlsRuntimeSnapshot();
+        return snapshot.selectedVariant() == null ? 0 : snapshot.selectedVariant().selectionBitsPerSecond();
+    }
+
+    /**
+     * True when this stream exposes a real choice, which needs at least two distinct
+     * declared rates. An HLS stream outside the app's proxy has no ladder to offer, and
+     * a ladder of one rate has nothing to pick.
+     */
+    public boolean supportsHlsQualityChoice() {
+        return isMpv() && MpvHlsQualityPolicy.canChoose(toPolicyVariants(getHlsVariants()));
+    }
+
+    /** The current variant ladder as policy variants, for the quality menu. */
+    public List<MpvHlsVariantPolicy.Variant> getHlsPolicyVariants() {
+        return toPolicyVariants(getHlsVariants());
     }
 
     public String getSpeedText() {

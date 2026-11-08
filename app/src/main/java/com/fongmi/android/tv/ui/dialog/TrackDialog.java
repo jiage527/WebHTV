@@ -96,6 +96,16 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         return SubtitleTranslateDialog.hasExternalSubtitle(player);
     }
 
+    /**
+     * A quality menu needs a real HLS variant ladder, which only the app's own HLS
+     * proxy exposes. Video tracks are the natural place to offer it: the menu changes
+     * the video stream, not an audio or subtitle track.
+     */
+    private boolean hasQualityChoice() {
+        return !secondarySubtitle && type == C.TRACK_TYPE_VIDEO
+                && MpvQualityDialog.canShow(player);
+    }
+
     @Override
     protected ViewBinding getBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container) {
         return binding = DialogTrackBinding.inflate(inflater, container, false);
@@ -117,6 +127,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.choose.setOnClickListener(this::onChoose);
         binding.subtitle.setOnClickListener(this::onSubtitle);
         binding.translate.setOnClickListener(this::onTranslate);
+        binding.quality.setOnClickListener(this::onQuality);
     }
 
     private void refreshTrackList() {
@@ -131,6 +142,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.choose.setVisibility(hasChoose() ? View.VISIBLE : View.GONE);
         binding.subtitle.setVisibility(hasText() ? View.VISIBLE : View.GONE);
         binding.translate.setVisibility(hasTranslatableSubtitle() ? View.VISIBLE : View.GONE);
+        binding.quality.setVisibility(hasQualityChoice() ? View.VISIBLE : View.GONE);
     }
 
     private String getTitle() {
@@ -160,6 +172,11 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
 
     private void onTranslate(View view) {
         SubtitleTranslateDialog.show(requireActivity(), player);
+        dismiss();
+    }
+
+    private void onQuality(View view) {
+        MpvQualityDialog.show(requireActivity(), player);
         dismiss();
     }
 

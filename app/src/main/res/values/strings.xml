@@ -138,6 +138,10 @@
     <string name="subtitle_style_outline_box">Box</string>
     <string name="subtitle_style_background">Background</string>
     <string name="subtitle_style_secondary_position">Top subtitle position</string>
+    <string name="play_quality">Quality</string>
+    <string name="play_quality_highest">Highest</string>
+    <string name="play_quality_lowest">Lowest bitrate</string>
+    <string name="play_quality_applied">Quality selected, reloading</string>
     <string name="danmaku_reset">Reset</string>
 
     <!-- Parse -->

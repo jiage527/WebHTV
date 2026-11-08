@@ -137,6 +137,10 @@
     <string name="subtitle_style_outline_box">底框</string>
     <string name="subtitle_style_background">背景</string>
     <string name="subtitle_style_secondary_position">上方字幕位置</string>
+    <string name="play_quality">画质</string>
+    <string name="play_quality_highest">最高画质</string>
+    <string name="play_quality_lowest">最低码率</string>
+    <string name="play_quality_applied">已选择画质，正在重载</string>
     <string name="danmaku_reset">重置</string>
 
     <!-- Parse -->
