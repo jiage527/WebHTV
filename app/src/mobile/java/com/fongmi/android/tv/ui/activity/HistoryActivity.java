@@ -20,6 +20,7 @@ import com.fongmi.android.tv.event.RefreshEvent;
 import com.fongmi.android.tv.ui.adapter.HistoryAdapter;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.dialog.SyncDialog;
+import com.fongmi.android.tv.ui.dialog.ViewingStatsDialog;
 import com.fongmi.android.tv.utils.MobileWindow;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -114,6 +115,7 @@ public class HistoryActivity extends BaseActivity implements HistoryAdapter.OnCl
         if (item.getItemId() == android.R.id.home) onBackInvoked();
         else if (item.getItemId() == R.id.delete) onDelete();
         else if (item.getItemId() == R.id.sync) onSync();
+        else if (item.getItemId() == R.id.stats) ViewingStatsDialog.show(this);
         return super.onOptionsItemSelected(item);
     }
 

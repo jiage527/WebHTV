@@ -141,6 +141,14 @@
     <string name="play_quality_highest">最高畫質</string>
     <string name="play_quality_lowest">最低位元率</string>
     <string name="play_quality_applied">已選擇畫質，正在重新載入</string>
+    <string name="viewing_stats_title">觀看時長</string>
+    <string name="viewing_stats_total">累計觀看</string>
+    <string name="viewing_stats_today">今天</string>
+    <string name="viewing_stats_recent">最近幾天</string>
+    <string name="viewing_stats_empty">暫無觀看記錄</string>
+    <string name="viewing_stats_reset">歸零</string>
+    <string name="viewing_stats_reset_confirm">確定清空全部觀看時長記錄？此操作無法復原。</string>
+    <string name="viewing_stats_entry">觀看時長</string>
     <string name="danmaku_reset">重設</string>
 
     <!-- Parse -->

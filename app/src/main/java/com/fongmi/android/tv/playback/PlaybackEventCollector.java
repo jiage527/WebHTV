@@ -1,11 +1,14 @@
 package com.fongmi.android.tv.playback;
 
+import android.os.SystemClock;
+
 import androidx.annotation.Nullable;
 import androidx.media3.common.Player;
 
 import com.fongmi.android.tv.bean.History;
 import com.fongmi.android.tv.player.PlayerManager;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.setting.ViewingStatsSession;
 
 public final class PlaybackEventCollector {
 
@@ -41,6 +44,15 @@ public final class PlaybackEventCollector {
 
     public synchronized void onProgress(@Nullable History history, @Nullable PlayerManager player) {
         updateHistory(history);
+        // Watched time is measured here because this is the one tick both playback screens
+        // already drive while a stream plays. It rides the history's own position so the
+        // measurement cannot drift from the progress that is being saved.
+        if (history != null && player != null) {
+            ViewingStatsSession.get().onProgress(
+                    history.getPosition(), player.isPlaying(), SystemClock.elapsedRealtime());
+        } else {
+            ViewingStatsSession.get().onSessionEnd();
+        }
         PlaybackRecord record = snapshot(history, player, PROGRESS);
         if (record == null || player == null || !player.isPlaying()) return;
         if (!started) startIfNeeded(record, history);
@@ -78,6 +90,9 @@ public final class PlaybackEventCollector {
         History history = current(player);
         PlaybackRecord record = snapshot(history, player, "");
         if (record != null && started) sender.sendFinalThen(record, STOP);
+        // A stopped player ends the viewing session, so the last partial batch is written
+        // rather than left pending for a session that may never resume.
+        ViewingStatsSession.get().onSessionEnd();
         resetStarted();
     }
 

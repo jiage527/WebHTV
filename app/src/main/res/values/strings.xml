@@ -142,6 +142,14 @@
     <string name="play_quality_highest">Highest</string>
     <string name="play_quality_lowest">Lowest bitrate</string>
     <string name="play_quality_applied">Quality selected, reloading</string>
+    <string name="viewing_stats_title">Viewing time</string>
+    <string name="viewing_stats_total">Total watched</string>
+    <string name="viewing_stats_today">Today</string>
+    <string name="viewing_stats_recent">Recent days</string>
+    <string name="viewing_stats_empty">No viewing recorded yet</string>
+    <string name="viewing_stats_reset">Reset</string>
+    <string name="viewing_stats_reset_confirm">Clear all recorded viewing time? This cannot be undone.</string>
+    <string name="viewing_stats_entry">Viewing time</string>
     <string name="danmaku_reset">Reset</string>
 
     <!-- Parse -->

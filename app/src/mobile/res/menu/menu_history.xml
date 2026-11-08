@@ -3,6 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
+        android:id="@+id/stats"
+        android:icon="@drawable/ic_setting_history"
+        android:title="@string/viewing_stats_entry"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/sync"
         android:icon="@drawable/ic_action_sync"
         android:title="@string/menu_sync"

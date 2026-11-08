@@ -26,6 +26,8 @@ import com.fongmi.android.tv.impl.LiveListener;
 import com.fongmi.android.tv.impl.SiteListener;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.setting.ViewingStatsLedger;
+import com.fongmi.android.tv.setting.ViewingStatsSetting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
 import com.fongmi.android.tv.ui.dialog.AboutDialog;
@@ -36,6 +38,7 @@ import com.fongmi.android.tv.ui.dialog.LiveDialog;
 import com.fongmi.android.tv.ui.dialog.RestoreDialog;
 import com.fongmi.android.tv.ui.dialog.BackupProgressDialog;
 import com.fongmi.android.tv.ui.dialog.SiteDialog;
+import com.fongmi.android.tv.ui.dialog.ViewingStatsDialog;
 import com.fongmi.android.tv.utils.AppVersion;
 import com.fongmi.android.tv.utils.FileUtil;
 import com.fongmi.android.tv.utils.Notify;
@@ -86,6 +89,7 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
         mBinding.liveUrl.setText(LiveConfig.getDesc());
         setWallText();
         mBinding.versionText.setText(AppVersion.fullName());
+        setViewingStatsText();
         setCacheText();
         setOtherText();
         SettingsSearchBar.attachToPage(mBinding.getRoot());
@@ -122,6 +126,7 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
         mBinding.danmaku.setOnClickListener(this::onDanmaku);
         mBinding.restore.setOnClickListener(this::onRestore);
         mBinding.version.setOnClickListener(this::onVersion);
+        mBinding.viewingStats.setOnClickListener(this::onViewingStats);
         mBinding.vod.setOnLongClickListener(this::onVodEdit);
         mBinding.vodHome.setOnClickListener(this::onVodHome);
         mBinding.live.setOnLongClickListener(this::onLiveEdit);
@@ -217,6 +222,18 @@ public class SettingActivity extends BaseActivity implements ConfigListener, Sit
     private boolean onWallEdit(View view) {
         ConfigDialog.create().wall().edit().show(this);
         return true;
+    }
+
+    private void onViewingStats(View view) {
+        ViewingStatsDialog.show(this);
+        // The dialog can reset the total, so the row is refreshed from the same source it
+        // displays rather than assuming the value is unchanged.
+        setViewingStatsText();
+    }
+
+    /** Shows the accumulated total, so the entry itself reports the figure. */
+    private void setViewingStatsText() {
+        mBinding.viewingStatsText.setText(ViewingStatsLedger.format(ViewingStatsSetting.getTotalMs()));
     }
 
     private void onVodHome(View view) {
