@@ -1431,6 +1431,13 @@
     <string name="play_screenshot">截图</string>
     <string name="play_screenshot_saved">截图已保存：%s</string>
     <string name="play_screenshot_failed">截图失败</string>
+    <string name="play_gif_record">GIF</string>
+    <string name="play_gif_record_title">录制 GIF</string>
+    <string name="play_gif_record_duration">录制 %d 秒</string>
+    <string name="play_gif_record_countdown">剩 %d 秒</string>
+    <string name="play_gif_record_saved">GIF 已保存：%s</string>
+    <string name="play_gif_record_failed">GIF 录制失败</string>
+    <string name="play_gif_record_cancelled">已取消录制</string>
     <string name="subtitle_translate">字幕翻译</string>
     <string name="subtitle_translate_language">目标语言</string>
     <string name="subtitle_translate_mode">翻译方式</string>

@@ -90,6 +90,7 @@ import com.fongmi.android.tv.model.SearchProgress;
 import com.fongmi.android.tv.playback.PlaybackEventCollector;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlayerManager;
+import com.fongmi.android.tv.player.gif.GifRecordController;
 import com.fongmi.android.tv.player.diagnostic.PanEndpointParser;
 import com.fongmi.android.tv.player.karaoke.KaraokeController;
 import com.fongmi.android.tv.player.karaoke.KaraokePitchTrackGenerator;
@@ -214,6 +215,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     private PartAdapter mPartAdapter;
     private LyricsController mLyrics;
     private KaraokeController mKaraoke;
+    private final GifRecordController mGifRecord = new GifRecordController();
     private boolean mAudioStageVisible;
     private boolean mAudioLightEffectAnimated;
     private boolean mKaraokeResultShown;
@@ -715,6 +717,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
         mBinding.control.action.abLoop.setOnClickListener(view -> onAbLoop());
         mBinding.control.action.screenshot.setOnClickListener(view -> onScreenshot(false));
+        mBinding.control.action.gifRecord.setOnClickListener(view -> onGifRecord());
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
         mBinding.audioNext.setOnClickListener(view -> checkNext());
         mBinding.audioPrev.setOnClickListener(view -> checkPrev());
@@ -884,6 +887,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.DANMAKU, mBinding.control.action.danmaku);
         addActionButton(PlayerButtonSetting.AB_LOOP, mBinding.control.action.abLoop);
         addActionButton(PlayerButtonSetting.SCREENSHOT, mBinding.control.action.screenshot);
+        addActionButton(PlayerButtonSetting.GIF_RECORD, mBinding.control.action.gifRecord);
         addActionButton(PlayerButtonSetting.TITLE, mBinding.control.action.title);
         addActionButton(PlayerButtonSetting.REPEAT, mBinding.control.action.repeat);
         PlayerButtonSetting.applyOrder(mBinding.control.action.container, mActionButtons);
@@ -2590,6 +2594,15 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 });
             });
         });
+    }
+
+    /**
+     * 录制 GIF：点一下选时长开始录，再点一下提前结束。取帧视图与截图保持一致。
+     */
+    private void onGifRecord() {
+        View surface = getExoView().getVideoSurfaceView();
+        if (surface == null) surface = mBinding.video;
+        mGifRecord.onClick(this, surface, mBinding.control.action.gifRecord);
     }
 
     private void onKaraokeMode() {
@@ -6477,6 +6490,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         dismissLyricsResultDialog();
         if (mLyrics != null) mLyrics.release();
         if (mKaraoke != null) mKaraoke.release();
+        mGifRecord.release();
         mClock.release();
         saveHistory(true);
         DanmakuApi.cancel();

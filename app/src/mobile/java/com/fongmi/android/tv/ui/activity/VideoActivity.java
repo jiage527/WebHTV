@@ -98,6 +98,7 @@ import com.fongmi.android.tv.playback.PlaybackOrientation;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlayerManager;
 import com.fongmi.android.tv.player.engine.PlayerEngine;
+import com.fongmi.android.tv.player.gif.GifRecordController;
 import com.fongmi.android.tv.player.engine.PlaySpec;
 import com.fongmi.android.tv.player.karaoke.KaraokeController;
 import com.fongmi.android.tv.player.karaoke.KaraokePitchTrackGenerator;
@@ -233,6 +234,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private ParseAdapter mParseAdapter;
     private LyricsController mLyrics;
     private KaraokeController mKaraoke;
+    private final GifRecordController mGifRecord = new GifRecordController();
     private boolean mAudioStageVisible;
     private boolean mAudioLightEffectAnimated;
     private boolean mKaraokeResultShown;
@@ -819,6 +821,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.action.opening.setOnClickListener(view -> onOpening());
         mBinding.control.action.abLoop.setOnClickListener(view -> onAbLoop());
         mBinding.control.action.screenshot.setOnClickListener(view -> onScreenshot(false));
+        mBinding.control.action.gifRecord.setOnClickListener(view -> onGifRecord());
         mBinding.control.action.danmaku.setOnClickListener(view -> onDanmaku());
         mBinding.control.action.episodes.setOnClickListener(view -> onEpisodes());
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
@@ -1032,6 +1035,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         addActionButton(PlayerButtonSetting.DANMAKU, mBinding.control.action.danmaku);
         addActionButton(PlayerButtonSetting.AB_LOOP, mBinding.control.action.abLoop);
         addActionButton(PlayerButtonSetting.SCREENSHOT, mBinding.control.action.screenshot);
+        addActionButton(PlayerButtonSetting.GIF_RECORD, mBinding.control.action.gifRecord);
         addActionButton(PlayerButtonSetting.TITLE, mBinding.control.action.title);
         addActionButton(PlayerButtonSetting.PREV, mBinding.control.action.prev);
         addActionButton(PlayerButtonSetting.NEXT, mBinding.control.action.next);
@@ -3831,6 +3835,15 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 });
             });
         });
+    }
+
+    /**
+     * 录制 GIF：点一下选时长开始录，再点一下提前结束。取帧视图与截图保持一致。
+     */
+    private void onGifRecord() {
+        View surface = getExoView().getVideoSurfaceView();
+        if (surface == null) surface = mBinding.video;
+        mGifRecord.onClick(this, surface, mBinding.control.action.gifRecord);
     }
 
     @Override
@@ -6676,6 +6689,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             mLyrics.release();
         }
         if (mKaraoke != null) mKaraoke.release();
+        mGifRecord.release();
         mClock.release();
         saveHistory(true);
         Timer.get().reset();

@@ -172,6 +172,12 @@
             android:text="@string/play_screenshot" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/gifRecord"
+            style="@style/Control"
+            android:layout_marginEnd="8dp"
+            android:text="@string/play_gif_record" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/danmaku"
             style="@style/Control"
             android:layout_marginEnd="8dp"

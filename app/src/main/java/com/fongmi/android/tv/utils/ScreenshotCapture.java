@@ -38,7 +38,8 @@ import java.util.Locale;
  */
 public final class ScreenshotCapture {
 
-    private static final String DIRECTORY = "WebHTV";
+    /** 截图与 GIF 的公共输出目录名。 */
+    public static final String DIRECTORY = "WebHTV";
     private static final String PREFIX = "WebHTV_";
     private static final String SUFFIX = ".png";
     private static final int QUALITY = 100;
@@ -122,9 +123,14 @@ public final class ScreenshotCapture {
 
     /** Opens the system share sheet for a saved screenshot. */
     public static void share(Activity activity, File file) {
+        share(activity, file, "image/png");
+    }
+
+    /** Opens the system share sheet for a saved file with an explicit MIME type. */
+    public static void share(Activity activity, File file, String mimeType) {
         if (activity == null || file == null || !file.exists()) return;
         Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("image/png");
+        intent.setType(mimeType);
         intent.putExtra(Intent.EXTRA_STREAM, FileUtil.getShareUri(file));
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         activity.startActivity(Intent.createChooser(intent, null));

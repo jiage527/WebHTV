@@ -1439,6 +1439,13 @@
     <string name="play_screenshot">Shot</string>
     <string name="play_screenshot_saved">Screenshot saved: %s</string>
     <string name="play_screenshot_failed">Screenshot failed</string>
+    <string name="play_gif_record">GIF</string>
+    <string name="play_gif_record_title">Record GIF</string>
+    <string name="play_gif_record_duration">Record for %d s</string>
+    <string name="play_gif_record_countdown">%d s left</string>
+    <string name="play_gif_record_saved">GIF saved: %s</string>
+    <string name="play_gif_record_failed">GIF recording failed</string>
+    <string name="play_gif_record_cancelled">Recording cancelled</string>
     <string name="subtitle_translate">Translate subtitle</string>
     <string name="subtitle_translate_language">Target language</string>
     <string name="subtitle_translate_mode">Translation style</string>
