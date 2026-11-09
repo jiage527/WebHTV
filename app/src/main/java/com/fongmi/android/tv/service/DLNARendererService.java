@@ -15,6 +15,7 @@ import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.dlna.CastAction;
 import com.fongmi.android.tv.dlna.DLNAAvTransportImpl;
+import com.fongmi.android.tv.dlna.DLNAProtocolDeclaration;
 import com.fongmi.android.tv.dlna.DLNARenderingControlImpl;
 import com.fongmi.android.tv.dlna.DLNAServiceConfiguration;
 import com.fongmi.android.tv.dlna.RenderState;
@@ -108,7 +109,14 @@ public class DLNARendererService extends AndroidUpnpServiceImpl implements Servi
     @SuppressWarnings("unchecked")
     private LocalService<ConnectionManagerService> createConnectionManager() {
         LocalService<ConnectionManagerService> service = new AnnotationLocalServiceBinder().read(ConnectionManagerService.class);
-        service.setManager(new DefaultServiceManager<>(service, ConnectionManagerService.class));
+        // 必须显式传入协议声明。jupnp 的无参构造会给空的 ProtocolInfos，
+        // 控制端据此认为本机什么都不支持，于是搜不到或投不过去。
+        service.setManager(new DefaultServiceManager<>(service, ConnectionManagerService.class) {
+            @Override
+            protected ConnectionManagerService createServiceInstance() {
+                return new ConnectionManagerService(DLNAProtocolDeclaration.source(), DLNAProtocolDeclaration.sink());
+            }
+        });
         return service;
     }
 

@@ -35,11 +35,13 @@ import com.fongmi.android.tv.ui.dialog.RemoteTrustDialog;
 import com.fongmi.android.tv.ui.dialog.ShellProxyDialog;
 import com.fongmi.android.tv.ui.dialog.SiteHealthDialog;
 import com.fongmi.android.tv.ui.dialog.ViewingRecordSyncDialog;
+import com.fongmi.android.tv.ui.dialog.WebDavServerDialog;
 import com.fongmi.android.tv.ui.dialog.WebHomeExtensionDialog;
 import com.fongmi.android.tv.utils.LoginStateSync;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PermissionUtil;
 import com.fongmi.android.tv.web.ext.WebHomeExtensionRegistry;
+import com.fongmi.android.tv.webdav.WebDavSetting;
 import com.github.catvod.crawler.SpiderDebug;
 
 public class SettingEnhanceActivity extends BaseActivity {
@@ -88,6 +90,7 @@ public class SettingEnhanceActivity extends BaseActivity {
         mBinding.remoteTrust.setOnClickListener(view -> RemoteTrustDialog.show(this, this::setText));
         mBinding.gitCloud.setOnClickListener(view -> GitCloudDialog.show(this, this::setText));
         mBinding.netDisk.setOnClickListener(view -> NetDiskDialog.show(this, (url, name) -> VideoActivity.start(this, url)));
+        mBinding.webDavServer.setOnClickListener(view -> WebDavServerDialog.show(this, this::setText));
         mBinding.shellProxy.setOnClickListener(view -> ShellProxyDialog.show(this, this::setText));
         mBinding.shellProxy.setOnLongClickListener(v -> false);
         mBinding.shellProxyConfig.setVisibility(View.GONE);
@@ -119,6 +122,7 @@ public class SettingEnhanceActivity extends BaseActivity {
                 mBinding.driveCheck,
                 mBinding.siteHealthSort,
                 mBinding.debugLog,
+                mBinding.webDavServer,
                 mBinding.playbackWebhook
         };
         for (View view : order) parent.removeView(view);
@@ -142,6 +146,7 @@ public class SettingEnhanceActivity extends BaseActivity {
         safeSet("remoteTrust", mBinding.remoteTrustText, () -> RemoteStore.summary(this));
         safeSet("gitCloud", mBinding.gitCloudText, () -> getString(R.string.git_cloud_account_count, GitCloudAccountStore.list().size()));
         safeSet("netDisk", mBinding.netDiskText, () -> getString(R.string.net_disk_account_count, NetDiskCredentialStore.get().size()));
+        safeSet("webDavServer", mBinding.webDavServerText, this::getWebDavText);
         setShellProxyText();
         setCustomCspText();
         safeSet("loginState", mBinding.loginStateText, () -> {
@@ -233,6 +238,17 @@ public class SettingEnhanceActivity extends BaseActivity {
         int mode = Setting.getCspWarmupMode();
         if (mode == Setting.CSP_WARMUP_CUSTOM) return getString(R.string.setting_csp_warmup_custom_count, Setting.getCspWarmupSites().size());
         return getString(mode == Setting.CSP_WARMUP_DEFAULT ? R.string.setting_csp_warmup_default : R.string.setting_disable);
+    }
+
+    /**
+     * 共享文件的状态文字。
+     *
+     * <p>三态而不是两态：开启后必须能一眼看出对方到底能不能写入，否则用户回来查看时
+     * 会忘了当初勾没勾可读写——而这正是最要紧的一项。
+     */
+    private String getWebDavText() {
+        if (!WebDavSetting.isEnabled()) return getString(R.string.setting_webdav_server_off);
+        return getString(WebDavSetting.isWritable() ? R.string.setting_webdav_server_writable : R.string.setting_webdav_server_readonly);
     }
 
     private boolean clearSiteHealth(View view) {

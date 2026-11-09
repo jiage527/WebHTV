@@ -637,6 +637,16 @@
     <string name="setting_dlna_renderer">接收投屏（DLNA）</string>
     <string name="setting_dlna_renderer_on">已開啟投屏接收，同一網路下的裝置可投屏到本機。</string>
     <string name="setting_dlna_renderer_off">已關閉投屏接收。</string>
+    <string name="setting_webdav_server">共享檔案（WebDAV）</string>
+    <string name="setting_webdav_server_off">關</string>
+    <string name="setting_webdav_server_readonly">僅可讀</string>
+    <string name="setting_webdav_server_writable">可讀寫</string>
+    <string name="setting_webdav_server_summary">開啟後，同一網路下的裝置可瀏覽並播放本機儲存中 WebDAV 資料夾裡的檔案。可讀寫時對方還能上傳與刪除檔案。</string>
+    <string name="setting_webdav_server_address">位址：%1$s</string>
+    <string name="setting_webdav_server_permission">共享檔案需要儲存權限。</string>
+    <string name="setting_webdav_server_off_toast">已關閉檔案共享。</string>
+    <string name="setting_webdav_server_writable_on">已允許讀寫，同一網路下的裝置可上傳與刪除檔案。</string>
+    <string name="setting_webdav_server_writable_off">已改回僅可讀。</string>
     <string name="setting_theme_color">主題色彩</string>
     <string name="setting_appearance">外觀與語言</string>
     <string name="setting_appearance_summary">4 項</string>

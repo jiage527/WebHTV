@@ -39,11 +39,13 @@ import com.fongmi.android.tv.ui.dialog.RemoteTrustDialog;
 import com.fongmi.android.tv.ui.dialog.ShellProxyDialog;
 import com.fongmi.android.tv.ui.dialog.SiteHealthDialog;
 import com.fongmi.android.tv.ui.dialog.ViewingRecordSyncDialog;
+import com.fongmi.android.tv.ui.dialog.WebDavServerDialog;
 import com.fongmi.android.tv.ui.dialog.WebHomeExtensionDialog;
 import com.fongmi.android.tv.utils.LoginStateSync;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PermissionUtil;
 import com.fongmi.android.tv.web.ext.WebHomeExtensionRegistry;
+import com.fongmi.android.tv.webdav.WebDavSetting;
 import com.github.catvod.crawler.SpiderDebug;
 import com.google.gson.JsonObject;
 
@@ -97,6 +99,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         mBinding.cspWarmup.setOnClickListener(this::setCspWarmup);
         mBinding.playbackArtworkWall.setOnClickListener(this::setPlaybackArtworkWall);
         mBinding.dlnaRenderer.setOnClickListener(this::setDlnaRenderer);
+        mBinding.webDavServer.setOnClickListener(view -> WebDavServerDialog.show(requireContext(), this::setText));
         mBinding.playbackWebhook.setOnClickListener(view -> ViewingRecordSyncDialog.show(this, this::setText));
         mBinding.managePage.setOnClickListener(view -> ManagePageDialog.show(this));
         mBinding.remoteTrust.setOnClickListener(view -> RemoteTrustDialog.show(this, this::setText));
@@ -132,6 +135,7 @@ public class SettingEnhanceFragment extends BaseFragment {
                 mBinding.cspWarmup,
                 mBinding.playbackArtworkWall,
                 mBinding.dlnaRenderer,
+                mBinding.webDavServer,
                 mBinding.driveCheck,
                 mBinding.siteHealthSort,
                 mBinding.debugLog,
@@ -154,6 +158,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         safeSet("cspWarmup", mBinding.cspWarmupText, this::getCspWarmupText);
         safeSet("playbackArtworkWall", mBinding.playbackArtworkWallText, () -> getSwitch(Setting.isPlaybackArtworkWall()));
         safeSet("dlnaRenderer", mBinding.dlnaRendererText, () -> getSwitch(Setting.isDlnaRenderer()));
+        safeSet("webDavServer", mBinding.webDavServerText, this::getWebDavText);
         safeSet("playbackWebhook", mBinding.playbackWebhookText, () -> ViewingRecordSyncStore.summary(requireContext()));
         safeSet("managePage", mBinding.managePageText, () -> getString(R.string.manage_page_web));
         safeSet("remoteTrust", mBinding.remoteTrustText, () -> RemoteStore.summary(requireContext()));
@@ -267,6 +272,17 @@ public class SettingEnhanceFragment extends BaseFragment {
         int mode = Setting.getCspWarmupMode();
         if (mode == Setting.CSP_WARMUP_CUSTOM) return getString(R.string.setting_csp_warmup_custom_count, Setting.getCspWarmupSites().size());
         return getString(mode == Setting.CSP_WARMUP_DEFAULT ? R.string.setting_csp_warmup_default : R.string.setting_disable);
+    }
+
+    /**
+     * 共享文件的状态文字。
+     *
+     * <p>三态而不是两态：开启后必须能一眼看出对方到底能不能写入。只看「开/关」 的话，
+     * 用户回来查看时会忘了当初勾没勾可读写，而这正好是最要紧的一项。
+     */
+    private String getWebDavText() {
+        if (!WebDavSetting.isEnabled()) return getString(R.string.setting_webdav_server_off);
+        return getString(WebDavSetting.isWritable() ? R.string.setting_webdav_server_writable : R.string.setting_webdav_server_readonly);
     }
 
     private boolean clearSiteHealth(View view) {

@@ -655,6 +655,16 @@
     <string name="setting_dlna_renderer">Receive casting (DLNA)</string>
     <string name="setting_dlna_renderer_on">Casting receiver is on. Devices on the same network can cast to this device.</string>
     <string name="setting_dlna_renderer_off">Casting receiver is off.</string>
+    <string name="setting_webdav_server">Share files (WebDAV)</string>
+    <string name="setting_webdav_server_off">Off</string>
+    <string name="setting_webdav_server_readonly">Read only</string>
+    <string name="setting_webdav_server_writable">Read and write</string>
+    <string name="setting_webdav_server_summary">Turn this on to let devices on the same network browse and play files in the WebDAV folder of local storage. Read and write also lets them upload and delete files.</string>
+    <string name="setting_webdav_server_address">Address: %1$s</string>
+    <string name="setting_webdav_server_permission">Storage permission is required to share files.</string>
+    <string name="setting_webdav_server_off_toast">File sharing is off.</string>
+    <string name="setting_webdav_server_writable_on">Read and write enabled. Devices on the same network can upload and delete files.</string>
+    <string name="setting_webdav_server_writable_off">Switched back to read only.</string>
     <string name="setting_theme_color">Theme color</string>
     <string name="setting_appearance">Appearance &amp; language</string>
     <string name="setting_appearance_summary">4 options</string>
