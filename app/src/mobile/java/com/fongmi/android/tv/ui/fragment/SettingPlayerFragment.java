@@ -21,6 +21,7 @@ import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
 import com.fongmi.android.tv.setting.PlayerButtonSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
+import com.fongmi.android.tv.player.intro.IntroSetting;
 import com.fongmi.android.tv.setting.SeekPreviewSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.base.BaseFragment;
@@ -80,6 +81,7 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         setPlayerButtonsText();
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
         mBinding.seekPreviewText.setText(getSwitch(SeekPreviewSetting.isEnabled()));
+        mBinding.introAutoSkipText.setText(getSwitch(IntroSetting.isEnabled()));
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
         mBinding.bufferBytesText.setText((bufferBytes = ResUtil.getStringArray(R.array.select_buffer_bytes))[PlayerSetting.getBufferBytesOption()]);
@@ -138,6 +140,7 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         mBinding.caption.setOnClickListener(this::setCaption);
         mBinding.adblock.setOnClickListener(this::setAdblock);
         mBinding.seekPreview.setOnClickListener(this::setSeekPreview);
+        mBinding.introAutoSkip.setOnClickListener(this::setIntroAutoSkip);
         mBinding.caption.setOnLongClickListener(this::onCaption);
         mBinding.background.setOnClickListener(this::onBackground);
         mBinding.audioDecode.setOnClickListener(this::setAudioDecode);
@@ -490,6 +493,17 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
     private void setSeekPreview(View view) {
         SeekPreviewSetting.putEnabled(!SeekPreviewSetting.isEnabled());
         mBinding.seekPreviewText.setText(getSwitch(SeekPreviewSetting.isEnabled()));
+    }
+
+    /**
+     * 自动跳过片头片尾总开关。
+     *
+     * <p>默认关闭：这会改变播放位置，属于用户能直接察觉的行为改变，不该替用户打开。
+     * 关闭时完全退回旧版本的手动记录行为。
+     */
+    private void setIntroAutoSkip(View view) {
+        IntroSetting.putEnabled(!IntroSetting.isEnabled());
+        mBinding.introAutoSkipText.setText(getSwitch(IntroSetting.isEnabled()));
     }
 
     private void onBackground(View view) {

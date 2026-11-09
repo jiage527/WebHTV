@@ -16,6 +16,7 @@ import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.media3.common.Effect;
 import androidx.media3.common.Format;
+import androidx.media3.common.MediaChapter;
 import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -470,6 +471,19 @@ public class PlayerManager implements ParseCallback {
 
     public List<MediaEdition> getCurrentMediaEditions() {
         return engine.getCurrentMediaEditions();
+    }
+
+    /**
+     * 当前媒体的章节列表。
+     *
+     * <p>两套引擎暴露的章节类型不同：Exo 提供了专用的 {@code MediaChapter}，
+     * mpv 侧则把章节列表装进了 {@code MediaEdition}。统一在 {@code IntroChapterAdapter} 里
+     * 收敛，调用方（片头片尾判定）不必知道这些差异。
+     *
+     * <p>返回值可能为空数组（片源没有章节标记），调用方需要自己兑底。
+     */
+    public List<MediaChapter> getCurrentMediaChapters() {
+        return engine.getCurrentMediaChapters();
     }
 
     public MediaItem getCurrentMediaItem() {

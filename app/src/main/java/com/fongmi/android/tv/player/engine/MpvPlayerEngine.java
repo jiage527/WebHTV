@@ -5,6 +5,7 @@ import android.text.TextUtils;
 import androidx.media3.common.MimeTypes;
 import androidx.media3.common.C;
 import androidx.media3.common.Format;
+import androidx.media3.common.MediaChapter;
 import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -43,6 +44,7 @@ import com.fongmi.android.tv.utils.Util;
 import com.github.catvod.crawler.SpiderDebug;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -719,6 +721,15 @@ public class MpvPlayerEngine implements PlayerEngine {
     @Override
     public List<MediaEdition> getCurrentMediaEditions() {
         return player.getCurrentMediaEditions();
+    }
+
+    /**
+     * mpv 没有单独的章节类型，它的章节就是 {@code MediaEdition} 列表（见 {@code MpvPlayer}）。
+     * 这里返回空的 Exo 章节列表，让片头片尾判定走 {@code IntroChapterAdapter.fromEditions}。
+     */
+    @Override
+    public List<MediaChapter> getCurrentMediaChapters() {
+        return Collections.emptyList();
     }
 
     @Override

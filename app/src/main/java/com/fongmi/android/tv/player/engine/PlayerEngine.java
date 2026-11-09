@@ -4,6 +4,7 @@ import androidx.media3.common.C;
 import androidx.media3.common.ColorInfo;
 import androidx.media3.common.Effect;
 import androidx.media3.common.Format;
+import androidx.media3.common.MediaChapter;
 import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackException;
@@ -73,6 +74,16 @@ public interface PlayerEngine {
     boolean haveTrack(int type);
 
     Tracks getCurrentTracks();
+
+    /**
+     * 当前媒体的章节列表。
+     *
+     * <p>默认返回空列表：并不是每个引擎都有章节概念（ijk 就没有），而片头片尾判定
+     * 本来就要能处理「没有章节」这种情况（会退到同剧学习）。
+     */
+    default List<MediaChapter> getCurrentMediaChapters() {
+        return Collections.emptyList();
+    }
 
     default boolean supportsVideoEffects() {
         return false;

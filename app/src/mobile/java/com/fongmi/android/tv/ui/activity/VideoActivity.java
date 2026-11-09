@@ -294,6 +294,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private CustomKeyDown mKeyDown;
     private List<String> mBroken;
     private History mHistory;
+    /** 智能片头片尾判定会话；随剧集变化重建。 */
+    private com.fongmi.android.tv.player.intro.IntroSession mIntro;
     private boolean fullscreen;
     private boolean initAuto;
     private boolean autoMode;
@@ -4146,6 +4148,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void setEnding(long ending) {
         mHistory.setEnding(ending);
         mBinding.control.action.ending.setText(ending <= 0 ? getString(R.string.play_ed) : Util.timeMs(mHistory.getEnding()));
+        // 片尾记的是「离结尾还剩多久」，换算成绝对起点后才是可学习的位置。
+        if (mIntro != null) {
+            long duration = player().getDuration();
+            mIntro.recordManualEndingStart(ending > 0 && duration > 0 ? duration - ending : 0);
+        }
     }
 
     private void onOpening() {
@@ -4164,6 +4171,9 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void setOpening(long opening) {
         mHistory.setOpening(opening);
         mBinding.control.action.opening.setText(opening <= 0 ? getString(R.string.play_op) : Util.timeMs(mHistory.getOpening()));
+        // 手动记下的值顺手当样本喂进档案：用户调好的位置是「这部剧片头在哪」最可靠的
+        // 信息，同剧其它集（通常没有章节标记）要靠它推断。
+        if (mIntro != null) mIntro.recordManualOpeningEnd(opening);
     }
 
     private void onEpisodes() {
@@ -4607,6 +4617,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         if (!TextUtils.isEmpty(getWallPic())) mHistory.setWallPic(getWallPic());
         if (!TextUtils.isEmpty(getMark())) mHistory.setVodRemarks(getMark());
         if (Setting.isIncognito() && mHistory.getKey().equals(getHistoryKey())) mHistory.delete();
+        mIntro = com.fongmi.android.tv.player.intro.IntroSession.create(mHistory.getKey());
         mBinding.control.action.opening.setText(mHistory.getOpening() <= 0 ? getString(R.string.play_op) : Util.timeMs(mHistory.getOpening()));
         checkAbLoopText();
         mBinding.control.action.ending.setText(mHistory.getEnding() <= 0 ? getString(R.string.play_ed) : Util.timeMs(mHistory.getEnding()));
@@ -4815,6 +4826,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         setLut();
         setPosition();
         refreshLyrics();
+        // 章节可能在时长之前或之后到达，这里补一次时长让判定有机会用上它。
+        syncIntroDuration();
     }
 
     @Override
@@ -4824,6 +4837,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         refreshLyrics();
         setTrackVisible();
         mClock.setCallback(this);
+        syncIntroChapters();
     }
 
     private void updateAudioOnlyState() {
@@ -6117,9 +6131,56 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         duration = mHistory.getDuration();
         PlaybackEventCollector.get().onProgress(mHistory, player());
         if (mHistory.canSave() && mHistory.canSync()) syncHistory();
+        if (applyIntroSkip(position, duration)) return;
         if (mHistory.getEnding() > 0 && duration > 0 && mHistory.getEnding() + position >= duration) {
             checkEnded(false);
         }
+    }
+
+    private void syncIntroDuration() {
+        if (mIntro == null) return;
+        long duration = player().getDuration();
+        if (duration > 0) mIntro.onDuration(duration);
+    }
+
+    private void syncIntroChapters() {
+        if (mIntro == null) return;
+        mIntro.onDuration(player().getDuration());
+        mIntro.onChapters(player().getCurrentMediaChapters(), player().getCurrentMediaEditions());
+    }
+
+    /**
+     * 智能片头片尾自动跳过。
+     *
+     * <p>只看自动识别出的区间，不读 {@code History} 里的手动值——那两者语义不同
+     * （一个是「跳过某段」，一个是「从这里续播」），混在一起会让播放位置变得莫名其妙。
+     * 只有用户扫开了总开关（默认关闭）才会真正跳。
+     *
+     * @return 是否已经执行了跳转；调用方据此决定要不要再跑原有的片尾判定
+     */
+    private boolean applyIntroSkip(long position, long duration) {
+        if (mIntro == null || position <= 0 || duration <= 0) return false;
+        mIntro.onDuration(duration);
+        boolean playing = player().isPlaying();
+        if (mIntro.shouldSkipOpening(position, playing)) {
+            com.fongmi.android.tv.player.intro.IntroSegment opening = mIntro.getOpening();
+            if (opening != null) {
+                // ilog：自动跳过会移动播放位置，出问题时必须能从事后日志看出
+                // 是哪一段、依据什么跳的。
+                SpiderDebug.log("intro", "auto skip opening %d->%d source=%s", position, opening.getEnd(), opening.getSource());
+                controller().seekTo(opening.getEnd());
+                return true;
+            }
+        }
+        if (mIntro.shouldSkipEnding(position, playing)) {
+            com.fongmi.android.tv.player.intro.IntroSegment ending = mIntro.getEnding();
+            if (ending != null) {
+                SpiderDebug.log("intro", "auto skip ending at %d from %d source=%s", position, ending.getStart(), ending.getSource());
+                checkEnded(false);
+                return true;
+            }
+        }
+        return false;
     }
 
     private void updatePlaybackHistoryPosition() {

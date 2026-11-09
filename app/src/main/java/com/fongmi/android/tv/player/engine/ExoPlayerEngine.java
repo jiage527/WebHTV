@@ -7,6 +7,7 @@ import android.os.Build;
 import androidx.media3.common.C;
 import androidx.media3.common.Effect;
 import androidx.media3.common.Format;
+import androidx.media3.common.MediaChapter;
 import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
@@ -833,6 +834,11 @@ public class ExoPlayerEngine implements PlayerEngine {
     @Override
     public List<MediaEdition> getCurrentMediaEditions() {
         return player.getCurrentMediaEditions();
+    }
+
+    @Override
+    public List<MediaChapter> getCurrentMediaChapters() {
+        return player.getCurrentMediaChapters();
     }
 
     @Override
