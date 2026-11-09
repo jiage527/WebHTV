@@ -316,6 +316,7 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
     private boolean directAudioApplied;
     private boolean audioTrackManuallySelected;
     private boolean dtsHdCoreFallbackAttempted;
+    private boolean passthroughFallbackAttempted;
     private String automaticAudioDowngradeReason;
     private String activeAudioSpdif;
     private BiConsumer<Integer, Integer> videoSizeProbeListener;
@@ -1569,6 +1570,7 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
                 return;
             }
             maybeRetryDtsHdAsCore(line);
+            maybeDisablePassthroughOnAudioOutputFailure(line);
             String lower = line.toLowerCase(Locale.US);
             if (lower.contains("sub") || lower.contains("font") || lower.contains("track switched") || lower.contains("mkv: select track")) appendSubtitleDiagnostic("native " + line);
             // All subscribed messages already entered the structured diagnostic sink above.
@@ -5632,6 +5634,39 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
                 applied ? activeAudioSpdif : "unchanged");
     }
 
+    /**
+     * Drops passthrough once when mpv reports the output could not be opened.
+     *
+     * <p>A probed {@code audio-spdif} list can still name a codec whose carrier
+     * the active output cannot open. mpv then reports
+     * {@code Could not open/initialize audio device -> no sound.} and stays on a
+     * dead audio path: the item is silent, and since {@code video-sync} defaults
+     * to {@code audio}, the stalled audio clock freezes the picture while the
+     * demuxer keeps reporting throughput. Nothing recovered from that before.
+     *
+     * <p>Setting the option to empty restores mpv's own default (no passthrough),
+     * which is exactly the state the passthrough switch produces, so the track is
+     * decoded normally instead. Only a real audio-output failure reaches here; a
+     * working sink is never touched.
+     */
+    private void maybeDisablePassthroughOnAudioOutputFailure(String line) {
+        if (!initialized) return;
+        if (!MpvAudioSpdifFailurePolicy.shouldInspect(
+                activeAudioSpdif, line, passthroughFallbackAttempted)) return;
+        // The DTS-HD downgrade is the more targeted remedy and owns its own
+        // failure lines. Let it keep that line so an existing DTS-HD sink still
+        // degrades to DTS core instead of being dropped to PCM here.
+        if (MpvDtsHdFallbackPolicy.shouldInspectAudioState(
+                activeAudioSpdif, line, dtsHdCoreFallbackAttempted)) return;
+        passthroughFallbackAttempted = true;
+        String codecs = MpvAudioSpdifFailurePolicy.disabledCodecs();
+        boolean applied = setRuntimeStringChecked("audio-spdif", codecs);
+        if (applied) activeAudioSpdif = codecs;
+        SpiderDebug.log("mpv-audio",
+                "passthrough disabled after audio-output init failure applied=%s codecs=%s",
+                applied, applied ? "pcm" : "unchanged");
+    }
+
     private void restoreConfiguredAudioSpdifForNewMedia() {
         if (!TextUtils.equals(activeAudioSpdif, config.audioSpdif())) {
             boolean restored = setRuntimeStringChecked(
@@ -5642,6 +5677,7 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
                     restored, restored ? activeAudioSpdif : "unchanged");
         }
         dtsHdCoreFallbackAttempted = false;
+        passthroughFallbackAttempted = false;
         dtsHdFallbackSourceTrack = AudioPlaybackDiagnostics.Track.empty();
     }
 
