@@ -1526,7 +1526,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.reverse.setVisibility(size < 2 ? View.GONE : View.VISIBLE);
         mBinding.episode.setVisibility(items.isEmpty() ? View.GONE : View.VISIBLE);
         mBinding.more.setVisibility(View.GONE);
-        List<EpisodeGroupAdapter.Group> groups = EpisodeGroupAdapter.build(size, getSelectedEpisodePosition(items), mHistory != null && mHistory.isRevSort());
+        // 音频/音乐列表不用「季」：片名里的 S01 多为版本号，按季分组反而割裂列表。
+        List<EpisodeGroupAdapter.Group> groups = EpisodeGroupAdapter.build(items, getSelectedEpisodePosition(items), mHistory != null && mHistory.isRevSort(), !mAudioStageVisible);
         mEpisodeGroupAdapter.addAll(groups);
         mBinding.episodeGroup.setVisibility(groups.size() > 1 ? View.VISIBLE : View.GONE);
         setEpisodeItems(items);

@@ -755,7 +755,8 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             @Override
             public void onChildViewHolderSelected(@NonNull RecyclerView parent, @Nullable RecyclerView.ViewHolder child, int position, int subposition) {
                 int count = mEpisodeAdapter.getItemCount();
-                if (count > getEpisodeSegmentSize(count) && position > 1) scrollToEpisode(mArrayAdapter.getStart(position));
+                // 按季分组时不再用「分页数是否超过一段」作为前提：季分组往往只有十几集。
+                if (position > 1 && (mArrayAdapter.hasExplicitStarts() || count > getEpisodeSegmentSize(count))) scrollToEpisode(mArrayAdapter.getStart(position));
             }
         });
     }
@@ -1295,7 +1296,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.episode.setNumColumns(column);
         mEpisodeAdapter.setColumn(column);
         mEpisodeAdapter.addAll(items);
-        setArrayAdapter(items.size());
+        setArrayAdapter(items, audioList);
         updateFocus();
         updateEpisodeWindow();
         if (scrollToCurrent) scrollToCurrentEpisode();
@@ -1452,16 +1453,30 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         notifyItemChanged(mBinding.control.parse, mParseAdapter);
     }
 
-    private void setArrayAdapter(int size) {
-        int segment = getEpisodeSegmentSize(size);
+    private void setArrayAdapter(List<Episode> episodes, boolean audioList) {
+        int size = episodes.size();
         List<String> items = new ArrayList<>();
         items.add(getString(R.string.play_reverse));
         items.add(getString(mHistory.getRevPlayText()));
+        // 音频/音乐列表不用「季」：片名里的 S01 多为版本号。
+        List<String> seasons = audioList ? null : ArrayAdapter.seasonLabels(episodes);
+        List<Integer> starts = null;
+        if (seasons != null) {
+            // 季分组：前两项是固定按钮，占位 0（getStart 只在 position > 1 时使用）。
+            items.addAll(seasons);
+            starts = new ArrayList<>();
+            starts.add(0);
+            starts.add(0);
+            starts.addAll(ArrayAdapter.seasonStarts(episodes));
+            mArrayAdapter.setSegmentSize(1);
+        } else {
+            int segment = getEpisodeSegmentSize(size);
+            if (mHistory.isRevSort()) for (int i = size; i > 0; i -= segment) items.add(i + "-" + Math.max(i - segment + 1, 1));
+            else for (int i = 0; i < size; i += segment) items.add((i + 1) + "-" + Math.min(i + segment, size));
+            mArrayAdapter.setSegmentSize(segment);
+        }
         mBinding.array.setVisibility(size > 1 ? View.VISIBLE : View.GONE);
-        if (mHistory.isRevSort()) for (int i = size; i > 0; i -= segment) items.add(i + "-" + Math.max(i - segment + 1, 1));
-        else for (int i = 0; i < size; i += segment) items.add((i + 1) + "-" + Math.min(i + segment, size));
-        mArrayAdapter.setSegmentSize(segment);
-        mArrayAdapter.addAll(items);
+        mArrayAdapter.addAll(items, starts);
         updateFocus();
     }
 

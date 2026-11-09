@@ -9,7 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.fongmi.android.tv.R;
+import com.fongmi.android.tv.bean.Episode;
 import com.fongmi.android.tv.databinding.AdapterArrayBinding;
+import com.fongmi.android.tv.utils.EpisodeSeasonGrouping;
 import com.fongmi.android.tv.utils.ResUtil;
 
 import java.util.ArrayList;
@@ -19,6 +21,8 @@ public class ArrayAdapter extends RecyclerView.Adapter<ArrayAdapter.ViewHolder> 
 
     private final OnClickListener mListener;
     private final List<String> mItems;
+    /** 与 {@link #mItems} 一一对应的跳转目标下标；优先于标签文本解析。 */
+    private final List<Integer> mStarts;
     private final String backward;
     private final String forward;
     private final String reverse;
@@ -30,6 +34,7 @@ public class ArrayAdapter extends RecyclerView.Adapter<ArrayAdapter.ViewHolder> 
     public ArrayAdapter(OnClickListener listener) {
         mListener = listener;
         mItems = new ArrayList<>();
+        mStarts = new ArrayList<>();
         forward = ResUtil.getString(R.string.play_forward);
         reverse = ResUtil.getString(R.string.play_reverse);
         backward = ResUtil.getString(R.string.play_backward);
@@ -40,17 +45,34 @@ public class ArrayAdapter extends RecyclerView.Adapter<ArrayAdapter.ViewHolder> 
 
     public void addAll(List<String> items) {
         mItems.clear();
+        mStarts.clear();
         mItems.addAll(items);
+        notifyDataSetChanged();
+    }
+
+    /**
+     * 写入带显式跳转目标的分组。
+     *
+     * <p>季标签（如「第一季」）没有可解析的数字范围，只有把目标下标直接传进来才能
+     * 正确跳转。列表长度不一致时忽略跳转表，退回标签解析。
+     */
+    public void addAll(List<String> items, List<Integer> starts) {
+        mItems.clear();
+        mStarts.clear();
+        mItems.addAll(items);
+        if (starts != null && starts.size() == items.size()) mStarts.addAll(starts);
         notifyDataSetChanged();
     }
 
     public void clear() {
         mItems.clear();
+        mStarts.clear();
         notifyDataSetChanged();
     }
 
     public int getStart(int position) {
         if (position < 0 || position >= mItems.size()) return 0;
+        if (position < mStarts.size()) return Math.max(0, mStarts.get(position));
         String text = mItems.get(position);
         int index = text.indexOf("-");
         if (index <= 0) return 0;
@@ -65,6 +87,39 @@ public class ArrayAdapter extends RecyclerView.Adapter<ArrayAdapter.ViewHolder> 
 
     public void setSegmentSize(int segmentSize) {
         this.segmentSize = Math.max(1, segmentSize);
+    }
+
+    /**
+     * 当前分组栏是否带显式跳转表（即按季分组）。
+     *
+     * <p>调用方据此决定要不要跳过「只有分页数超过一段才响应」的判断：季分组通常
+     * 只有十几个条目，沿用分页的判断会导致点季标签没反应。
+     */
+    public boolean hasExplicitStarts() {
+        return !mStarts.isEmpty();
+    }
+
+    /**
+     * 按「季」构建分组标签；识别不出多季时返回 null。
+     *
+     * @param items 剧集列表，顺序与界面展示一致
+     */
+    public static List<String> seasonLabels(List<Episode> items) {
+        List<EpisodeSeasonGrouping.Season> seasons = seasons(items);
+        return seasons.isEmpty() ? null : EpisodeSeasonGrouping.labels(seasons);
+    }
+
+    /** 与 {@link #seasonLabels} 一一对应的跳转目标下标；两者必须同步使用。 */
+    public static List<Integer> seasonStarts(List<Episode> items) {
+        List<EpisodeSeasonGrouping.Season> seasons = seasons(items);
+        return seasons.isEmpty() ? null : EpisodeSeasonGrouping.starts(seasons);
+    }
+
+    private static List<EpisodeSeasonGrouping.Season> seasons(List<Episode> items) {
+        if (items == null || items.isEmpty()) return new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (Episode item : items) names.add(item.getRawDisplayName());
+        return EpisodeSeasonGrouping.group(names);
     }
 
     public void setNextFocus(int nextFocusUp, int nextFocusDown) {
