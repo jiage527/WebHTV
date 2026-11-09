@@ -622,6 +622,54 @@ public class CustomCspSetting {
         }
     }
 
+    /**
+     * One-shot add from a pasted address. Returns the items the text yields, or an
+     * empty list when it is not an address the app can open.
+     *
+     * <p>The parsed fields are turned straight back into the JSON shape this class
+     * already reads, so the resulting {@link Item} is assembled by exactly the same
+     * path as a hand-written config. That keeps the paste feature from growing a
+     * second, divergent way to build a site.
+     */
+    public static List<Item> quickAdd(String text) {
+        CustomCspQuickAdd.Parsed parsed = CustomCspQuickAdd.parse(text);
+        if (!parsed.isValid()) return Collections.emptyList();
+        JsonObject object = new JsonObject();
+        object.addProperty("name", parsed.getName());
+        object.addProperty("type", parsed.getType());
+        object.addProperty("api", parsed.getApi());
+        object.addProperty("searchable", 1);
+        object.addProperty("quickSearch", 1);
+        Map<String, String> headers = CustomCspQuickAdd.headerMap(parsed.getHeaderText());
+        if (!headers.isEmpty()) {
+            JsonObject header = new JsonObject();
+            for (Map.Entry<String, String> entry : headers.entrySet()) header.addProperty(entry.getKey(), entry.getValue());
+            object.add("header", header);
+        }
+        try {
+            List<Item> items = new ArrayList<>(parse("[" + object + "]").getItems());
+            items.removeIf(item -> item == null || !item.isValid());
+            return items;
+        } catch (Exception e) {
+            SpiderDebug.log("customCsp", "quickAdd rejected %s: %s", parsed.getApi(), e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * True when {@code api} is already present, so the caller can report a skip
+     * instead of silently adding a duplicate entry.
+     */
+    public static boolean hasApi(List<Item> items, String api) {
+        for (Item item : items) if (item != null && CustomCspQuickAdd.isDuplicate(item.getApi(), api)) return true;
+        return false;
+    }
+
+    /** The parsed view of pasted text, exposed so the form can show why it failed. */
+    public static CustomCspQuickAdd.Parsed quickAddParse(String text) {
+        return CustomCspQuickAdd.parse(text);
+    }
+
     public static Item createDefaultItem() {
         Item item = new Item();
         item.setId("local_" + System.currentTimeMillis() + "_" + Long.toHexString(System.nanoTime()));

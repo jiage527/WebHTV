@@ -534,9 +534,14 @@
     <string name="setting_custom_csp_insert_short">位置</string>
     <string name="setting_custom_csp_recognize">识别</string>
     <string name="setting_custom_csp_recognize_title">自动识别</string>
-    <string name="setting_custom_csp_recognize_hint">粘贴站点 JSON 片段</string>
+    <string name="setting_custom_csp_recognize_hint">粘贴接口地址，或站点 JSON</string>
     <string name="setting_custom_csp_recognize_empty">请先粘贴站点 JSON</string>
-    <string name="setting_custom_csp_recognize_invalid">未识别到有效站点 JSON</string>
+    <string name="setting_custom_csp_recognize_invalid">不是可用的接口地址或站点 JSON</string>
+    <string name="setting_custom_csp_recognize_done_skip">已添加 %1$d 个，跳过 %2$d 个已存在</string>
+    <string name="setting_custom_csp_quick_no_url">没找到 http(s) 地址</string>
+    <string name="setting_custom_csp_quick_bad_scheme">只支持 http:// 或 https:// 地址</string>
+    <string name="setting_custom_csp_quick_bad_host">地址里没有可用的主机名</string>
+    <string name="setting_custom_csp_quick_dup">这个接口已经添加过了</string>
     <string name="setting_custom_csp_recognize_done">已添加 %1$d 个条目</string>
     <string name="setting_custom_csp_sort">排序</string>
     <string name="setting_custom_csp_sort_done">完成</string>

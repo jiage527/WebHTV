@@ -536,9 +536,14 @@
     <string name="setting_custom_csp_insert_short">Pos</string>
     <string name="setting_custom_csp_recognize">Detect</string>
     <string name="setting_custom_csp_recognize_title">Detect sites</string>
-    <string name="setting_custom_csp_recognize_hint">Paste site JSON snippets</string>
+    <string name="setting_custom_csp_recognize_hint">Paste an interface address, or site JSON</string>
     <string name="setting_custom_csp_recognize_empty">Paste site JSON first</string>
-    <string name="setting_custom_csp_recognize_invalid">No valid site JSON detected</string>
+    <string name="setting_custom_csp_recognize_invalid">Not a usable interface address or site JSON</string>
+    <string name="setting_custom_csp_recognize_done_skip">Added %1$d, skipped %2$d already present</string>
+    <string name="setting_custom_csp_quick_no_url">No http(s) address found</string>
+    <string name="setting_custom_csp_quick_bad_scheme">Only http:// or https:// addresses are supported</string>
+    <string name="setting_custom_csp_quick_bad_host">The address has no usable host</string>
+    <string name="setting_custom_csp_quick_dup">This interface is already added</string>
     <string name="setting_custom_csp_recognize_done">Added %1$d items</string>
     <string name="setting_custom_csp_sort">Sort</string>
     <string name="setting_custom_csp_sort_done">Done</string>

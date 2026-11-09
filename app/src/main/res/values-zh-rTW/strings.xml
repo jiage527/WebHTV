@@ -534,9 +534,14 @@
     <string name="setting_custom_csp_insert_short">位置</string>
     <string name="setting_custom_csp_recognize">識別</string>
     <string name="setting_custom_csp_recognize_title">自動識別</string>
-    <string name="setting_custom_csp_recognize_hint">貼上站點 JSON 片段</string>
+    <string name="setting_custom_csp_recognize_hint">貼上介面位址，或站點 JSON</string>
     <string name="setting_custom_csp_recognize_empty">請先貼上站點 JSON</string>
-    <string name="setting_custom_csp_recognize_invalid">未識別到有效站點 JSON</string>
+    <string name="setting_custom_csp_recognize_invalid">不是可用的介面位址或站點 JSON</string>
+    <string name="setting_custom_csp_recognize_done_skip">已加入 %1$d 個，略過 %2$d 個已存在</string>
+    <string name="setting_custom_csp_quick_no_url">沒找到 http(s) 位址</string>
+    <string name="setting_custom_csp_quick_bad_scheme">只支援 http:// 或 https:// 位址</string>
+    <string name="setting_custom_csp_quick_bad_host">位址裡沒有可用的主機名</string>
+    <string name="setting_custom_csp_quick_dup">這個介面已經加入過了</string>
     <string name="setting_custom_csp_recognize_done">已加入 %1$d 個條目</string>
     <string name="setting_custom_csp_count">%1$d/%2$d 可用</string>
     <string name="setting_custom_csp_api">api</string>

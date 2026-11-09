@@ -48,6 +48,7 @@ import com.fongmi.android.tv.api.config.VodConfig;
 import com.fongmi.android.tv.databinding.AdapterCustomCspBinding;
 import com.fongmi.android.tv.databinding.DialogCustomCspBinding;
 import com.fongmi.android.tv.impl.Callback;
+import com.fongmi.android.tv.setting.CustomCspQuickAdd;
 import com.fongmi.android.tv.setting.CustomCspSetting;
 import com.fongmi.android.tv.ui.activity.ScanActivity;
 import com.fongmi.android.tv.ui.custom.CustomTextListener;
@@ -663,19 +664,55 @@ public class CustomCspDialog extends BaseAlertDialog {
         recognizing = false;
         binding.positive.setEnabled(true);
         if (error != null || items.isEmpty()) {
-            Notify.show(R.string.setting_custom_csp_recognize_invalid);
+            // When the text was an address-looking paste, say what was wrong with it
+            // instead of the generic "invalid JSON", which reads as a wrong message
+            // to someone who never intended to paste JSON.
+            showRecognizeFailure();
             return;
         }
         if (textMode && !syncFormFromJson(true)) return;
         else if (!textMode) syncAllVisibleRows();
         List<CustomCspSetting.Item> next = new ArrayList<>(adapter.getItems());
+        List<CustomCspSetting.Item> fresh = new ArrayList<>();
+        int skipped = 0;
+        for (CustomCspSetting.Item item : items) {
+            if (item == null) continue;
+            if (CustomCspSetting.hasApi(next, item.getApi())) {
+                skipped++;
+                continue;
+            }
+            fresh.add(item);
+        }
+        if (fresh.isEmpty() && skipped > 0) {
+            Notify.show(R.string.setting_custom_csp_quick_dup);
+            showList();
+            return;
+        }
         int firstAdded = next.size();
-        next.addAll(items);
+        next.addAll(fresh);
         adapter.setItems(next);
         if (textMode) syncJsonFromForm(false);
         scrollToItem(adapter.displayPosition(reverseOrder ? next.size() - 1 : firstAdded));
-        Notify.show(getString(R.string.setting_custom_csp_recognize_done, items.size()));
+        if (skipped > 0) Notify.show(getString(R.string.setting_custom_csp_recognize_done_skip, fresh.size(), skipped));
+        else Notify.show(getString(R.string.setting_custom_csp_recognize_done, fresh.size()));
         showList();
+    }
+
+    /**
+     * Explains a failed paste. The address reader knows the difference between
+     * "no address", "wrong scheme" and "not JSON", so the message is only generic
+     * when the input really is unrecognisable.
+     */
+    private void showRecognizeFailure() {
+        String text = recognizeInput == null || recognizeInput.getText() == null ? "" : recognizeInput.getText().toString();
+        CustomCspQuickAdd.Parsed parsed = CustomCspSetting.quickAddParse(text);
+        switch (parsed.getReason()) {
+            case "empty" -> Notify.show(R.string.setting_custom_csp_recognize_empty);
+            case "bad-scheme" -> Notify.show(R.string.setting_custom_csp_quick_bad_scheme);
+            case "no-url" -> Notify.show(R.string.setting_custom_csp_quick_no_url);
+            case "bad-host" -> Notify.show(R.string.setting_custom_csp_quick_bad_host);
+            default -> Notify.show(R.string.setting_custom_csp_recognize_invalid);
+        }
     }
 
     private void markJsonDirty() {
@@ -717,6 +754,11 @@ public class CustomCspDialog extends BaseAlertDialog {
                 failure = e;
             }
         }
+        // A bare interface address is not JSON, so every candidate above fails on
+        // it. Falling back to the address reader keeps one box for both inputs and
+        // saves the user from having to write JSON just to add a single site.
+        List<CustomCspSetting.Item> quick = CustomCspSetting.quickAdd(value);
+        if (!quick.isEmpty()) return quick;
         if (failure != null) throw failure;
         return Collections.emptyList();
     }
