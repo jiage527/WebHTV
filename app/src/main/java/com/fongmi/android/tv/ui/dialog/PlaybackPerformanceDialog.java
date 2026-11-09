@@ -31,12 +31,15 @@ import com.fongmi.android.tv.setting.PlaybackPerformanceOption;
 import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
 import com.fongmi.android.tv.setting.PlaybackPerformanceUiPolicy;
 import com.fongmi.android.tv.setting.PlaybackProfileMergePolicy;
+import com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption;
 import com.fongmi.android.tv.setting.MpvPerformanceSetting;
+import com.fongmi.android.tv.setting.MpvQualityEnhanceSetting;
 import com.fongmi.android.tv.setting.IjkPerformanceSetting;
 import com.fongmi.android.tv.setting.ExoPerformanceSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
 import com.fongmi.android.tv.utils.FileUtil;
+import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.google.android.material.button.MaterialButton;
@@ -578,6 +581,8 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
             case PlaybackPerformanceCatalog.MPV_FRAME_DROP -> MpvPerformanceSetting.getFrameDropText();
             case PlaybackPerformanceCatalog.MPV_INTERPOLATION -> onOff(MpvPerformanceSetting.isInterpolation());
             case PlaybackPerformanceCatalog.MPV_SOFT_TUNE -> MpvPerformanceSetting.getSoftTuneText();
+            case PlaybackPerformanceCatalog.MPV_QUALITY_ENHANCE -> enhanceText(MpvQualityEnhanceSetting.getModeText(), MpvQualityEnhanceSetting.getMode(), MpvQualityEnhanceSetting.getDenoise());
+            case PlaybackPerformanceCatalog.MPV_QUALITY_DENOISE -> enhanceText(MpvQualityEnhanceSetting.getDenoiseText(), MpvQualityEnhanceSetting.getMode(), MpvQualityEnhanceSetting.getDenoise());
             case PlaybackPerformanceCatalog.IJK_SCENE -> IjkPerformanceSetting.getSceneText();
             case PlaybackPerformanceCatalog.IJK_BUFFER -> ijkBufferText();
             case PlaybackPerformanceCatalog.IJK_PACKET_BUFFERING -> onOff(IjkPerformanceSetting.isPacketBuffering());
@@ -712,6 +717,16 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
             };
             case PlaybackPerformanceCatalog.MPV_SOFT_TUNE -> () -> {
                 MpvPerformanceSetting.putSoftTuneMode((MpvPerformanceSetting.getSoftTuneMode() + 1) % 3);
+                refresh();
+            };
+            case PlaybackPerformanceCatalog.MPV_QUALITY_ENHANCE -> () -> {
+                MpvQualityEnhanceSetting.putMode(MpvQualityEnhanceSetting.getMode() + 1);
+                warnQualityEnhance();
+                refresh();
+            };
+            case PlaybackPerformanceCatalog.MPV_QUALITY_DENOISE -> () -> {
+                MpvQualityEnhanceSetting.putDenoise(MpvQualityEnhanceSetting.getDenoise() + 1);
+                warnQualityEnhance();
                 refresh();
             };
             case PlaybackPerformanceCatalog.IJK_SCENE -> () -> {
@@ -961,6 +976,30 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
 
     private String onOff(boolean value) {
         return value ? "开" : "关";
+    }
+
+    /**
+     * 画质增强档位显示。
+     *
+     * <p>工单要求「TV 端算力有限需给性能提示」。档位名与条目说明里都已写明代价，
+     * 这里不再重复。
+     */
+    private String enhanceText(String text, int mode, int denoise) {
+        return MpvQualityEnhanceOption.needsPerformanceWarning(mode, denoise)
+                ? text + "（高负载）" : text;
+    }
+
+    /**
+     * 切到高负载档位时就地提示一次。
+     *
+     * <p>提示出现在「做出选择」的瞬间，而不是藏在帮助页里——用户不必先去读说明
+     * 才知道自己刚踩了性能代价。已处于高负载时反复点「关闭/轻度」不再提示。
+     */
+    private void warnQualityEnhance() {
+        if (!MpvQualityEnhanceOption.needsPerformanceWarning(
+                MpvQualityEnhanceSetting.getMode(),
+                MpvQualityEnhanceSetting.getDenoise())) return;
+        Notify.show("已开启高负载画质增强，设备卡顿时请改回轻度或关闭");
     }
 
     private String formatSeconds(int milliseconds) {

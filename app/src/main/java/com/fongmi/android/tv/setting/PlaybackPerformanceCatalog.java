@@ -42,6 +42,8 @@ public final class PlaybackPerformanceCatalog {
     public static final String MPV_FRAME_DROP = "mpv_frame_drop";
     public static final String MPV_INTERPOLATION = "mpv_interpolation";
     public static final String MPV_SOFT_TUNE = "mpv_soft_tune";
+    public static final String MPV_QUALITY_ENHANCE = "mpv_quality_enhance";
+    public static final String MPV_QUALITY_DENOISE = "mpv_quality_denoise";
     public static final String MPV_FRAME_RATE = "mpv_frame_rate";
     public static final String MPV_HLS_BITRATE = "mpv_hls_bitrate";
     public static final String MPV_REBUFFER = "mpv_rebuffer";
@@ -137,6 +139,8 @@ public final class PlaybackPerformanceCatalog {
         options.add(option(MPV_FRAME_DROP, DECODE, "丢帧策略", "怎么选：保持“输出丢帧”（默认），跟不上时优先丢渲染帧以维持音画进度；卡顿仍严重可试“解码丢帧”；不要为追求完整画面关闭丢帧，除非设备性能充足。代价：策略越积极，跳帧越明显。"));
         options.add(option(MPV_INTERPOLATION, DECODE, "平滑运动", "怎么选：默认关闭。只有GPU余量充足、使用GPU渲染＋显示重采样且想改善低帧率运动时才开启；电视4K、HDR、LUT或已经卡顿时必须关闭。代价：会明显增加GPU负载，电视直出时不生效。"));
         options.add(option(MPV_SOFT_TUNE, DECODE, "软解降负载", "作用：仅软件解码时减少滤波和解码工作。默认“温和”；软解仍掉帧可选“积极”；硬解视频无需靠它提速。代价：模式越积极，细节和画面连续性损失越大。"));
+        options.add(option(MPV_QUALITY_ENHANCE, DECODE, "超分/锐化", "作用：提高图像缩放与锐化质量，让低分辨率片源在大屏上更清晰。轻度使用高质量缩放核加轻微锐化，适合中端电视与手机；强化额外启用更锐的色度处理与抗振铃，画质更硬朗。仅在GPU渲染（openGL/Vulkan）时生效；电视直出时画面由硬件解码器直接输出，本项不生效。代价：会增加GPU负载，电视4K或性能较弱的盒子在强化档可能出现掉帧；若出现掉帧、发热或风扇变响，请改回“轻度”或关闭。"));
+        options.add(option(MPV_QUALITY_DENOISE, DECODE, "降噪/去色带", "作用：消除天空、暗部等平滑渐变区域中的色带（banding），这是大屏上最容易看出的画质缺陷。去色带使用GPU着色器平滑过渡；高精度档再加大抖动查找表让渐变更细腻。仅在GPU渲染时生效，电视直出不生效。代价：会增加GPU负载，高分辨率片源在低端设备上可能掉帧；画质偏锐或已经压缩严重的片源不推荐开启。"));
         options.add(option(DV7_HDR10_FALLBACK, DECODE, "DV7处理", "默认“升级P8.1”和“降级HDR10”保持原有行为：设备能原生播放DV7时优先原生播放，否则转换P8.1或使用HDR10基底层。“FEL 双层重建”仅手动选择后启用：保留BL、EL和RPU，基底层按现有硬解设置解码，增强层使用软件解码，由GPU完成残差重建，不走原生直出。只对DV7生效，普通视频不改变输出路径。该模式会增加CPU/GPU负载，流畅度取决于设备和片源；无增强层的片源不会凭空增加画质。切换后当前播放会按原有设置应用流程重载并保留进度。"));
         options.add(option(AUDIO_PASSTHROUGH, AUDIO, "音频直通", "怎么选：电视/功放明确支持Dolby、DTS且需要多声道时开启；出现无声、杂音或同步异常立即关闭。代价：压缩音频交给外部设备后，MPV无法完成所有混音和重采样处理。"));
         options.add(option(MPV_MULTICHANNEL_AUDIO, AUDIO, "非直通多声道", "怎么选：默认“立体声兼容”，电视直出遇到不能直通的多声道音轨时优先切换同语言2.0音轨，性能和设备兼容性最好；选择“多声道 PCM”会保留当前5.1/7.1音轨并由MPV解码输出，可能增加CPU负担，最终声道数仍取决于电视或功放的PCM能力。"));

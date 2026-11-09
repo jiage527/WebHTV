@@ -34,9 +34,11 @@ import com.fongmi.android.tv.player.lut.LutSetting;
 import com.fongmi.android.tv.player.mpv.MpvConfigStore;
 import com.fongmi.android.tv.player.mpv.MpvAutoControlPolicy;
 import com.fongmi.android.tv.player.mpv.MpvAutoOutputPolicy;
+import com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption;
 import com.fongmi.android.tv.player.mpv.MpvVulkanBackendPolicy;
-import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.MpvPerformanceSetting;
+import com.fongmi.android.tv.setting.MpvQualityEnhanceSetting;
+import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PlaybackPerformanceCatalog;
 import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
 import com.fongmi.android.tv.utils.ResUtil;
@@ -46,6 +48,7 @@ import com.github.catvod.crawler.SpiderDebug;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
@@ -1047,6 +1050,8 @@ public class MpvPlayerEngine implements PlayerEngine {
         // Native enforces faithful decoding only on the selected FEL chain.
         // Keep the ordinary content preferences intact in a reused player.
         applySoftDecodeOptions(builder);
+        applyQualityEnhanceOptions(builder, surfaceDirect ? "mediacodec_embed"
+                : useVulkan || useGpuNext ? "gpu-next" : "gpu");
         if (surfaceDirect) {
             builder.vo("mediacodec_embed")
                     .option("sid", "no")
@@ -1083,6 +1088,34 @@ public class MpvPlayerEngine implements PlayerEngine {
         builder.option("vd-lavc-fast", "yes");
         builder.option("vd-lavc-threads", "0");
         builder.option("vd-lavc-skiploopfilter", MpvPerformanceSetting.getSoftTuneMode() == MpvPerformanceSetting.SOFT_TUNE_AGGRESSIVE ? "nonkey" : "nonref");
+    }
+
+    /**
+     * 应用超分 / 锐化 / 降噪选项。
+     *
+     * <p>只给 GPU 渲染链路（{@code gpu} / {@code gpu-next}）下发选项。电视直出
+     * （{@code mediacodec_embed}）时画面由 MediaCodec 直接送到 Surface，完全不过
+     * 着色器管线，下发只会得到「开关开着但画面不变」的假象。
+     */
+    private void applyQualityEnhanceOptions(MpvPlayerConfig.Builder builder, String vo) {
+        if (!MpvQualityEnhanceOption.isSupported(vo)) {
+            // 电视直出时增强选项无效。开着的开关配上不变的画面，用户只会以为功能坏了，
+            // 所以至少留下一条可查的日志。
+            if (MpvQualityEnhanceSetting.getMode() != MpvQualityEnhanceOption.MODE_OFF
+                    || MpvQualityEnhanceSetting.getDenoise() != MpvQualityEnhanceOption.DENOISE_OFF) {
+                SpiderDebug.log("player-engine", "mpv quality enhance skipped vo=%s (not a GPU pipeline)", vo);
+            }
+            return;
+        }
+        Map<String, String> options = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceSetting.getMode(),
+                MpvQualityEnhanceSetting.getDenoise(),
+                vo);
+        if (options.isEmpty()) return;
+        for (Map.Entry<String, String> entry : options.entrySet()) {
+            builder.option(entry.getKey(), entry.getValue());
+        }
+        SpiderDebug.log("player-engine", "mpv quality enhance vo=%s %s", vo, MpvQualityEnhanceOption.describe(options));
     }
 
     private String resolveAudioSpdifCodecs() {
