@@ -107,6 +107,11 @@
             android:text="@string/play_gif_record" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/queue"
+            style="@style/Control"
+            android:text="@string/play_queue" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/danmaku"
             style="@style/Control"
             android:text="@string/danmaku"

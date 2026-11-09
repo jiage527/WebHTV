@@ -110,6 +110,8 @@ import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.LyricsSetting;
 import com.fongmi.android.tv.setting.PlayerButtonSetting;
+import com.fongmi.android.tv.setting.PlayQueue;
+import com.fongmi.android.tv.setting.PlayQueueStore;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.setting.SiteHealthStore;
@@ -133,6 +135,7 @@ import com.fongmi.android.tv.ui.dialog.ContentDialog;
 import com.fongmi.android.tv.ui.dialog.ControlDialog;
 import com.fongmi.android.tv.ui.dialog.DanmakuDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeListDialog;
+import com.fongmi.android.tv.ui.dialog.PlayQueueDialog;
 import com.fongmi.android.tv.ui.dialog.PanNetworkDiagnosticDialog;
 import com.fongmi.android.tv.ui.dialog.PlayerKernelDialog;
 import com.fongmi.android.tv.ui.dialog.QuickSearchDialog;
@@ -686,6 +689,10 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.next.setOnClickListener(view -> checkNext());
         mBinding.control.action.prev.setOnClickListener(view -> checkPrev());
         mBinding.control.action.episodes.setOnClickListener(view -> onEpisodes());
+        mBinding.control.action.episodes.setOnLongClickListener(view -> {
+            onQueueAddAll();
+            return true;
+        });
         mBinding.control.action.discMenu.setOnClickListener(view -> {
             hideControl();
             openDiscMenu();
@@ -718,6 +725,11 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.abLoop.setOnClickListener(view -> onAbLoop());
         mBinding.control.action.screenshot.setOnClickListener(view -> onScreenshot(false));
         mBinding.control.action.gifRecord.setOnClickListener(view -> onGifRecord());
+        mBinding.control.action.queue.setOnClickListener(view -> onQueue());
+        mBinding.control.action.queue.setOnLongClickListener(view -> {
+            onQueueAddCurrent();
+            return true;
+        });
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
         mBinding.audioNext.setOnClickListener(view -> checkNext());
         mBinding.audioPrev.setOnClickListener(view -> checkPrev());
@@ -888,6 +900,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.AB_LOOP, mBinding.control.action.abLoop);
         addActionButton(PlayerButtonSetting.SCREENSHOT, mBinding.control.action.screenshot);
         addActionButton(PlayerButtonSetting.GIF_RECORD, mBinding.control.action.gifRecord);
+        addActionButton(PlayerButtonSetting.QUEUE, mBinding.control.action.queue);
         addActionButton(PlayerButtonSetting.TITLE, mBinding.control.action.title);
         addActionButton(PlayerButtonSetting.REPEAT, mBinding.control.action.repeat);
         PlayerButtonSetting.applyOrder(mBinding.control.action.container, mActionButtons);
@@ -2605,6 +2618,88 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mGifRecord.onClick(this, surface, mBinding.control.action.gifRecord);
     }
 
+    /** 打开播放队列面板；点选某一项会直接切换到它。 */
+    private void onQueue() {
+        PlayQueueStore.markCurrent(player().getUrl());
+        PlayQueueDialog.show(this, entry -> playQueueEntry(entry));
+    }
+
+    /** 播放队列里选中的条目：把它定为当前项并按普通剧集播放。 */
+    private void playQueueEntry(PlayQueue.Entry entry) {
+        if (entry == null || TextUtils.isEmpty(entry.url)) return;
+        onItemClick(Episode.create(entry.displayName(), entry.url));
+    }
+
+    /** 长按队列按钮：把当前剧集加入队列。 */
+    private void onQueueAddCurrent() {
+        Episode item = getEpisode();
+        if (item == null || TextUtils.isEmpty(item.getUrl())) {
+            Notify.show(R.string.play_queue_unsupported);
+            return;
+        }
+        if (PlayQueueStore.add(item.getName(), item.getUrl())) {
+            // 对齐当前项，否则刚加入的这一集会被当成「还没开始」，连播时又从头播它自己。
+            PlayQueueStore.markCurrent(item.getUrl());
+            Notify.show(getString(R.string.play_queue_added, item.getName()));
+        } else Notify.show(R.string.play_queue_unsupported);
+    }
+
+    /** 长按剧集按钮：把当前源的全部剧集加入队列。 */
+    private void onQueueAddAll() {
+        Flag flag = getFlag();
+        List<Episode> episodes = flag == null ? null : flag.getEpisodes();
+        if (episodes == null || episodes.isEmpty()) {
+            Notify.show(R.string.play_queue_unsupported);
+            return;
+        }
+        List<PlayQueue.Entry> entries = new ArrayList<>();
+        for (Episode episode : episodes) {
+            if (episode == null || TextUtils.isEmpty(episode.getUrl())) continue;
+            entries.add(new PlayQueue.Entry(episode.getName(), episode.getUrl()));
+        }
+        int added = PlayQueueStore.addAll(entries);
+        if (added > 0) {
+            // 按正在播的那一集对齐当前项；整季入队时用户多半不在第一集。
+            PlayQueueStore.markCurrent(getEpisode() == null ? null : getEpisode().getUrl());
+            Notify.show(getString(R.string.play_queue_add_season_done, added));
+        } else Notify.show(R.string.play_queue_unsupported);
+    }
+
+    /**
+     * 按队列的循环模式取下一项并播放；队列为空或已到队尾时交给原有剧集连播。
+     */
+    private boolean playNextQueueEntry() {
+        PlayQueue queue = PlayQueueStore.get();
+        // 只有正在播的确实是队列里的一项时才接管连播，否则「队列里排着别的剧」会让
+        // 正在看的这部剧在结尾跳到不相干的集上。
+        if (!queue.contains(player().getUrl())) return false;
+        // 先用正在播的地址对齐当前项：否则当前项可能是未知的，取「下一项」会回到队首
+        // （若正在播的恰是队首那一项，就会重复播它自己）。
+        queue.setCurrent(player().getUrl());
+        PlayQueue.Entry next = queue.nextEntry();
+        if (next == null) {
+            if (PlayQueue.MODE_OFF.equals(queue.mode())) Notify.show(R.string.play_queue_ended);
+            return false;
+        }
+        queue.setCurrent(next.url);
+        PlayQueueStore.save();
+        playQueueEntry(next);
+        return true;
+    }
+
+    /** 按队列取上一项。 */
+    private boolean playPrevQueueEntry() {
+        PlayQueue queue = PlayQueueStore.get();
+        if (!queue.contains(player().getUrl())) return false;
+        queue.setCurrent(player().getUrl());
+        PlayQueue.Entry prev = queue.prevEntry();
+        if (prev == null) return false;
+        queue.setCurrent(prev.url);
+        PlayQueueStore.save();
+        playQueueEntry(prev);
+        return true;
+    }
+
     private void onKaraokeMode() {
         showKaraokeModePanel();
     }
@@ -3193,11 +3288,14 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     private void checkNext(boolean notify) {
+        // 队列有下一项时优先走队列，这是用户显式排好的顺序。
+        if (playNextQueueEntry()) return;
         if (mHistory.isRevPlay()) onPrev(notify);
         else onNext(notify);
     }
 
     private void checkPrev() {
+        if (playPrevQueueEntry()) return;
         if (mHistory.isRevPlay()) onNext(true);
         else onPrev(true);
     }

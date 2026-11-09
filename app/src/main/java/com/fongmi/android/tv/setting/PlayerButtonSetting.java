@@ -37,6 +37,7 @@ public class PlayerButtonSetting {
     public static final String AB_LOOP = "ab_loop";
     public static final String SCREENSHOT = "screenshot";
     public static final String GIF_RECORD = "gif_record";
+    public static final String QUEUE = "queue";
     public static final String TITLE = "title";
     public static final String PREV = "prev";
     public static final String NEXT = "next";
@@ -65,6 +66,7 @@ public class PlayerButtonSetting {
             new Item(AB_LOOP, R.string.play_ab_loop),
             new Item(SCREENSHOT, R.string.play_screenshot),
             new Item(GIF_RECORD, R.string.play_gif_record),
+            new Item(QUEUE, R.string.play_queue),
             new Item(TITLE, R.string.play_title),
             new Item(PREV, R.string.play_prev),
             new Item(NEXT, R.string.play_next),
