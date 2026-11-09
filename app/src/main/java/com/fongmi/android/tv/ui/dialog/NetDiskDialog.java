@@ -221,19 +221,29 @@ public final class NetDiskDialog {
         shareRow.setOrientation(LinearLayout.VERTICAL);
 
         EditText name = field(column, R.string.net_disk_field_name, draft.getName(), InputType.TYPE_CLASS_TEXT);
+        // 主机与端口要在类型行之前建好：类型切换的回调要按新协议修正端口。
+        EditText host = field(column, R.string.net_disk_field_host, draft.getHost(), InputType.TYPE_CLASS_TEXT);
+        EditText port = field(column, R.string.net_disk_field_port, draft.getPort() > 0 ? String.valueOf(draft.getPort()) : "", InputType.TYPE_CLASS_NUMBER);
+        // lambda 里要改这个值，只能用数组当容器（局部变量必须 effectively final）。
+        int[] lastPort = {draft.getPort() > 0 ? draft.getPort() : draft.getType().defaultPort(false)};
         TextView type = fieldText(column, R.string.net_disk_field_type, typeLabel(draft.getType()));
         type.setOnClickListener(view -> new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.net_disk_field_type)
-                .setItems(new CharSequence[]{typeLabel(NetDiskType.SMB), typeLabel(NetDiskType.WEBDAV)}, (d, which) -> {
-                    NetDiskType picked = which == 0 ? NetDiskType.SMB : NetDiskType.WEBDAV;
+                .setItems(typeLabels(), (d, which) -> {
+                    NetDiskType picked = pickableTypes()[which];
                     draft.setType(picked);
                     type.setText(typeLabel(picked));
-                    // SMB 才有「共享名」，WebDAV 的路径已经包含在地址里。
+                    // 三种协议默认端口不同，切换类型后把没被手改过的端口跟着换掉，
+                    // 否则用户从 SMB 切到 FTP 会留着 445，连上去必然超时。
+                    int next = picked.defaultPort(picked == NetDiskType.WEBDAV && draft.isSecure());
+                    if (isDefaultOrEmpty(port.getText().toString(), lastPort[0])) {
+                        port.setText(String.valueOf(next));
+                    }
+                    lastPort[0] = next;
+                    // SMB 才有「共享名」；WebDAV 与 FTP 的路径已包含在地址里。
                     shareRow.setVisibility(picked == NetDiskType.SMB ? View.VISIBLE : View.GONE);
                 })
                 .show());
-        EditText host = field(column, R.string.net_disk_field_host, draft.getHost(), InputType.TYPE_CLASS_TEXT);
-        EditText port = field(column, R.string.net_disk_field_port, draft.getPort() > 0 ? String.valueOf(draft.getPort()) : "", InputType.TYPE_CLASS_NUMBER);
         column.addView(shareRow);
         EditText share = field(shareRow, R.string.net_disk_field_share, draft.getShare(), InputType.TYPE_CLASS_TEXT);
         EditText root = field(column, R.string.net_disk_field_root, draft.getRoot(), InputType.TYPE_CLASS_TEXT);
@@ -316,7 +326,37 @@ public final class NetDiskDialog {
     }
 
     private static String typeLabel(NetDiskType type) {
-        return type == NetDiskType.WEBDAV ? "WebDAV" : "SMB";
+        if (type == NetDiskType.WEBDAV) return "WebDAV";
+        if (type == NetDiskType.FTP) return "FTP";
+        return "SMB";
+    }
+
+    /** 表单里可选的协议，顺序也是下拉列表的顺序。 */
+    private static NetDiskType[] pickableTypes() {
+        return new NetDiskType[]{NetDiskType.SMB, NetDiskType.WEBDAV, NetDiskType.FTP};
+    }
+
+    /** 与 {@link #pickableTypes()} 一一对应的显示名。 */
+    private static CharSequence[] typeLabels() {
+        NetDiskType[] types = pickableTypes();
+        CharSequence[] labels = new CharSequence[types.length];
+        for (int i = 0; i < types.length; i++) labels[i] = typeLabel(types[i]);
+        return labels;
+    }
+
+    /**
+     * 判断端口输入框里是否还是「上一个协议的默认端口」。
+     *
+     * <p>只有用户没自己填过端口时才跟着类型换：否则会把用户手填的端口改掉，
+     * 那是明确的用户意图，不应被覆盖。
+     */
+    private static boolean isDefaultOrEmpty(String current, int previous) {
+        if (current == null || current.trim().isEmpty()) return true;
+        try {
+            return Integer.parseInt(current.trim()) == previous;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /** 只读的类型行：不用 EditText，避免弹出软键盘挡住所填内容。 */

@@ -235,4 +235,59 @@ public class NetDiskUrlTest {
         assertEquals("", NetDiskUrl.pathOfProxyUrl("http://127.0.0.1:9978/file/a.mkv"));
         assertEquals("", NetDiskUrl.pathOfProxyUrl(null));
     }
+
+    // ------------------------------------------------------------------ FTP
+
+    @Test
+    public void parsesFtpUrl() {
+        NetDiskUrl.Remote remote = NetDiskUrl.parse("ftp://user:pass@nas.local:2121/media/movie.mp4");
+        assertEquals(NetDiskType.FTP, remote.getType());
+        assertEquals("nas.local", remote.getHost());
+        assertEquals(2121, remote.getPort());
+        assertEquals("media/movie.mp4", remote.getPath());
+        assertEquals("user", remote.getUsername());
+        assertEquals("pass", remote.getPassword());
+    }
+
+    @Test
+    public void ftpHasNoShareConcept() {
+        // SMB 的 /media/movie.mp4 里 media 是共享名；FTP 没有这一层，
+        // 整条路径都属于服务器根之下的内容。
+        NetDiskUrl.Remote remote = NetDiskUrl.parse("ftp://nas/media/movie.mp4");
+        assertEquals("", remote.getShare());
+        assertEquals("media/movie.mp4", remote.getPath());
+    }
+
+    @Test
+    public void ftpDefaultPortIs21() {
+        NetDiskUrl.Remote remote = NetDiskUrl.parse("ftp://nas/media");
+        assertEquals(21, remote.getPort());
+        assertEquals(NetDiskType.FTP, NetDiskUrl.parse("ftp://nas/").getType());
+    }
+
+    @Test
+    public void ftpIsRecognisedAsNetDiskUrl() {
+        assertTrue(NetDiskUrl.isNetDiskUrl("ftp://nas/movie.mp4"));
+        assertFalse(NetDiskUrl.isNetDiskUrl("ftp:/nas"));
+        assertFalse(NetDiskUrl.isNetDiskUrl("ftps://nas/x"));
+    }
+
+    @Test
+    public void ftpCannotEscapeRootWithDotDot() {
+        // 代理端点按账号鉴权，路径逃出根目录就必须不可能。
+        NetDiskUrl.Remote remote = NetDiskUrl.parse("ftp://nas/a/../../etc/passwd");
+        assertEquals("etc/passwd", remote.getPath());
+        // 根目录上的 ".." 是无效操作（无处可退），退完仍在根目录下，
+        // 所以剩下的 etc 是根的子项，而不是被弹到根之外。
+        assertEquals("etc", NetDiskUrl.parse("ftp://nas/../../etc").getPath());
+        assertFalse(NetDiskUrl.parse("ftp://nas/../../etc").getPath().contains(".."));
+        // 全由 ".." 组成的路径被压成根目录本身。
+        assertEquals("", NetDiskUrl.parse("ftp://nas/../..").getPath());
+    }
+
+    @Test
+    public void ftpKeepsSpacesAndDecodesEscapes() {
+        assertEquals("My Movie.mp4", NetDiskUrl.parse("ftp://nas/My%20Movie.mp4").getPath());
+        assertEquals("My Movie.mp4", NetDiskUrl.parse("ftp://nas/My Movie.mp4").getPath());
+    }
 }

@@ -84,6 +84,7 @@ public final class NetDiskSession implements Closeable {
 
     private static NetDiskClient create(NetDiskAccount account) {
         if (account.getType() == NetDiskType.SMB) return new SmbNetDiskClient(account);
+        if (account.getType() == NetDiskType.FTP) return new FtpNetDiskClient(account);
         return new WebDavNetDiskClient(account);
     }
 

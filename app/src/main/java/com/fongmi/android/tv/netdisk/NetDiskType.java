@@ -12,7 +12,8 @@ import java.util.Locale;
 public enum NetDiskType {
 
     SMB("smb"),
-    WEBDAV("webdav");
+    WEBDAV("webdav"),
+    FTP("ftp");
 
     private final String id;
 
@@ -24,7 +25,7 @@ public enum NetDiskType {
         return id;
     }
 
-    /** 目录分隔符：SMB 是反斜杠，WebDAV 是正斜杠。 */
+    /** 目录分隔符：SMB 是反斜杠，WebDAV 与 FTP 都是正斜杠。 */
     public char separator() {
         return this == SMB ? '\\' : '/';
     }
@@ -51,6 +52,8 @@ public enum NetDiskType {
             case "webdavs":
             case "davs":
                 return WEBDAV;
+            case "ftp":
+                return FTP;
             default:
                 return null;
         }
@@ -66,6 +69,7 @@ public enum NetDiskType {
     /** 默认端口，仅在地址里没写端口时使用。 */
     public int defaultPort(boolean secure) {
         if (this == SMB) return 445;
+        if (this == FTP) return 21;
         return secure ? 443 : 80;
     }
 }

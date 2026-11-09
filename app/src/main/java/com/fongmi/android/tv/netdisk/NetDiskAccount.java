@@ -133,6 +133,8 @@ public final class NetDiskAccount {
     /** 缺主机或缺共享名都不算可用。 */
     public boolean isUsable() {
         if (host.isEmpty()) return false;
+        // 只有 SMB 把「共享名」当作必填：它是 SMB 的访问边界。
+        // WebDAV 与 FTP 的整条路径都在服务器根之下，没有共享名这一层。
         return getType() != NetDiskType.SMB || !share.isEmpty();
     }
 

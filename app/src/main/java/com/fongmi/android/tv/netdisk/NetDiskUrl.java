@@ -24,7 +24,8 @@ public final class NetDiskUrl {
     /**
      * 解析出的远端地址。
      *
-     * <p>{@link #share} 仅 SMB 有值；WebDAV 的整条路径都算 {@link #path}。
+     * <p><b>FTP 没有「共享名」这个概念。</b>它的整条路径都在服务器根之下，
+     * 所以不像 SMB 那样先切出 share，而是整段当 {@link #path} 处理。
      */
     public static final class Remote {
 
@@ -116,8 +117,9 @@ public final class NetDiskUrl {
     /**
      * 解析网络存储地址；不是受支持的协议、或缺少主机时返回 {@code null}。
      *
-     * <p>支持 {@code smb://[域;]用户:密码@主机[:端口]/共享/路径} 与
-     * {@code webdav[s]://用户:密码@主机[:端口]/路径}。
+     * <p>支持 {@code smb://[域;]用户:密码@主机[:端口]/共享/路径}、
+     * {@code webdav[s]://用户:密码@主机[:端口]/路径} 与
+     * {@code ftp://用户:密码@主机[:端口]/路径}。
      */
     public static Remote parse(String url) {
         String scheme = schemeOf(url);
@@ -162,7 +164,8 @@ public final class NetDiskUrl {
             }
             path = NetDiskCodec.join(resolve(segments), NetDiskType.SMB.separator());
         } else {
-            path = NetDiskCodec.join(resolve(segments), NetDiskType.WEBDAV.separator());
+            // WebDAV 与 FTP 都没有「共享名」，整条路径都在服务器根之下。
+            path = NetDiskCodec.join(resolve(segments), type.separator());
         }
 
         String username = "";
