@@ -132,6 +132,23 @@ public final class MpvQualityEnhanceOption {
         return mode == MODE_STRONG || denoise == DENOISE_STRONG;
     }
 
+    /**
+     * 超分/锐化<b>本行</b>是否需要高负载提示。
+     *
+     * <p>为什么不能直接用 {@link #needsPerformanceWarning}：那个函数看的是两个档位的
+     * 「或」，用它来标超分行会出现「超分关闭、但降噪开了强化」时把超分行也标成高负载，
+     * 用户会以为超分开着。同样降噪行也不能用——它会显示成「关闭（高负载）」。
+     * 每行只看自己的档位。
+     */
+    public static boolean modeNeedsWarning(int mode) {
+        return clampMode(mode) == MODE_STRONG;
+    }
+
+    /** 降噪/去色带<b>本行</b>是否需要高负载提示，理由同 {@link #modeNeedsWarning}。 */
+    public static boolean denoiseNeedsWarning(int denoise) {
+        return clampDenoise(denoise) == DENOISE_STRONG;
+    }
+
     /** 供日志与设置页摘要用的选项文本，便于排查「选项真的发出去了吗」。 */
     public static String describe(Map<String, String> options) {
         if (options == null || options.isEmpty()) return "";
@@ -149,5 +166,23 @@ public final class MpvQualityEnhanceOption {
 
     public static int clampDenoise(int value) {
         return Math.max(DENOISE_OFF, Math.min(DENOISE_STRONG, value));
+    }
+
+    /**
+     * 按「关闭 → 轻度 → 强化 → 关闭」循环取下一档。
+     *
+     * <p><b>为什么不能用 {@code clampMode(getMode() + 1)}。</b>{@link #clampMode}
+     * 是<b>钳制</b>语义：强化档（{@code MODE_STRONG} = 2）再 +1 得 3，被钳回 2，
+     * 于是档位永远停在「强化」——用户点多少次都退不回「关闭」，且没有任何报错。
+     * 循环必须取模回绕，与对话框里其它 cycle* 选项（如
+     * {@code putSoftTuneMode((getSoftTuneMode() + 1) % 3)}）保持一致。
+     */
+    public static int nextMode(int value) {
+        return (clampMode(value) + 1) % (MODE_STRONG + 1);
+    }
+
+    /** 降噪档位的循环，语义与 {@link #nextMode} 相同。 */
+    public static int nextDenoise(int value) {
+        return (clampDenoise(value) + 1) % (DENOISE_STRONG + 1);
     }
 }

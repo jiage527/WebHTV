@@ -352,6 +352,9 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
 
     private void reset() {
         PlaybackPerformanceSetting.applyAuto();
+        // applyAuto 只清 override 与重放内核预设，不会写画质增强那两个键，
+        // 必须显式收回去，否则「重置」对超分/降噪点了没反应。
+        MpvQualityEnhanceSetting.reset();
         refresh();
     }
 
@@ -581,8 +584,8 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
             case PlaybackPerformanceCatalog.MPV_FRAME_DROP -> MpvPerformanceSetting.getFrameDropText();
             case PlaybackPerformanceCatalog.MPV_INTERPOLATION -> onOff(MpvPerformanceSetting.isInterpolation());
             case PlaybackPerformanceCatalog.MPV_SOFT_TUNE -> MpvPerformanceSetting.getSoftTuneText();
-            case PlaybackPerformanceCatalog.MPV_QUALITY_ENHANCE -> enhanceText(MpvQualityEnhanceSetting.getModeText(), MpvQualityEnhanceSetting.getMode(), MpvQualityEnhanceSetting.getDenoise());
-            case PlaybackPerformanceCatalog.MPV_QUALITY_DENOISE -> enhanceText(MpvQualityEnhanceSetting.getDenoiseText(), MpvQualityEnhanceSetting.getMode(), MpvQualityEnhanceSetting.getDenoise());
+            case PlaybackPerformanceCatalog.MPV_QUALITY_ENHANCE -> enhanceText(MpvQualityEnhanceSetting.getModeText(), MpvQualityEnhanceOption.modeNeedsWarning(MpvQualityEnhanceSetting.getMode()));
+            case PlaybackPerformanceCatalog.MPV_QUALITY_DENOISE -> enhanceText(MpvQualityEnhanceSetting.getDenoiseText(), MpvQualityEnhanceOption.denoiseNeedsWarning(MpvQualityEnhanceSetting.getDenoise()));
             case PlaybackPerformanceCatalog.IJK_SCENE -> IjkPerformanceSetting.getSceneText();
             case PlaybackPerformanceCatalog.IJK_BUFFER -> ijkBufferText();
             case PlaybackPerformanceCatalog.IJK_PACKET_BUFFERING -> onOff(IjkPerformanceSetting.isPacketBuffering());
@@ -720,12 +723,12 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
                 refresh();
             };
             case PlaybackPerformanceCatalog.MPV_QUALITY_ENHANCE -> () -> {
-                MpvQualityEnhanceSetting.putMode(MpvQualityEnhanceSetting.getMode() + 1);
+                MpvQualityEnhanceSetting.putMode(MpvQualityEnhanceOption.nextMode(MpvQualityEnhanceSetting.getMode()));
                 warnQualityEnhance();
                 refresh();
             };
             case PlaybackPerformanceCatalog.MPV_QUALITY_DENOISE -> () -> {
-                MpvQualityEnhanceSetting.putDenoise(MpvQualityEnhanceSetting.getDenoise() + 1);
+                MpvQualityEnhanceSetting.putDenoise(MpvQualityEnhanceOption.nextDenoise(MpvQualityEnhanceSetting.getDenoise()));
                 warnQualityEnhance();
                 refresh();
             };
@@ -981,12 +984,13 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
     /**
      * 画质增强档位显示。
      *
-     * <p>工单要求「TV 端算力有限需给性能提示」。档位名与条目说明里都已写明代价，
-     * 这里不再重复。
+     * <p>「高负载」后缀按<b>本行</b>档位追加：超分行只看超分档、降噪行只看降噪档。
+     * 不能用「两个档位的或」来判断，否则降噪关闭而超分强化时，降噪行会显示成
+     * 「关闭（高负载）」；而档位名里已经带了后缀，再拼一次就会出现
+     * 「强化（高负载）（高负载）」。
      */
-    private String enhanceText(String text, int mode, int denoise) {
-        return MpvQualityEnhanceOption.needsPerformanceWarning(mode, denoise)
-                ? text + "（高负载）" : text;
+    private String enhanceText(String text, boolean needsWarning) {
+        return needsWarning ? text + "（高负载）" : text;
     }
 
     /**

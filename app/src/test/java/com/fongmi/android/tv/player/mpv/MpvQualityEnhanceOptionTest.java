@@ -192,6 +192,63 @@ public class MpvQualityEnhanceOptionTest {
                 MpvQualityEnhanceOption.MODE_OFF, MpvQualityEnhanceOption.DENOISE_STRONG));
     }
 
+    /**
+     * 回归：档位必须能循环回到「关闭」。
+     *
+     * <p>实测缺陷：原先点一下是 {@code clampMode(getMode() + 1)}，而 clamp 是钳制语义，
+     * 到强化（2）后 2+1=3 被钳回 2，于是永远卡在「强化」，用户点多少次都退不回去，
+     * 且没有任何报错。「重置」也不清这两条键，用户完全被困住。
+     */
+    @Test
+    public void modeCyclesBackToOff() {
+        int mode = MpvQualityEnhanceOption.MODE_OFF;
+        mode = MpvQualityEnhanceOption.nextMode(mode);
+        assertEquals(MpvQualityEnhanceOption.MODE_LIGHT, mode);
+        mode = MpvQualityEnhanceOption.nextMode(mode);
+        assertEquals(MpvQualityEnhanceOption.MODE_STRONG, mode);
+        // 关键断言：从强化必须回到关闭，而不是被钳制在强化。
+        mode = MpvQualityEnhanceOption.nextMode(mode);
+        assertEquals(MpvQualityEnhanceOption.MODE_OFF, mode);
+    }
+
+    @Test
+    public void denoiseCyclesBackToOff() {
+        int denoise = MpvQualityEnhanceOption.DENOISE_OFF;
+        denoise = MpvQualityEnhanceOption.nextDenoise(denoise);
+        assertEquals(MpvQualityEnhanceOption.DENOISE_LIGHT, denoise);
+        denoise = MpvQualityEnhanceOption.nextDenoise(denoise);
+        assertEquals(MpvQualityEnhanceOption.DENOISE_STRONG, denoise);
+        denoise = MpvQualityEnhanceOption.nextDenoise(denoise);
+        assertEquals(MpvQualityEnhanceOption.DENOISE_OFF, denoise);
+    }
+
+    /** 被旧值或手工改坏的超大档位也必须能循环回合法值，不能抛出或卡住。 */
+    @Test
+    public void cyclingFromOutOfRangeValueStaysLegal() {
+        assertEquals(MpvQualityEnhanceOption.MODE_OFF,
+                MpvQualityEnhanceOption.nextMode(MpvQualityEnhanceOption.MODE_STRONG + 50));
+        assertEquals(MpvQualityEnhanceOption.DENOISE_OFF,
+                MpvQualityEnhanceOption.nextDenoise(MpvQualityEnhanceOption.DENOISE_STRONG + 50));
+        assertEquals(MpvQualityEnhanceOption.MODE_LIGHT,
+                MpvQualityEnhanceOption.nextMode(-99));
+    }
+
+    /**
+     * 回归：每一行的「高负载」提示只看本行档位。
+     *
+     * <p>实测缺陷：原先两行都用「两个档位的或」判断，于是超分关闭而降噪强化时，
+     * 超分行也被标成高负载；降噪行则显示成「关闭（高负载）」这种自相矛盾的文案。
+     */
+    @Test
+    public void warningIsPerRowNotShared() {
+        assertFalse(MpvQualityEnhanceOption.modeNeedsWarning(MpvQualityEnhanceOption.MODE_OFF));
+        assertFalse(MpvQualityEnhanceOption.modeNeedsWarning(MpvQualityEnhanceOption.MODE_LIGHT));
+        assertTrue(MpvQualityEnhanceOption.modeNeedsWarning(MpvQualityEnhanceOption.MODE_STRONG));
+        assertFalse(MpvQualityEnhanceOption.denoiseNeedsWarning(MpvQualityEnhanceOption.DENOISE_OFF));
+        assertFalse(MpvQualityEnhanceOption.denoiseNeedsWarning(MpvQualityEnhanceOption.DENOISE_LIGHT));
+        assertTrue(MpvQualityEnhanceOption.denoiseNeedsWarning(MpvQualityEnhanceOption.DENOISE_STRONG));
+    }
+
     @Test
     public void modesAndDenoiseComposeIndependently() {
         Map<String, String> both = MpvQualityEnhanceOption.build(
