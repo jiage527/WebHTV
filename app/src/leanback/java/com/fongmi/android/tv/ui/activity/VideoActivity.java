@@ -113,6 +113,7 @@ import com.fongmi.android.tv.setting.PlayerButtonSetting;
 import com.fongmi.android.tv.setting.PlayQueue;
 import com.fongmi.android.tv.setting.PlayQueueStore;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.setting.MpvQualityEnhanceSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.setting.SiteHealthStore;
 import com.fongmi.android.tv.ui.adapter.ArrayAdapter;
@@ -558,6 +559,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         setPlayerKernel();
         setDecode();
         setLut();
+        setQualityEnhance();
         if (!detailRequested) checkId();
         if (mPendingDetail != null) {
             Result result = mPendingDetail;
@@ -706,6 +708,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         });
         mBinding.control.action.scale.setOnClickListener(view -> onScale());
         mBinding.control.action.lut.setOnClickListener(view -> onLut());
+        mBinding.control.action.qualityEnhance.setOnClickListener(view -> onQualityEnhance());
         mBinding.control.action.speed.setOnClickListener(view -> onSpeed());
         mBinding.control.action.reset.setOnClickListener(view -> onReset());
         mBinding.control.action.title.setOnClickListener(view -> onTitle());
@@ -893,6 +896,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.SPEED, mBinding.control.action.speed);
         addActionButton(PlayerButtonSetting.SCALE, mBinding.control.action.scale);
         addActionButton(PlayerButtonSetting.LUT, mBinding.control.action.lut);
+        addActionButton(PlayerButtonSetting.QUALITY_ENHANCE, mBinding.control.action.qualityEnhance);
         addActionButton(PlayerButtonSetting.TEXT, mBinding.control.action.text);
         addActionButton(PlayerButtonSetting.AUDIO, mBinding.control.action.audio);
         addActionButton(PlayerButtonSetting.VIDEO, mBinding.control.action.video);
@@ -1015,6 +1019,11 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         if (mActionButtons != null) PlayerButtonSetting.applyVisibility(mActionButtons);
         boolean abLoopAvailable = player().isMpv() && PlayerButtonSetting.isVisible(PlayerButtonSetting.AB_LOOP);
         mBinding.control.action.abLoop.setVisibility(abLoopAvailable ? View.VISIBLE : View.GONE);
+        // The upscale button drives a GPU-shader option, so only the MPV kernel
+        // can offer it; it also follows the user's own show/hide preference.
+        boolean enhanceAvailable = player().isMpv()
+                && PlayerButtonSetting.isVisible(PlayerButtonSetting.QUALITY_ENHANCE);
+        mBinding.control.action.qualityEnhance.setVisibility(enhanceAvailable ? View.VISIBLE : View.GONE);
         updateCustomButtonVisibility();
         mBinding.control.action.cast.setVisibility(isFullscreen() ? View.GONE : View.VISIBLE);
         updateImmersiveAudioAction();
@@ -1080,6 +1089,33 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
 
     private void setLut() {
         mBinding.control.action.lut.setText(player().getLutText());
+    }
+
+    private void setQualityEnhance() {
+        mBinding.control.action.qualityEnhance.setText(switch (MpvQualityEnhanceSetting.getMode()) {
+            case com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.MODE_LIGHT ->
+                    getString(R.string.play_quality_enhance_light);
+            case com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.MODE_STRONG ->
+                    getString(R.string.play_quality_enhance_strong);
+            default -> getString(R.string.play_quality_enhance);
+        });
+    }
+
+    /**
+     * Steps the upscale tier and reloads MPV through the established settings
+     * path, which keeps the position and the playing state.
+     */
+    private void onQualityEnhance() {
+        if (!player().isMpv()) return;
+        MpvQualityEnhanceSetting.putMode(
+                com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.nextMode(
+                        MpvQualityEnhanceSetting.getMode()));
+        setQualityEnhance();
+        if (com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.modeNeedsWarning(
+                MpvQualityEnhanceSetting.getMode())) {
+            Notify.show(R.string.play_quality_enhance_heavy);
+        }
+        ConfigEvent.playerPerformance();
     }
 
     private void onLutChanged() {
@@ -4059,6 +4095,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         long step = System.currentTimeMillis();
         setLut();
         SpiderDebug.log("video-flow", "onPrepare lut cost=%dms", System.currentTimeMillis() - step);
+        setQualityEnhance();
         step = System.currentTimeMillis();
         setPosition();
         SpiderDebug.log("video-flow", "onPrepare position cost=%dms", System.currentTimeMillis() - step);

@@ -56,6 +56,10 @@
     <string name="play_title">章节</string>
     <string name="play_scale">原始</string>
     <string name="play_lut">LUT</string>
+    <string name="play_quality_enhance">超分</string>
+    <string name="play_quality_enhance_light">超分·轻度</string>
+    <string name="play_quality_enhance_strong">超分·强化</string>
+    <string name="play_quality_enhance_heavy">已开启高负载画质增强，设备卡顿时请改回轻度或关闭</string>
     <string name="play_config">配置</string>
     <string name="play_cast">投屏</string>
     <string name="play_change">换源</string>

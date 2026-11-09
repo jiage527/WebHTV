@@ -46,6 +46,12 @@
             android:text="@string/play_lut" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/qualityEnhance"
+            style="@style/Control"
+            android:text="@string/play_quality_enhance"
+            android:visibility="gone" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/karaoke"
             style="@style/Control"
             android:text="@string/player_karaoke_mode"

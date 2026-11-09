@@ -121,6 +121,7 @@ import com.fongmi.android.tv.setting.PlayerButtonSetting;
 import com.fongmi.android.tv.setting.PlayQueue;
 import com.fongmi.android.tv.setting.PlayQueueStore;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.setting.MpvQualityEnhanceSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.setting.SiteHealthStore;
 import com.fongmi.android.tv.ui.adapter.EpisodeAdapter;
@@ -580,6 +581,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         setPlayerKernel();
         setDecode();
         setLut();
+        setQualityEnhance();
         applyDeferredFullscreenOrientation();
         checkLand();
         if (consumePendingPlaybackResult()) return;
@@ -596,6 +598,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         setPlayerKernel();
         setDecode();
         setLut();
+        setQualityEnhance();
         refreshControlDialog();
     }
 
@@ -800,6 +803,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mBinding.control.action.video.setOnClickListener(this::onTrack);
         mBinding.control.action.scale.setOnClickListener(view -> onScale());
         mBinding.control.action.lut.setOnClickListener(view -> onLut());
+        mBinding.control.action.qualityEnhance.setOnClickListener(view -> onQualityEnhance());
         mBinding.control.action.karaoke.setOnClickListener(view -> onKaraokeMode());
         mBinding.control.action.speed.setOnClickListener(view -> onSpeed());
         mBinding.control.action.reset.setOnClickListener(view -> onReset());
@@ -1039,6 +1043,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         addActionButton(PlayerButtonSetting.SPEED, mBinding.control.action.speed);
         addActionButton(PlayerButtonSetting.SCALE, mBinding.control.action.scale);
         addActionButton(PlayerButtonSetting.LUT, mBinding.control.action.lut);
+        addActionButton(PlayerButtonSetting.QUALITY_ENHANCE, mBinding.control.action.qualityEnhance);
         addActionButton(PlayerButtonSetting.RESET, mBinding.control.action.reset);
         addActionButton(PlayerButtonSetting.REPEAT, mBinding.control.action.repeat);
         addActionButton(PlayerButtonSetting.TEXT, mBinding.control.action.text);
@@ -1206,7 +1211,49 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void applyActionButtonVisibility() {
         if (mActionButtons != null) PlayerButtonSetting.applyVisibility(mActionButtons);
         applyAbLoopButtonVisibility();
+        applyQualityEnhanceButtonVisibility();
         updateCustomButtonVisibility();
+    }
+
+    /**
+     * The upscale button toggles a GPU-shader option, so it is offered only on
+     * the MPV kernel, and it follows the user's own show/hide preference.
+     */
+    private void applyQualityEnhanceButtonVisibility() {
+        boolean available = player().isMpv()
+                && PlayerButtonSetting.isVisible(PlayerButtonSetting.QUALITY_ENHANCE);
+        mBinding.control.action.qualityEnhance.setVisibility(available ? View.VISIBLE : View.GONE);
+    }
+
+    private void setQualityEnhance() {
+        mBinding.control.action.qualityEnhance.setText(qualityEnhanceText());
+    }
+
+    private String qualityEnhanceText() {
+        return switch (MpvQualityEnhanceSetting.getMode()) {
+            case com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.MODE_LIGHT ->
+                    getString(R.string.play_quality_enhance_light);
+            case com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.MODE_STRONG ->
+                    getString(R.string.play_quality_enhance_strong);
+            default -> getString(R.string.play_quality_enhance);
+        };
+    }
+
+    /**
+     * Steps the upscale tier and reloads MPV through the established settings
+     * path, which keeps the position and the playing state.
+     */
+    private void onQualityEnhance() {
+        if (!player().isMpv()) return;
+        MpvQualityEnhanceSetting.putMode(
+                com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.nextMode(
+                        MpvQualityEnhanceSetting.getMode()));
+        setQualityEnhance();
+        if (com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.modeNeedsWarning(
+                MpvQualityEnhanceSetting.getMode())) {
+            Notify.show(R.string.play_quality_enhance_heavy);
+        }
+        ConfigEvent.playerPerformance();
     }
 
     /**

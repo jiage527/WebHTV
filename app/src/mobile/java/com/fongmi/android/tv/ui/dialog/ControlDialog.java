@@ -174,6 +174,7 @@ public class ControlDialog extends BaseBottomSheetDialog implements ParseAdapter
         binding.codecCapability.setOnClickListener(v -> ((Listener) requireActivity()).onCodecCapabilityPanel());
         binding.panDiagnostic.setOnClickListener(v -> onPanDiagnostic());
         binding.lut.setOnClickListener(v -> onLut());
+        binding.qualityEnhance.setOnClickListener(v -> click(binding.qualityEnhance, parent.control.action.qualityEnhance));
         binding.ending.setOnClickListener(v -> click(binding.ending, parent.control.action.ending));
         binding.opening.setOnClickListener(v -> click(binding.opening, parent.control.action.opening));
         binding.player.setOnLongClickListener(v -> longClick(binding.player, parent.control.action.player));
@@ -303,6 +304,8 @@ public class ControlDialog extends BaseBottomSheetDialog implements ParseAdapter
         binding.player.setText(parent.control.action.player.getText());
         binding.reset.setText(parent.control.action.reset.getText());
         setLut();
+        binding.qualityEnhance.setText(parent.control.action.qualityEnhance.getText());
+        binding.qualityEnhance.setVisibility(parent.control.action.qualityEnhance.getVisibility());
         setEpisodeColumn();
         binding.decode.setVisibility(parent.control.action.decode.getVisibility());
         binding.danmaku.setVisibility(parent.control.action.danmaku.getVisibility());

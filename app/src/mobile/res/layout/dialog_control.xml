@@ -58,6 +58,12 @@
                     android:text="@string/play_lut" />
 
                 <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/qualityEnhance"
+                    style="@style/ControlSheetButton"
+                    android:text="@string/play_quality_enhance"
+                    android:visibility="gone" />
+
+                <com.google.android.material.textview.MaterialTextView
                     android:id="@+id/reset"
                     style="@style/ControlSheetButton"
                     android:text="@string/play_reset" />
