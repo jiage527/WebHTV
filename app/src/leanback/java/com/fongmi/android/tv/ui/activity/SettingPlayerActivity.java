@@ -19,6 +19,7 @@ import com.fongmi.android.tv.setting.PlaybackPerformanceSetting;
 import com.fongmi.android.tv.setting.PlayerButtonSetting;
 import com.fongmi.android.tv.setting.PlayerSetting;
 import com.fongmi.android.tv.setting.PreloadSetting;
+import com.fongmi.android.tv.setting.SeekPreviewSetting;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.custom.SettingsSearchBar;
@@ -75,6 +76,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         setPerformanceText();
         setPlayerButtonsText();
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
+        mBinding.seekPreviewText.setText(getSwitch(SeekPreviewSetting.isEnabled()));
         mBinding.speedText.setText(format.format(PlayerSetting.getSpeed()));
         mBinding.bufferText.setText(String.valueOf(PlayerSetting.getBuffer()));
         mBinding.bufferBytesText.setText((bufferBytes = ResUtil.getStringArray(R.array.select_buffer_bytes))[PlayerSetting.getBufferBytesOption()]);
@@ -132,6 +134,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.exo4kCompat.setOnClickListener(this::onPerformance);
         mBinding.caption.setOnClickListener(this::setCaption);
         mBinding.adblock.setOnClickListener(this::setAdblock);
+        mBinding.seekPreview.setOnClickListener(this::setSeekPreview);
         mBinding.caption.setOnLongClickListener(this::onCaption);
         mBinding.background.setOnClickListener(this::onBackground);
         mBinding.audioDecode.setOnClickListener(this::setAudioDecode);
@@ -428,6 +431,11 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     private void setAdblock(View view) {
         Setting.putAdblock(!Setting.isAdblock());
         mBinding.adblockText.setText(getSwitch(Setting.isAdblock()));
+    }
+
+    private void setSeekPreview(View view) {
+        SeekPreviewSetting.putEnabled(!SeekPreviewSetting.isEnabled());
+        mBinding.seekPreviewText.setText(getSwitch(SeekPreviewSetting.isEnabled()));
     }
 
     private boolean onCaption(View view) {

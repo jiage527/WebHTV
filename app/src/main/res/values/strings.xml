@@ -937,6 +937,7 @@
     <string name="player_aac_track">Prefer aac track</string>
     <string name="player_adblock">Remove ads</string>
     <string name="player_tunnel">Tunnel mode</string>
+    <string name="player_seek_preview">Seek preview</string>
     <string name="player_buffer">Forward buffer target</string>
     <string name="player_buffer_bytes">Memory buffer limit</string>
     <string name="player_back_buffer">Played-data retention</string>
