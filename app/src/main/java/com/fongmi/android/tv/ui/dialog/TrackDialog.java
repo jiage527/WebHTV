@@ -106,6 +106,17 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
                 && MpvQualityDialog.canShow(player);
     }
 
+    /**
+     * Searching online is offered wherever an external subtitle could be applied,
+     * including before one exists: finding a subtitle for an item that has none is
+     * the main reason to open this menu. An embedded track is not a document that
+     * could be replaced, and a live stream has no release to match, so neither
+     * qualifies.
+     */
+    private boolean hasSubtitleSearch() {
+        return !secondarySubtitle && type == C.TRACK_TYPE_TEXT && player != null && player.isVod();
+    }
+
     @Override
     protected ViewBinding getBinding(@NonNull LayoutInflater inflater, @Nullable ViewGroup container) {
         return binding = DialogTrackBinding.inflate(inflater, container, false);
@@ -127,6 +138,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.choose.setOnClickListener(this::onChoose);
         binding.subtitle.setOnClickListener(this::onSubtitle);
         binding.translate.setOnClickListener(this::onTranslate);
+        binding.search.setOnClickListener(this::onSearch);
         binding.quality.setOnClickListener(this::onQuality);
     }
 
@@ -142,6 +154,7 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
         binding.choose.setVisibility(hasChoose() ? View.VISIBLE : View.GONE);
         binding.subtitle.setVisibility(hasText() ? View.VISIBLE : View.GONE);
         binding.translate.setVisibility(hasTranslatableSubtitle() ? View.VISIBLE : View.GONE);
+        binding.search.setVisibility(hasSubtitleSearch() ? View.VISIBLE : View.GONE);
         binding.quality.setVisibility(hasQualityChoice() ? View.VISIBLE : View.GONE);
     }
 
@@ -172,6 +185,11 @@ public final class TrackDialog extends BaseBottomSheetDialog implements TrackAda
 
     private void onTranslate(View view) {
         SubtitleTranslateDialog.show(requireActivity(), player);
+        dismiss();
+    }
+
+    private void onSearch(View view) {
+        SubtitleSearchDialog.create().player(player).show(requireActivity());
         dismiss();
     }
 

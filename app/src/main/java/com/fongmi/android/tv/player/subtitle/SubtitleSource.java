@@ -97,13 +97,33 @@ public final class SubtitleSource {
      */
     public static String write(String url, String text, String format) {
         try {
-            File dir = new File(Path.cache(), "subtitle");
-            if (!dir.exists() && !dir.mkdirs()) return null;
+            File dir = subtitleDir();
+            if (dir == null) return null;
             File file = new File(dir, "translated-" + digest(url + format) + "." + extension(format));
             Path.write(file, text.getBytes(StandardCharsets.UTF_8));
             return "file://" + file.getAbsolutePath();
         } catch (Throwable e) {
             SpiderDebug.log(TAG, "subtitle write failed error=%s", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Persists a downloaded subtitle document under the same cache directory the
+     * translated ones use, so one place owns the lifecycle of generated subtitles.
+     *
+     * @return the {@code file://} URL, or {@code null} when it could not be stored.
+     */
+    public static String writeOnline(String key, byte[] data, String format) {
+        if (data == null || data.length == 0) return null;
+        try {
+            File dir = subtitleDir();
+            if (dir == null) return null;
+            File file = new File(dir, "online-" + digest(key) + "." + extension(format));
+            Path.write(file, data);
+            return "file://" + file.getAbsolutePath();
+        } catch (Throwable e) {
+            SpiderDebug.log(TAG, "subtitle online write failed error=%s", e.getMessage());
             return null;
         }
     }
@@ -119,6 +139,13 @@ public final class SubtitleSource {
         }
     }
 
+    /** The directory generated subtitles live in, created on demand. */
+    private static File subtitleDir() {
+        File dir = new File(Path.cache(), "subtitle");
+        if (dir.isDirectory()) return dir;
+        return dir.mkdirs() ? dir : null;
+    }
+
     public static String extension(String format) {
         String value = format == null ? "" : format.toLowerCase(Locale.ROOT);
         if (value.contains("ssa")) return "ass";
@@ -128,7 +155,7 @@ public final class SubtitleSource {
     }
 
     /** A short, stable identifier for a URL, used only as a cache key. */
-    static String digest(String value) {
+    public static String digest(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("MD5");
             byte[] bytes = digest.digest(value.getBytes(StandardCharsets.UTF_8));
@@ -145,7 +172,7 @@ public final class SubtitleSource {
      * or a large number of GBK-looking pairs selects GB18030, which also covers
      * GBK and GB2312 content.
      */
-    static String decode(byte[] data) {
+    public static String decode(byte[] data) {
         if (data == null || data.length == 0) return null;
         if (data.length >= 3 && (data[0] & 0xFF) == 0xEF && (data[1] & 0xFF) == 0xBB && (data[2] & 0xFF) == 0xBF) {
             return new String(data, 3, data.length - 3, StandardCharsets.UTF_8);

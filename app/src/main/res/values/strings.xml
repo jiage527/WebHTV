@@ -1560,4 +1560,12 @@
     <string name="net_disk_field_root">Folder</string>
     <string name="net_disk_field_user">Username</string>
     <string name="net_disk_field_password">Password</string>
+    <string name="subtitle_search">Search subtitle</string>
+    <string name="subtitle_search_keyword">Keyword</string>
+    <string name="subtitle_search_language">Language</string>
+    <string name="subtitle_search_empty">No subtitle found</string>
+    <string name="subtitle_search_failed">Subtitle search failed</string>
+    <string name="subtitle_search_downloading">Downloading subtitle…</string>
+    <string name="subtitle_search_applied">Subtitle applied</string>
+    <string name="subtitle_search_download_failed">Subtitle could not be downloaded</string>
 </resources>

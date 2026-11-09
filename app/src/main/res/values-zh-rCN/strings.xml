@@ -1552,4 +1552,12 @@
     <string name="net_disk_field_root">目录</string>
     <string name="net_disk_field_user">用户名</string>
     <string name="net_disk_field_password">密码</string>
+    <string name="subtitle_search">搜索字幕</string>
+    <string name="subtitle_search_keyword">关键词</string>
+    <string name="subtitle_search_language">语言</string>
+    <string name="subtitle_search_empty">未找到字幕</string>
+    <string name="subtitle_search_failed">字幕搜索失败</string>
+    <string name="subtitle_search_downloading">正在下载字幕…</string>
+    <string name="subtitle_search_applied">已应用字幕</string>
+    <string name="subtitle_search_download_failed">字幕下载失败</string>
 </resources>
