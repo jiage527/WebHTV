@@ -1517,4 +1517,27 @@
     <string name="keep_import_failed">Import failed: not a valid playlist file</string>
     <string name="keep_tag_remove_confirm">Remove this tag from %1$d item(s)?</string>
     <string name="keep_import_empty">No valid playlist data found</string>
+    <string name="setting_net_disk">Network storage</string>
+    <string name="net_disk_title">Network storage</string>
+    <string name="net_disk_browse">Browse</string>
+    <string name="net_disk_add">Add storage</string>
+    <string name="net_disk_edit">Edit storage</string>
+    <string name="net_disk_delete">Delete storage</string>
+    <string name="net_disk_delete_confirm">Delete this storage and its saved password?</string>
+    <string name="net_disk_up">Up</string>
+    <string name="net_disk_test">Test</string>
+    <string name="net_disk_test_ok">Connected, the folder opened</string>
+    <string name="net_disk_connect_failed">Cannot access: %1$s</string>
+    <string name="net_disk_loading">Loading folder…</string>
+    <string name="net_disk_incomplete">Fill in the address first</string>
+    <string name="net_disk_not_playable">This file type cannot be played</string>
+    <string name="net_disk_account_count">%1$d saved</string>
+    <string name="net_disk_field_name">Name</string>
+    <string name="net_disk_field_type">Type</string>
+    <string name="net_disk_field_host">Server address</string>
+    <string name="net_disk_field_port">Port</string>
+    <string name="net_disk_field_share">Share name</string>
+    <string name="net_disk_field_root">Folder</string>
+    <string name="net_disk_field_user">Username</string>
+    <string name="net_disk_field_password">Password</string>
 </resources>

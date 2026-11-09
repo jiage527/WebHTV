@@ -1509,4 +1509,27 @@
     <string name="keep_import_failed">导入失败：不是有效的片单文件</string>
     <string name="keep_tag_remove_confirm">从 %1$d 项中移除该标签？</string>
     <string name="keep_import_empty">没有找到有效的片单数据</string>
+    <string name="setting_net_disk">网络存储</string>
+    <string name="net_disk_title">网络存储</string>
+    <string name="net_disk_browse">浏览目录</string>
+    <string name="net_disk_add">添加存储</string>
+    <string name="net_disk_edit">编辑存储</string>
+    <string name="net_disk_delete">删除存储</string>
+    <string name="net_disk_delete_confirm">删除这条存储及其保存的密码？</string>
+    <string name="net_disk_up">返回上级</string>
+    <string name="net_disk_test">测试连接</string>
+    <string name="net_disk_test_ok">连接成功，已打开目录</string>
+    <string name="net_disk_connect_failed">无法访问：%1$s</string>
+    <string name="net_disk_loading">正在读取目录…</string>
+    <string name="net_disk_incomplete">请先填写地址</string>
+    <string name="net_disk_not_playable">这个文件类型无法播放</string>
+    <string name="net_disk_account_count">已保存 %1$d 条</string>
+    <string name="net_disk_field_name">名称</string>
+    <string name="net_disk_field_type">类型</string>
+    <string name="net_disk_field_host">服务器地址</string>
+    <string name="net_disk_field_port">端口</string>
+    <string name="net_disk_field_share">共享名</string>
+    <string name="net_disk_field_root">目录</string>
+    <string name="net_disk_field_user">用户名</string>
+    <string name="net_disk_field_password">密码</string>
 </resources>

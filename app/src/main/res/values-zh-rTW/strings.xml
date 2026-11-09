@@ -1493,4 +1493,27 @@
     <string name="keep_import_failed">匯入失敗：不是有效的片單檔案</string>
     <string name="keep_tag_remove_confirm">從 %1$d 項中移除該標籤？</string>
     <string name="keep_import_empty">沒有找到有效的片單資料</string>
+    <string name="setting_net_disk">網路儲存</string>
+    <string name="net_disk_title">網路儲存</string>
+    <string name="net_disk_browse">瀏覽目錄</string>
+    <string name="net_disk_add">新增儲存</string>
+    <string name="net_disk_edit">編輯儲存</string>
+    <string name="net_disk_delete">刪除儲存</string>
+    <string name="net_disk_delete_confirm">刪除這筆儲存及其保存的密碼？</string>
+    <string name="net_disk_up">返回上層</string>
+    <string name="net_disk_test">測試連線</string>
+    <string name="net_disk_test_ok">連線成功，已開啟目錄</string>
+    <string name="net_disk_connect_failed">無法存取：%1$s</string>
+    <string name="net_disk_loading">正在讀取目錄…</string>
+    <string name="net_disk_incomplete">請先填寫位址</string>
+    <string name="net_disk_not_playable">這個檔案類型無法播放</string>
+    <string name="net_disk_account_count">已儲存 %1$d 筆</string>
+    <string name="net_disk_field_name">名稱</string>
+    <string name="net_disk_field_type">類型</string>
+    <string name="net_disk_field_host">伺服器位址</string>
+    <string name="net_disk_field_port">連接埠</string>
+    <string name="net_disk_field_share">共享名稱</string>
+    <string name="net_disk_field_root">目錄</string>
+    <string name="net_disk_field_user">使用者名稱</string>
+    <string name="net_disk_field_password">密碼</string>
 </resources>

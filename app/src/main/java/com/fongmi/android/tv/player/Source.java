@@ -18,7 +18,9 @@ import com.fongmi.android.tv.player.extractor.TVBus;
 import com.fongmi.android.tv.player.extractor.Thunder;
 import com.fongmi.android.tv.player.extractor.Video;
 import com.fongmi.android.tv.player.extractor.Youtube;
+import com.fongmi.android.tv.netdisk.NetDiskUrl;
 import com.fongmi.android.tv.setting.PlayerSetting;
+import com.fongmi.android.tv.utils.UrlUtil;
 import com.github.catvod.crawler.SpiderDebug;
 import com.fongmi.android.tv.utils.Task;
 
@@ -132,7 +134,29 @@ public class Source {
         } else if (dash) {
             sanitized = avoidStaleLocalManifest(sanitized);
         }
-        return sanitized;
+        return resolveNetDisk(sanitized);
+    }
+
+    /**
+     * 网络存储地址（{@code smb://} / {@code webdav://}）换成播放器能读的本机地址。
+     *
+     * <p>放在这个出口处，是因为它同时盖住两条来源：用户直接粘贴的 smb 地址，
+     * 以及本地 {@code .strm} 文件里写着的 smb 路径（{@link Strm} 会把文件内容
+     * 当作地址返回）。播放器读不了 {@code smb://}：随包 {@code libmpv.so} 既无
+     * libsmbclient 也无 {@code smb://} 字样（双 ABI 核对过），Exo 也没有 SMB 数据源。
+     */
+    private String resolveNetDisk(String url) {
+        if (url == null || url.isEmpty()) return url;
+        try {
+            if (!NetDiskUrl.isNetDiskUrl(url)) return url;
+            String resolved = UrlUtil.convertNetDisk(url);
+            if (!resolved.equals(url) && SpiderDebug.isEnabled()) SpiderDebug.log("netdisk", "resolved remote storage url into local endpoint");
+            return resolved;
+        } catch (Throwable e) {
+            // 转换失败就退回原地址：让播放器报它自己的错，比在这里抛更难查。
+            SpiderDebug.log("netdisk", e);
+            return url;
+        }
     }
 
     private String avoidStaleLocalManifest(String url) {
