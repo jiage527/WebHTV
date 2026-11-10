@@ -64,7 +64,8 @@ public class MpvPlayerEngine implements PlayerEngine {
     static final String DV8_PRESERVE = "preserve";
     static final String DV8_HDR10 = "hdr10";
     static final String HWDEC_SOFTWARE_FALLBACK_OPTION = "hwdec-software-fallback";
-    static final String HWDEC_SOFTWARE_FALLBACK_DISABLED = "no";
+    static final String HWDEC_SOFTWARE_FALLBACK_DEFAULT = "3";
+    static final String HWDEC_SOFTWARE_FALLBACK_ENABLED = "yes";
 
     private MpvPlayer player;
     private PlaySpec spec;
@@ -159,9 +160,14 @@ public class MpvPlayerEngine implements PlayerEngine {
     }
 
     static String hardwareDecodeSoftwareFallbackOption(int decode) {
-        // mpv also consults this option when hwdec=no. Explicit software mode
-        // must be allowed to open its decoder; hardware mode keeps its policy.
-        return decode == HARD ? HWDEC_SOFTWARE_FALLBACK_DISABLED : "yes";
+        // mpv consults this option for both decoder-init and runtime hwdec
+        // failures. "no" maps to INT_MAX, so a failing MediaCodec decoder is
+        // never abandoned: no software decoder takes over and playback stays
+        // stuck at dec=0 out=0 forever. Keep mpv's own default (3 consecutive
+        // failed frames) so hardware keeps priority but a broken hardware path
+        // still plays. Software mode opens its own decoder, so the option must
+        // not disable that decoder either.
+        return decode == HARD ? HWDEC_SOFTWARE_FALLBACK_DEFAULT : HWDEC_SOFTWARE_FALLBACK_ENABLED;
     }
 
     @Override
