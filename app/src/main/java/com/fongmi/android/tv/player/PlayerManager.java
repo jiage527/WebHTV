@@ -91,6 +91,7 @@ import com.fongmi.android.tv.player.mpv.MpvConfigStore;
 import com.fongmi.android.tv.player.mpv.MpvForwardCacheController;
 import com.fongmi.android.tv.player.mpv.MpvForwardCachePolicy;
 import com.fongmi.android.tv.player.mpv.MpvHlsVariantController;
+import com.fongmi.android.tv.player.mpv.MpvHardwareNoOutputPolicy;
 import com.fongmi.android.tv.player.mpv.MpvHlsQualityPolicy;
 import com.fongmi.android.tv.player.mpv.MpvHlsVariantPolicy;
 import com.fongmi.android.tv.player.mpv.MpvPreloadController;
@@ -156,6 +157,7 @@ public class PlayerManager implements ParseCallback {
     private static final float[] SPEED_PRESETS = new float[]{0.5f, 0.75f, 1f, 1.2f, 1.25f, 1.5f, 1.75f, 2f, 2.5f, 3f, 5f};
     private static final DecimalFormat SPEED_FORMAT = new DecimalFormat("0.##x");
 
+    private static final long MPV_HARDWARE_PROBE_TIMEOUT_MS = 10000L;
     private final Runnable runnable;
     private final Runnable liveDanmakuMetricsRunnable;
     private final Runnable networkProtectionRunnable;
@@ -243,6 +245,7 @@ public class PlayerManager implements ParseCallback {
     private boolean lutWarmupRefreshRequested;
     private boolean lutWarmupReloadPreviewPending;
     private boolean hardDecodeSwitchRetryArmed;
+    private boolean mpvHardwareToSoftRetryTried;
     private boolean lutAllowed = true;
     private boolean mpvAutoOutputEvaluated;
     private boolean mpvAutoOutputFrameReady;
@@ -422,6 +425,7 @@ public class PlayerManager implements ParseCallback {
                 false, "timeout", SystemClock.elapsedRealtime(), true);
         if (retryLutWarmupByRefresh("timeout")) return;
         if (retryMpvDv7P81FirstFrameTimeout()) return;
+        if (retryMpvHardwareNoFirstFrameToSoft()) return;
         if (retryMpvVulkanBackendTimeout()) return;
         if (retryMpvAutoVulkanToOpenGl("auto-vulkan-first-frame-timeout")) return;
         if (retryExoDv7FirstFrameTimeout()) return;
@@ -1434,6 +1438,7 @@ public class PlayerManager implements ParseCallback {
         retry = 0;
         localProxyRetry = 0;
         hardDecodeSwitchRetryArmed = false;
+        mpvHardwareToSoftRetryTried = false;
         clearPendingSwitchRestore();
     }
 
@@ -4808,6 +4813,7 @@ public class PlayerManager implements ParseCallback {
         playbackTrace.mark(PlaybackTrace.Stage.PREPARE, "player=" + playerType + " decode=" + engine.getDecode() + " mpv-output=" + reason);
         if (SpiderDebug.isEnabled()) SpiderDebug.log("mpv-output", "rebuild reason=%s directOverride=%s position=%d play=%s speed=%s repeat=%s spec=%s", reason, effectiveSurfaceDirectOverride, position, wasPlayWhenReady, speed, repeat, debugSpec());
         engine.start(spec.checkUa(), position, wasPlayWhenReady);
+        startMpvHardwareProbe();
         scheduleMpvAutoOutputEvaluation();
         startNativeAudioSession(wasPlayWhenReady);
         if (speed != 1f) setSpeed(speed);
@@ -5270,6 +5276,7 @@ public class PlayerManager implements ParseCallback {
         retry = 0;
         localProxyRetry = 0;
         hardDecodeSwitchRetryArmed = false;
+        mpvHardwareToSoftRetryTried = false;
         setMediaItem(timeout);
     }
 
@@ -5296,6 +5303,7 @@ public class PlayerManager implements ParseCallback {
         retry = 0;
         localProxyRetry = 0;
         hardDecodeSwitchRetryArmed = false;
+        mpvHardwareToSoftRetryTried = false;
         parseJob = ParseJob.create(this).start(result, useParse);
     }
 
@@ -5435,6 +5443,7 @@ public class PlayerManager implements ParseCallback {
         long initialPositionMs = pendingInitialStartPositionMs;
         pendingInitialStartPositionMs = C.TIME_UNSET;
         engine.start(spec.checkUa(), initialPositionMs, playWhenReady);
+        startMpvHardwareProbe();
         publishPlaybackTelemetry();
         schedulePlaybackTelemetry();
         scheduleMpvAutoOutputEvaluation();
@@ -8052,6 +8061,99 @@ public class PlayerManager implements ParseCallback {
             callback.onPrepare();
         }, HARD_DECODE_SWITCH_RETRY_DELAY_MS);
         return true;
+    }
+
+    /**
+     * Some hardware decoders initialize and are engaged by mpv, yet never
+     * produce an output frame (observed on OnePlus ACE 3V / Android 16:
+     * MediaCodec accepts packets while "Dropping unmatched MediaCodec packet
+     * properties" floods until the packet-properties queue saturates). FFmpeg
+     * reports that at warning level, so it never counts as a hardware decode
+     * failure and {@code hwdec-software-fallback} cannot recover; the item
+     * stalls in startup with no first frame and no error.
+     *
+     * <p>The startup timeout alone cannot detect this: mpv dispatches
+     * BUFFERING shortly after load and the state callback drops the timeout
+     * runnable, so a stuck item never reaches {@code onPlaybackTimeout()}. The
+     * one-shot probe started by {@link #startMpvHardwareProbe()} checks once the
+     * source has had time to load. When a hardware decoder is engaged but no
+     * frame was ever submitted, rebuild once as software decode (video
+     * {@code hwdec=no} plus MediaCodec audio decoders cleared through the
+     * engine's SOFT branch) so the same content plays.
+     */
+    private boolean retryMpvHardwareNoFirstFrameToSoft() {
+        if (!(engine instanceof MpvPlayerEngine mpv)) return false;
+        if (player == null || spec == null) return false;
+        if (!MpvHardwareNoOutputPolicy.shouldRetryWithSoftware(
+                engine.isHard(),
+                mpv.hasSubmittedVideoFrame(),
+                mpv.getObservedHwdecCurrent(),
+                mpv.getAutoCacheSnapshot().bufferingState(),
+                mpvHardwareToSoftRetryTried)) return false;
+        mpvHardwareToSoftRetryTried = true;
+        int seq = ++prepareSeq;
+        PlaySpec target = spec;
+        long position = Math.max(0, getPosition());
+        float speed = getSpeed();
+        boolean repeat = isRepeatOne();
+        boolean wasPlayWhenReady = player.getPlayWhenReady();
+        App.removeCallbacks(runnable);
+        resetLutRuntimeState("hardware_no_output_soft_retry", true);
+        engine.release();
+        engine = buildEngine(playerType, PlayerEngine.SOFT);
+        player = engine.getPlayer();
+        callback.onPlayerRebuild(player, true);
+        this.playWhenReady = wasPlayWhenReady;
+        initTrack = false;
+        PlaybackTrace.log("mpv-decode", playbackTrace.current(),
+                "action=hardware-no-frame-soft-retry position=%d", position);
+        if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv hardware no-output -> soft retry position=%d", position);
+        App.post(() -> {
+            if (seq != prepareSeq || spec != target || engine == null || player == null) return;
+            setDanmakus(target.getDanmakus());
+            initTrack = false;
+            waitingLutBeforePlay = false;
+            applySubtitleStyle();
+            engine.start(target.checkUa(), position, wasPlayWhenReady);
+            scheduleMpvAutoOutputEvaluation();
+            if (speed != 1f) setSpeed(speed);
+            setRepeatOne(repeat);
+            App.post(runnable, Constant.TIMEOUT_PLAY);
+            callback.onPrepare();
+        }, HARD_DECODE_SWITCH_RETRY_DELAY_MS);
+        return true;
+    }
+
+    /**
+     * Arms the hardware no-frame probe for the current item.
+     *
+     * <p>Runs independently of the startup timeout runnable, which mpv's
+     * BUFFERING transition removes before a stuck item can time out.
+     */
+    private void startMpvHardwareProbe() {
+        if (!isMpv() || engine == null || !engine.isHard() || mpvHardwareToSoftRetryTried) return;
+        PlaySpec target = spec;
+        App.post(() -> probeMpvHardwareOutput(target), MPV_HARDWARE_PROBE_TIMEOUT_MS);
+        if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv hardware probe armed timeoutMs=%d", MPV_HARDWARE_PROBE_TIMEOUT_MS);
+    }
+
+    /**
+     * One-shot check scheduled {@link #MPV_HARDWARE_PROBE_TIMEOUT_MS} after load:
+     * a hardware decoder that has not submitted a single frame by then, while the
+     * source is not starved, never will. The item identity guard makes a stale
+     * timer a no-op, and {@link MpvHardwareNoOutputPolicy} leaves still-frame and
+     * starved sources alone.
+     */
+    private void probeMpvHardwareOutput(PlaySpec target) {
+        if (spec == null || spec != target) return;
+        if (!isMpv() || !(engine instanceof MpvPlayerEngine mpv) || player == null) return;
+        if (mpvHardwareToSoftRetryTried || !engine.isHard()) return;
+        if (player.getPlaybackState() == Player.STATE_ENDED) return;
+        if (!retryMpvHardwareNoFirstFrameToSoft() && SpiderDebug.isEnabled()) {
+            SpiderDebug.log("player", "mpv hardware probe declined hwdec=%s frameSubmitted=%s buffering=%d",
+                    mpv.getObservedHwdecCurrent(), mpv.hasSubmittedVideoFrame(),
+                    mpv.getAutoCacheSnapshot().bufferingState());
+        }
     }
 
     private boolean retryExoTunnelingFailure(PlaybackException e) {

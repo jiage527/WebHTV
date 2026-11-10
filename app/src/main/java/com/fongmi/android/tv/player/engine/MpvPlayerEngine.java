@@ -319,6 +319,11 @@ public class MpvPlayerEngine implements PlayerEngine {
         return player.getFrameTimingSnapshot();
     }
 
+    /** Cached observed hardware decoder ("" until mpv reports one); never queries native. */
+    public String getObservedHwdecCurrent() {
+        return player.getObservedHwdecCurrent();
+    }
+
     @Override
     public boolean supportsNativeLut() {
         return !isSurfaceDirect();
@@ -1056,6 +1061,10 @@ public class MpvPlayerEngine implements PlayerEngine {
         // Native enforces faithful decoding only on the selected FEL chain.
         // Keep the ordinary content preferences intact in a reused player.
         applySoftDecodeOptions(builder);
+        // Software video decode must also avoid MediaCodec audio decoders:
+        // some devices (e.g. OnePlus ACE 3V / Android 16) accept the codec but
+        // never produce output frames, stalling playback at the audio path.
+        if (decode == SOFT) builder.option("ad", "");
         applyQualityEnhanceOptions(builder, surfaceDirect ? "mediacodec_embed"
                 : useVulkan || useGpuNext ? "gpu-next" : "gpu");
         if (surfaceDirect) {
