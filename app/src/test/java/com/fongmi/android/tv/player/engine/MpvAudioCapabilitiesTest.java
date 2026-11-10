@@ -58,6 +58,29 @@ public class MpvAudioCapabilitiesTest {
     }
 
     @Test
+    public void claimsNoCompressedOutputWithoutAPassthroughRoute() {
+        // The stall this guards against: the platform advertises direct AAC/MP3 (true
+        // on a phone's built-in speaker), so publishing it makes mpv pick
+        // spdif_raw_aac, whose output cannot open. The audio clock then stops and the
+        // picture freezes while the demuxer keeps reporting throughput. An empty
+        // value is what keeps mpv on ordinary PCM.
+        assertEquals("", MpvAudioCapabilities.compressedCodecsValue(
+                Set.of("aac", "mp3"), false));
+    }
+
+    @Test
+    public void publishesCompressedOutputOnlyOnARealPassthroughRoute() {
+        // Insertion order is preserved the way the capability probe builds it.
+        Set<String> advertised = new LinkedHashSet<>();
+        advertised.add("aac");
+        advertised.add("mp3");
+        assertEquals("aac,mp3", MpvAudioCapabilities.compressedCodecsValue(
+                advertised, true));
+        // An unprobed capability set stays empty on either route state.
+        assertEquals("", MpvAudioCapabilities.compressedCodecsValue(Set.of(), true));
+    }
+
+    @Test
     public void filtersAdvertisedCodecsByActualMpvCarrierSupport() {
         Set<String> advertised = Set.of("ac3", "eac3", "truehd");
         assertEquals("ac3,truehd",

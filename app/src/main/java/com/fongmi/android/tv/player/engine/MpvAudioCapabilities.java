@@ -59,6 +59,40 @@ final class MpvAudioCapabilities {
         }
     }
 
+    /**
+     * The compressed-codec list for a caller that must not depend on the output
+     * route being usable.
+     *
+     * <p>{@link #getAudioCompressedCodecs} reports platform capability, not whether
+     * the active output can actually carry the compressed stream. On a phone the
+     * built-in speaker advertises direct AAC/MP3 support, yet mpv's raw-AAC path
+     * cannot open an output there and stalls the audio clock (see
+     * {@code resolveAudioSpdifCodecs}). Emitting that list would therefore ask for a
+     * path that is known to be unusable, so a non-passthrough sink yields an empty
+     * list and mpv stays on ordinary PCM.
+     *
+     * @return the comma-joined codec list, or "" when no passthrough route exists.
+     */
+    static String getAudioCompressedCodecsIfRouted(Context context) {
+        Context appContext = context.getApplicationContext();
+        AudioManager manager = (AudioManager) appContext.getSystemService(Context.AUDIO_SERVICE);
+        return compressedCodecsValue(
+                getAudioCompressedCodecs(appContext), hasPassthroughOutputDevice(manager));
+    }
+
+    /**
+     * The value to publish for a given capability set and route state.
+     *
+     * <p>Split out from the {@code Context} lookup so the decision that actually
+     * caused the stall — advertising {@code aac,mp3} with no passthrough route — is
+     * pinned by a JVM test instead of only being exercised on a device.
+     */
+    static String compressedCodecsValue(Set<String> compressed, boolean passthroughRoute) {
+        Set<String> target = new LinkedHashSet<>();
+        addCompressedCodecsIfRouted(target, compressed, passthroughRoute);
+        return String.join(",", target);
+    }
+
     static Set<String> getAudioCompressedCodecs(Context context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return Set.of();
         Context appContext = context.getApplicationContext();

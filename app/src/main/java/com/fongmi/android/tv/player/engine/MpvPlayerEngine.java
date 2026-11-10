@@ -1118,10 +1118,26 @@ public class MpvPlayerEngine implements PlayerEngine {
         SpiderDebug.log("player-engine", "mpv quality enhance vo=%s %s", vo, MpvQualityEnhanceOption.describe(options));
     }
 
+    /**
+     * The {@code audio-spdif} value for the current passthrough setting.
+     *
+     * <p>Both branches are route-gated, and that is the whole point of the method.
+     * {@code getAudioCompressedCodecs} answers "would the platform accept raw
+     * AAC/MP3 over a compressed AudioTrack", which on a phone is true even when the
+     * only output is the built-in speaker. Advertising {@code aac,mp3} there makes
+     * mpv pick {@code spdif_raw_aac}; that path cannot open an output, and with
+     * {@code video-sync} defaulting to {@code audio} the stalled clock then freezes
+     * the picture — the item creeps a few frames silently, stops, and only recovers
+     * when a pause/play cycle rebuilds the audio output.
+     *
+     * <p>Passing {@code false} keeps the value empty, which is how mpv is told to use
+     * its ordinary same-track PCM decoding.
+     */
     private String resolveAudioSpdifCodecs() {
         boolean enabled = PlayerSetting.isAudioPassThrough(PlayerSetting.MPV);
-        String codecs = enabled ? MpvAudioCapabilities.getAudioSpdifCodecs(App.get())
-                : String.join(",", MpvAudioCapabilities.getAudioCompressedCodecs(App.get()));
+        String codecs = enabled
+                ? MpvAudioCapabilities.getAudioSpdifCodecs(App.get())
+                : MpvAudioCapabilities.getAudioCompressedCodecsIfRouted(App.get());
         SpiderDebug.log("mpv-audio", "configured passthrough=%s codecs=%s",
                 enabled, codecs.isEmpty() ? "pcm" : codecs);
         return codecs;
