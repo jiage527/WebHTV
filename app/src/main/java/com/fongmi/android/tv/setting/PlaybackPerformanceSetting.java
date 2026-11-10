@@ -45,6 +45,8 @@ public class PlaybackPerformanceSetting {
             "playback_performance_profile_auto_light_v1";
     private static final String KEY_AUDIO_PASSTHROUGH_DEFAULT_MIGRATED =
             "playback_performance_audio_passthrough_default_v1";
+    private static final String KEY_MPV_PASSTHROUGH_DEFAULT_OFF_MIGRATED =
+            "playback_performance_mpv_passthrough_default_off_v1";
     private static final String KEY_CODEC_ASYNC_QUEUEING = "perf_codec_async_queueing";
     private static final String KEY_DYNAMIC_SCHEDULING = "perf_dynamic_scheduling";
     private static final String KEY_VIDEO_DURATION_PROGRESS = "perf_video_duration_progress";
@@ -85,6 +87,44 @@ public class PlaybackPerformanceSetting {
         // rollback could restore a removed profile behind the new UI.
         migrateAutoLightProfiles();
         migrateAudioPassthroughDefault();
+        migrateMpvPassthroughDefaultOff();
+    }
+
+    /**
+     * Turns MPV passthrough off once for installs that inherited the old default.
+     *
+     * <p>Changing a default only affects preferences that were never written, and
+     * an install that predates the change already has {@code true} stored: without
+     * this pass the new default would look like it had no effect. The stored value
+     * is therefore re-seeded once.
+     *
+     * <p>An explicit choice is never touched. Flipping the switch in the UI records
+     * an override, so a viewer whose receiver really does decode Dolby/DTS keeps
+     * passthrough on. Only an un-overridden {@code true} — that is, one nobody
+     * chose — is turned off.
+     */
+    private static synchronized void migrateMpvPassthroughDefaultOff() {
+        if (Prefers.getBoolean(KEY_MPV_PASSTHROUGH_DEFAULT_OFF_MIGRATED)) return;
+        int kernel = PlayerSetting.MPV;
+        if (shouldDisableMpvPassthroughDefault(
+                kernel,
+                KernelPerformanceSetting.isAudioPassThrough(kernel),
+                isOverridden(kernel, PlaybackPerformanceCatalog.AUDIO_PASSTHROUGH))) {
+            KernelPerformanceSetting.putAudioPassThrough(kernel, false);
+        }
+        Prefers.put(KEY_MPV_PASSTHROUGH_DEFAULT_OFF_MIGRATED, true);
+    }
+
+    /**
+     * True only for the MPV kernel whose passthrough nobody explicitly chose.
+     *
+     * <p>Kept pure so the decision is testable without Android preferences.
+     */
+    static boolean shouldDisableMpvPassthroughDefault(
+            int kernel, boolean current, boolean overridden) {
+        if (PlayerSetting.sanitizePlayer(kernel) != PlayerSetting.MPV) return false;
+        if (overridden) return false;
+        return current;
     }
 
     public static int getProfile() {
@@ -747,7 +787,11 @@ public class PlaybackPerformanceSetting {
                     kernel, PlaybackPerformanceCatalog.AUDIO_PASSTHROUGH);
             if (shouldMigrateAudioPassthroughDefault(
                     profile, overridden, legacyExplicitOff)) {
-                KernelPerformanceSetting.putAudioPassThrough(kernel, true);
+                // Seed each kernel with its own default rather than a hardcoded
+                // true: MPV's default is now off, and writing true here would
+                // silently re-enable the passthrough the default just disabled.
+                KernelPerformanceSetting.putAudioPassThrough(kernel,
+                        KernelPerformanceSetting.defaultAudioPassThrough(kernel));
             }
         }
         Prefers.put(KEY_AUDIO_PASSTHROUGH_DEFAULT_MIGRATED, true);

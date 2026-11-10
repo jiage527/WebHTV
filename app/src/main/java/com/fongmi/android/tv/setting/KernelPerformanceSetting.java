@@ -117,7 +117,28 @@ public final class KernelPerformanceSetting {
 
     public static boolean isAudioPassThrough(int kernel) {
         ensureMigrated();
-        return Prefers.getBoolean(key(kernel, "audio_pass_through"), true);
+        return Prefers.getBoolean(key(kernel, "audio_pass_through"), defaultAudioPassThrough(kernel));
+    }
+
+    /**
+     * Whether passthrough is on for a kernel that has no stored preference.
+     *
+     * <p><b>MPV defaults to off.</b> A passthrough list is negotiated from route
+     * probing, but the carrier it names is not always one the active output can
+     * actually open. When that happens mpv keeps a dead audio path, and because
+     * {@code video-sync} defaults to {@code audio} the picture then waits on a
+     * clock that never advances: the item looks stalled even though the demuxer
+     * keeps reporting throughput. Turning passthrough off restores the working
+     * path, which is why the workaround was "switch passthrough off" rather than
+     * any video-side setting. Defaulting it off makes the working path the one
+     * viewers get without having to discover that.
+     *
+     * <p>The switch itself is kept: a TV or receiver that really does decode
+     * Dolby/DTS can still turn passthrough on, and that explicit choice is
+     * preserved (see {@code migrateAudioPassthroughDefault}).
+     */
+    static boolean defaultAudioPassThrough(int kernel) {
+        return PlayerSetting.sanitizePlayer(kernel) != PlayerSetting.MPV;
     }
 
     public static void putAudioPassThrough(int kernel, boolean value) {
@@ -279,7 +300,7 @@ public final class KernelPerformanceSetting {
     }
 
     static boolean audioPassthroughForPreset(int kernel) {
-        return PlayerSetting.sanitizePlayer(kernel) != PlayerSetting.IJK;
+        return PlayerSetting.sanitizePlayer(kernel) == PlayerSetting.EXO;
     }
 
     private static synchronized void ensureMigrated() {
@@ -293,6 +314,10 @@ public final class KernelPerformanceSetting {
         int preloadSize = closestPreloadSize(Prefers.getInt("preload_size", PreloadSetting.MIN_SIZE_MB));
         int preloadTime = clamp(Prefers.getInt("preload_time", PreloadSetting.DEFAULT_TIME_SECONDS), PreloadSetting.MIN_TIME_SECONDS, PreloadSetting.MAX_TIME_SECONDS);
         boolean audioPass = Prefers.getBoolean("audio_pass_through", true);
+        // The legacy key was global, so its absence must not decide the MPV
+        // default: an install that never touched passthrough would otherwise be
+        // handed the old value here and override the per-kernel default below.
+        boolean legacyAudioPassSet = Prefers.getPrefers().contains("audio_pass_through");
         boolean preferAac = Prefers.getBoolean("prefer_aac");
         boolean audioPrefer = Prefers.getBoolean("audio_prefer");
         boolean videoPrefer = Prefers.getBoolean("video_prefer");
@@ -305,7 +330,8 @@ public final class KernelPerformanceSetting {
             Prefers.put(key(kernel, "preload_threads"), preloadThreads);
             Prefers.put(key(kernel, "preload_size"), preloadSize);
             Prefers.put(key(kernel, "preload_time"), preloadTime);
-            Prefers.put(key(kernel, "audio_pass_through"), audioPass);
+            Prefers.put(key(kernel, "audio_pass_through"), legacyAudioPassSet
+                    ? audioPass : defaultAudioPassThrough(kernel));
             Prefers.put(key(kernel, "prefer_aac"), preferAac);
             Prefers.put(key(kernel, "audio_prefer"), audioPrefer);
             Prefers.put(key(kernel, "video_prefer"), videoPrefer);
