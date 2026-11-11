@@ -46,6 +46,15 @@ public final class StartupBudget {
     /** The delay before deferred work starts, giving the first frame room to draw. */
     public static final long DEFER_AFTER_FIRST_FRAME_MS = 80L;
 
+    /**
+     * The delay before the WebView is pre-created, counted from the first frame (T2-25).
+     *
+     * <p>Not zero on purpose: creating a WebView starts a renderer process, and doing it in the
+     * same frame as the first draw is what used to make the first screen wait. The prewarm only
+     * saves the cost of the first web home page, so it can afford to lose that race.
+     */
+    public static final long WEBVIEW_PREWARM_AFTER_FIRST_FRAME_MS = 150L;
+
     private StartupBudget() {}
 
     public static List<Step> steps() {
@@ -87,5 +96,10 @@ public final class StartupBudget {
      */
     public static boolean mayCreateWebViewBeforeFirstScreen() {
         return false;
+    }
+
+    /** Delay between the first frame and the WebView prewarm, in milliseconds. */
+    public static long webViewPrewarmDelayMs() {
+        return WEBVIEW_PREWARM_AFTER_FIRST_FRAME_MS;
     }
 }

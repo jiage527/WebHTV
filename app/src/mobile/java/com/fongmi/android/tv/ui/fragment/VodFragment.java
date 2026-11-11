@@ -8,6 +8,9 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.webkit.WebView;
+import android.widget.FrameLayout;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -41,6 +44,7 @@ import com.fongmi.android.tv.impl.FilterListener;
 import com.fongmi.android.tv.impl.SiteListener;
 import com.fongmi.android.tv.model.SiteViewModel;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.startup.StartupBudget;
 import com.fongmi.android.tv.ui.activity.HomeActivity;
 import com.fongmi.android.tv.ui.activity.HistoryActivity;
 import com.fongmi.android.tv.ui.activity.KeepActivity;
@@ -66,6 +70,7 @@ import com.fongmi.android.tv.web.HomeWebController;
 import com.fongmi.android.tv.web.WebHomeChrome;
 import com.fongmi.android.tv.web.WebHomeChromeStartup;
 import com.fongmi.android.tv.web.WebHomeViewport;
+import com.github.catvod.crawler.SpiderDebug;
 import com.google.gson.JsonObject;
 
 import org.greenrobot.eventbus.EventBus;
@@ -116,7 +121,6 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     protected void initView() {
         EventBus.getDefault().register(this);
         mBinding.title.setSelected(true);
-        mHomeWebTopMargin = ((ViewGroup.MarginLayoutParams) mBinding.homeWeb.getLayoutParams()).topMargin;
         setRecyclerView();
         setWebView();
         setViewModel();
@@ -165,8 +169,47 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     }
 
     private void setWebView() {
-        mWeb = new HomeWebController(requireActivity(), mBinding.homeWeb, this);
+        mHomeWebTopMargin = ((ViewGroup.MarginLayoutParams) mBinding.homeWeb.getLayoutParams()).topMargin;
+        prewarmHomeWeb();
+    }
+
+    /**
+     * T2-25: create the WebView after the first frame instead of during the first screen.
+     *
+     * <p>The layout used to host a real {@code WebView}, so inflating the home screen started a
+     * renderer process before anything was drawn. Here the layout only provides a slot
+     * ({@code @id/homeWeb} is now a FrameLayout), and the WebView itself is created once the
+     * first frame is on screen. {@link com.fongmi.android.tv.web.HomeWebController#load} is
+     * called later still, so nothing depends on the prewarm having finished.
+     */
+    private void prewarmHomeWeb() {
+        final View root = mBinding.getRoot();
+        if (StartupBudget.mayCreateWebViewBeforeFirstScreen()) {
+            ensureHomeWeb();
+            return;
+        }
+        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (root.getViewTreeObserver().isAlive()) root.getViewTreeObserver().removeOnPreDrawListener(this);
+                root.post(() -> App.post(VodFragment.this::ensureHomeWeb, StartupBudget.webViewPrewarmDelayMs()));
+                return true;
+            }
+        });
+    }
+
+    /** Creates the WebView and its controller once; safe to call from any of the startup paths. */
+    private void ensureHomeWeb() {
+        if (mWeb != null || mBinding == null || getActivity() == null) return;
+        long start = System.currentTimeMillis();
+        WebView webView = new WebView(requireContext());
+        webView.setFocusable(true);
+        webView.setFocusableInTouchMode(true);
+        webView.setVisibility(View.GONE);
+        mBinding.homeWeb.addView(webView, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        mWeb = new HomeWebController(requireActivity(), webView, this);
         syncWebHomeChrome();
+        SpiderDebug.log("startup", "webview prewarm cost=%sms at=%sms", System.currentTimeMillis() - start, System.currentTimeMillis() - App.time());
     }
 
     private void setViewModel() {
@@ -407,7 +450,7 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
         requestNormalChrome();
         showProgress();
         showSkeletonOnce();
-        mBinding.homeWeb.setVisibility(View.GONE);
+        if (mWeb != null) mWeb.hide();
         updateToolbarMenu();
         clearPagerTypes();
         mBinding.pager.setAdapter(new PageAdapter(getChildFragmentManager()));
@@ -416,6 +459,9 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     }
 
     private void loadHome() {
+        // The prewarm is only a head start; a web home config can load before it runs, so make
+        // sure the WebView exists before the first web load instead of depending on the timing.
+        ensureHomeWeb();
         Site home = getHome();
         WebHomeChromeStartup.remember(getConfig(), home);
         setTitle();
@@ -661,7 +707,7 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
         mBinding.type.setVisibility(View.VISIBLE);
         updateTypeMoreVisible();
         mBinding.pager.setVisibility(View.VISIBLE);
-        mBinding.homeWeb.setVisibility(View.GONE);
+        if (mWeb != null) mWeb.hide();
         updateToolbarMenu();
     }
 

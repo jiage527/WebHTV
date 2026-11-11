@@ -59,6 +59,16 @@ public class StartupBudgetTest {
     }
 
     @Test
+    public void webViewPrewarmHappensAfterTheFirstFrameNotDuringIt() {
+        // T2-25 pre-creates the WebView so the first web home page does not pay for the renderer,
+        // but the prewarm must stay off the first frame. The gate above stays false on purpose:
+        // creation is *after* the first screen, never before it.
+        assertTrue(StartupBudget.webViewPrewarmDelayMs() > 0);
+        assertTrue(StartupBudget.webViewPrewarmDelayMs() < 1000);
+        assertTrue(StartupBudget.webViewPrewarmDelayMs() >= StartupBudget.DEFER_AFTER_FIRST_FRAME_MS);
+    }
+
+    @Test
     public void deferredWorkStartsAfterTheFirstFrameButSoonEnoughToHide() {
         // Long enough for the first frame to be drawn without competing for the main thread,
         // short enough that the user never notices a stutter.

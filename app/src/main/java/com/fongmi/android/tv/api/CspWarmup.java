@@ -6,6 +6,7 @@ import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.api.config.VodConfig;
 import com.fongmi.android.tv.bean.Site;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.startup.SiteWarmupPlan;
 import com.fongmi.android.tv.utils.Task;
 import com.github.catvod.crawler.SpiderDebug;
 
@@ -91,31 +92,48 @@ public final class CspWarmup {
 
     private static List<Site> pickSites() {
         if (Setting.getCspWarmupMode() == Setting.CSP_WARMUP_CUSTOM) return pickCustomSites();
-        Site site = pickSite();
-        return site == null ? Collections.emptyList() : Collections.singletonList(site);
+        return pickDefaultSites();
     }
 
     private static List<Site> pickCustomSites() {
-        List<Site> result = new ArrayList<>();
-        Set<String> jars = new HashSet<>();
+        List<Site> warmable = new ArrayList<>();
         for (String key : Setting.getCspWarmupSites()) {
             Site site = VodConfig.get().getSite(key);
-            if (!isWarmable(site)) continue;
-            String jar = jarKey(site);
-            if (!jars.add(jar)) continue;
-            result.add(site);
+            if (isWarmable(site)) warmable.add(site);
         }
+        return resolve(SiteWarmupPlan.planCustom(candidates(warmable)));
+    }
+
+    /**
+     * Default mode: the home site first, then the native list sites (T2-25).
+     *
+     * <p>The old selection returned the first warmable site without a web home page, which could
+     * be a site the user never opens. The home site is the best available proxy for "frequently
+     * used" because History rows only store the config id, not the site key.
+     */
+    private static List<Site> pickDefaultSites() {
+        List<Site> warmable = new ArrayList<>();
+        for (Site site : VodConfig.get().getSites()) if (isWarmable(site)) warmable.add(site);
+        Site home = VodConfig.get().getHome();
+        List<String> keys = SiteWarmupPlan.planDefault(candidates(warmable), home == null ? "" : home.getKey());
+        SpiderDebug.log("csp-warmup", "plan mode=default home=%s sites=%s", home == null ? "" : home.getKey(), keys);
+        return resolve(keys);
+    }
+
+    private static List<SiteWarmupPlan.Candidate> candidates(List<Site> sites) {
+        List<SiteWarmupPlan.Candidate> result = new ArrayList<>(sites.size());
+        for (Site site : sites) result.add(new SiteWarmupPlan.Candidate(site.getKey(), jarKey(site), site.hasHomePage()));
         return result;
     }
 
-    private static Site pickSite() {
-        Site fallback = null;
-        for (Site site : VodConfig.get().getSites()) {
-            if (!isWarmable(site)) continue;
-            if (fallback == null) fallback = site;
-            if (!site.hasHomePage()) return site;
+    private static List<Site> resolve(List<String> keys) {
+        if (keys.isEmpty()) return Collections.emptyList();
+        List<Site> result = new ArrayList<>(keys.size());
+        for (String key : keys) {
+            Site site = VodConfig.get().getSite(key);
+            if (site != null && !site.isEmpty()) result.add(site);
         }
-        return fallback;
+        return result;
     }
 
     public static boolean isWarmable(Site site) {

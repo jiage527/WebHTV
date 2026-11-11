@@ -90,14 +90,14 @@
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <WebView
+    <!-- T2-25: the WebView itself is created after the first frame (VodFragment#ensureHomeWeb);
+         this host only carries the layout slot and the action bar margin so the web home page
+         still lands under the toolbar without paying for a renderer during the first screen. -->
+    <FrameLayout
         android:id="@+id/homeWeb"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:visibility="gone" />
+        android:layout_marginTop="?attr/actionBarSize" />
 
     <include
         android:id="@+id/skeleton"
