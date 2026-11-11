@@ -158,7 +158,11 @@ public class PlayerManager implements ParseCallback {
     private static final DecimalFormat SPEED_FORMAT = new DecimalFormat("0.##x");
 
     private static final long MPV_HARDWARE_PROBE_TIMEOUT_MS = 10000L;
+    /** Sampling period of the frozen-position probe (see probeMpvFrozenHardware). */
+    private static final long MPV_FROZEN_PROBE_INTERVAL_MS = 1000L;
     private final Runnable runnable;
+    /** Self-scheduled sampler that catches a hardware decoder wedging after its first frame. */
+    private final Runnable mpvFrozenProbeRunnable = this::probeMpvFrozenHardware;
     private final Runnable liveDanmakuMetricsRunnable;
     private final Runnable networkProtectionRunnable;
     private final Runnable playbackTelemetryRunnable;
@@ -246,6 +250,9 @@ public class PlayerManager implements ParseCallback {
     private boolean lutWarmupReloadPreviewPending;
     private boolean hardDecodeSwitchRetryArmed;
     private boolean mpvHardwareToSoftRetryTried;
+    private boolean mpvFrozenProbeArmed;
+    private long mpvFrozenPositionMs = -1;
+    private long mpvFrozenWindowStartMs;
     private boolean lutAllowed = true;
     private boolean mpvAutoOutputEvaluated;
     private boolean mpvAutoOutputFrameReady;
@@ -353,6 +360,7 @@ public class PlayerManager implements ParseCallback {
         App.removeCallbacks(runnable);
         App.removeCallbacks(networkProtectionRunnable);
         App.removeCallbacks(playbackTelemetryRunnable);
+        stopMpvFrozenProbe();
         mpvResourceMemoryRegistration.close();
         ijkBufferMemoryRegistration.close();
         mpvResourceSystemRegistration.close();
@@ -1448,6 +1456,7 @@ public class PlayerManager implements ParseCallback {
         clearExoDecoderResourceRecovery(true);
         resetNetworkProtectionSession("clear");
         resetMpvOutputRuntime();
+        stopMpvFrozenProbe();
         spec = null;
         clearPendingSwitchRestore();
         clearDanmaku("clear");
@@ -8084,13 +8093,76 @@ public class PlayerManager implements ParseCallback {
     private boolean retryMpvHardwareNoFirstFrameToSoft() {
         if (!(engine instanceof MpvPlayerEngine mpv)) return false;
         if (player == null || spec == null) return false;
+        if (mpvHardwareToSoftRetryTried) return false;
         if (!MpvHardwareNoOutputPolicy.shouldRetryWithSoftware(
                 engine.isHard(),
                 mpv.hasSubmittedVideoFrame(),
                 mpv.getObservedHwdecCurrent(),
                 mpv.getAutoCacheSnapshot().bufferingState(),
                 mpvHardwareToSoftRetryTried)) return false;
+        rebuildMpvAsSoftware("hardware-no-frame");
+        return true;
+    }
+
+    /**
+     * Detects the second failure mode of the same hardware decoder: a first frame
+     * <em>is</em> submitted, then the position freezes forever while the cache stays
+     * satisfied. Because a frame was submitted, mpv never counts a decode failure
+     * and {@code hwdec-software-fallback} stays idle, so only a frozen-position
+     * probe can catch it (observed on OnePlus ACE 3V / Android 16).
+     *
+     * <p>Sampled once per second by {@link #startMpvFrozenProbe()}: a position that
+     * has not moved for {@link MpvHardwareNoOutputPolicy#FROZEN_WINDOW_MS} while the
+     * demuxer is not starved means the decoder is the bottleneck, not the network.
+     */
+    private void probeMpvFrozenHardware() {
+        if (!mpvFrozenProbeArmed) return;
+        try {
+            if (!isMpv() || !(engine instanceof MpvPlayerEngine mpv) || player == null
+                    || spec == null || mpvHardwareToSoftRetryTried || !engine.isHard()) {
+                stopMpvFrozenProbe();
+                return;
+            }
+            long now = SystemClock.elapsedRealtime();
+            long position = Math.max(0, getPosition());
+            if (mpvFrozenPositionMs < 0
+                    || Math.abs(position - mpvFrozenPositionMs) > MpvHardwareNoOutputPolicy.FROZEN_EPSILON_MS) {
+                // Position moved (or this is the first sample): restart the frozen window.
+                mpvFrozenPositionMs = position;
+                mpvFrozenWindowStartMs = now;
+                return;
+            }
+            PlayerCacheState cache = mpv.getAutoCacheSnapshot();
+            boolean ended = player.getPlaybackState() == Player.STATE_ENDED;
+            boolean playRequested = player.getPlayWhenReady();
+            if (!MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                    engine.isHard(), mpv.hasSubmittedVideoFrame(), mpv.getObservedHwdecCurrent(),
+                    now - mpvFrozenWindowStartMs, cache.bufferingState(), false, ended, playRequested,
+                    mpvHardwareToSoftRetryTried)) return;
+            if (SpiderDebug.isEnabled()) {
+                SpiderDebug.log("player",
+                        "mpv hardware frozen -> soft retry frozenMs=%d position=%d hwdec=%s buffering=%d",
+                        now - mpvFrozenWindowStartMs, position, mpv.getObservedHwdecCurrent(),
+                        cache.bufferingState());
+            }
+            rebuildMpvAsSoftware("hardware-frozen-after-first-frame");
+        } finally {
+            if (mpvFrozenProbeArmed && !mpvHardwareToSoftRetryTried) {
+                App.removeCallbacks(mpvFrozenProbeRunnable);
+                App.post(mpvFrozenProbeRunnable, MPV_FROZEN_PROBE_INTERVAL_MS);
+            }
+        }
+    }
+
+    /**
+     * Rebuilds the active MPV item as software decode, preserving position, speed and
+     * repeat. Shared by both hardware-stall detectors so the two paths cannot drift:
+     * see {@link #retryMpvHardwareNoFirstFrameToSoft()} and
+     * {@link #probeMpvFrozenHardware()}.
+     */
+    private void rebuildMpvAsSoftware(String reason) {
         mpvHardwareToSoftRetryTried = true;
+        stopMpvFrozenProbe();
         int seq = ++prepareSeq;
         PlaySpec target = spec;
         long position = Math.max(0, getPosition());
@@ -8098,7 +8170,7 @@ public class PlayerManager implements ParseCallback {
         boolean repeat = isRepeatOne();
         boolean wasPlayWhenReady = player.getPlayWhenReady();
         App.removeCallbacks(runnable);
-        resetLutRuntimeState("hardware_no_output_soft_retry", true);
+        resetLutRuntimeState(reason + "_soft_retry", true);
         engine.release();
         engine = buildEngine(playerType, PlayerEngine.SOFT);
         player = engine.getPlayer();
@@ -8106,8 +8178,8 @@ public class PlayerManager implements ParseCallback {
         this.playWhenReady = wasPlayWhenReady;
         initTrack = false;
         PlaybackTrace.log("mpv-decode", playbackTrace.current(),
-                "action=hardware-no-frame-soft-retry position=%d", position);
-        if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv hardware no-output -> soft retry position=%d", position);
+                "action=%s-soft-retry position=%d", reason, position);
+        if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv %s -> soft retry position=%d", reason, position);
         App.post(() -> {
             if (seq != prepareSeq || spec != target || engine == null || player == null) return;
             setDanmakus(target.getDanmakus());
@@ -8115,13 +8187,13 @@ public class PlayerManager implements ParseCallback {
             waitingLutBeforePlay = false;
             applySubtitleStyle();
             engine.start(target.checkUa(), position, wasPlayWhenReady);
+            startMpvHardwareProbe();
             scheduleMpvAutoOutputEvaluation();
             if (speed != 1f) setSpeed(speed);
             setRepeatOne(repeat);
             App.post(runnable, Constant.TIMEOUT_PLAY);
             callback.onPrepare();
         }, HARD_DECODE_SWITCH_RETRY_DELAY_MS);
-        return true;
     }
 
     /**
@@ -8134,7 +8206,29 @@ public class PlayerManager implements ParseCallback {
         if (!isMpv() || engine == null || !engine.isHard() || mpvHardwareToSoftRetryTried) return;
         PlaySpec target = spec;
         App.post(() -> probeMpvHardwareOutput(target), MPV_HARDWARE_PROBE_TIMEOUT_MS);
+        startMpvFrozenProbe();
         if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv hardware probe armed timeoutMs=%d", MPV_HARDWARE_PROBE_TIMEOUT_MS);
+    }
+
+    /**
+     * Arms the frozen-position sampler. It is deliberately separate from the one-shot
+     * no-frame probe above: that probe decides once, 10s after load, and a device that
+     * submits a first frame before wedging always passes it.
+     */
+    private void startMpvFrozenProbe() {
+        if (!isMpv() || engine == null || !engine.isHard() || mpvHardwareToSoftRetryTried) return;
+        mpvFrozenProbeArmed = true;
+        mpvFrozenPositionMs = -1;
+        mpvFrozenWindowStartMs = 0;
+        App.removeCallbacks(mpvFrozenProbeRunnable);
+        App.post(mpvFrozenProbeRunnable, MPV_FROZEN_PROBE_INTERVAL_MS);
+    }
+
+    private void stopMpvFrozenProbe() {
+        mpvFrozenProbeArmed = false;
+        mpvFrozenPositionMs = -1;
+        mpvFrozenWindowStartMs = 0;
+        App.removeCallbacks(mpvFrozenProbeRunnable);
     }
 
     /**

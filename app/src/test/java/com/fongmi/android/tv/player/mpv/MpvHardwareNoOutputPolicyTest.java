@@ -72,4 +72,55 @@ public final class MpvHardwareNoOutputPolicyTest {
         assertTrue(MpvHardwareNoOutputPolicy.isSourceStarved(40));
         assertFalse(MpvHardwareNoOutputPolicy.isSourceStarved(100));
     }
+
+    // --- second failure mode: a frame WAS submitted, then the decoder wedged ---
+
+    @Test
+    public void frozenHardwareAfterFirstFrameFallsBackToSoftware() {
+        assertTrue(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 6_000, 100, false, false, true, false));
+    }
+
+    @Test
+    public void frozenProbeNeedsAnAlreadySubmittedFrame() {
+        // Never a frame: that is the other detector's job, not this one's.
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, false, "mediacodec", 6_000, 100, false, false, true, false));
+    }
+
+    @Test
+    public void movingPositionIsNeverAFreeze() {
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 3_000, 100, false, false, true, false));
+    }
+
+    @Test
+    public void userPauseAndFinishedStreamAreNotStalls() {
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 30_000, 100, false, false, false, false));
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 30_000, 100, false, true, true, false));
+    }
+
+    @Test
+    public void starvedSourceExplainsTheFreezeSoSoftwareIsNotTried() {
+        // Demuxer still waiting for data: the network, not the decoder, is the bottleneck.
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 30_000, 40, false, false, true, false));
+    }
+
+    @Test
+    public void growingCacheProvesTheDecoderIsTheBottleneck() {
+        // Cache bytes grew yet the position did not move: data is arriving fine.
+        assertTrue(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 30_000, 40, true, false, true, false));
+    }
+
+    @Test
+    public void frozenSoftwareDecodeAndRetriedSessionsAreLeftAlone() {
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                false, true, "mediacodec", 30_000, 100, false, false, true, false));
+        assertFalse(MpvHardwareNoOutputPolicy.shouldRetryFrozenWithSoftware(
+                true, true, "mediacodec", 30_000, 100, false, false, true, true));
+    }
 }
