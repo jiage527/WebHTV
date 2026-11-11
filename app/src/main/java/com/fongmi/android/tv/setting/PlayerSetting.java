@@ -253,6 +253,21 @@ public class PlayerSetting {
         Prefers.put("player_auto_change", autoChange);
     }
 
+    /**
+     * T2-24：容灾看门狗在换线路前，允许对同一线路重试的轮数。
+     *
+     * <p>0 = 线路判定为坏即直接换源（不原地重试）；默认 1，最多 3，防止无限重试卡在看门狗里。
+     */
+    public static int getFailoverRounds() {
+        int rounds = Prefers.getInt("player_failover_rounds", 1);
+        if (rounds < 0) return 0;
+        return Math.min(rounds, 3);
+    }
+
+    public static void putFailoverRounds(int rounds) {
+        Prefers.put("player_failover_rounds", Math.max(0, Math.min(rounds, 3)));
+    }
+
     public static boolean isAutoPlay() {
         return Prefers.getBoolean("player_auto_play", true);
     }

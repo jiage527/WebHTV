@@ -86,6 +86,7 @@
     <string name="play_switch_flag">正在切換線路至「<xliff:g name="name">%s</xliff:g>」</string>
     <string name="play_switch_site">正在切換站源至「<xliff:g name="name">%s</xliff:g>」</string>
     <string name="play_switch_parse">正在切换解析至「<xliff:g name="name">%s</xliff:g>」</string>
+    <string name="play_switch_retry">線路卡頓，正在重試</string>
 
     <!-- Danmaku Setting -->
     <string name="danmaku">彈幕</string>
@@ -958,6 +959,7 @@
     <string name="player_preload_pause_always">始終</string>
     <string name="player_auto_play">自動播放</string>
     <string name="player_auto_change">自動換源</string>
+    <string name="player_failover_rounds">換源前重試輪數</string>
     <string name="player_speed">長按倍速</string>
     <string name="player_ua">User-Agent</string>
     <string name="player_osd">屏顯設定</string>

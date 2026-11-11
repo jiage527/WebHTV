@@ -38,6 +38,14 @@ public class Flag implements Parcelable, Diffable<Flag> {
     private boolean selected;
     private int position;
 
+    /**
+     * Runtime failover score 0..100 written back by the playback watchdog, or -1 when the
+     * line has not been played yet. Transient, so it is never persisted or parcelled.
+     */
+    private transient double failoverScore = -1;
+    /** Rounds the watchdog already spent re-opening this line, used to bound retries. */
+    private transient int failoverRetries;
+
     public Flag() {
         this.position = -1;
         this.episodes = new ArrayList<>();
@@ -158,6 +166,23 @@ public class Flag implements Parcelable, Diffable<Flag> {
 
     public void setPosition(int position) {
         this.position = position;
+    }
+
+    /** @return runtime failover score 0..100, or -1 when this line was never played. */
+    public double getFailoverScore() {
+        return failoverScore;
+    }
+
+    public void setFailoverScore(double failoverScore) {
+        this.failoverScore = failoverScore;
+    }
+
+    public int getFailoverRetries() {
+        return failoverRetries;
+    }
+
+    public void setFailoverRetries(int failoverRetries) {
+        this.failoverRetries = failoverRetries;
     }
 
     public void toggle(boolean selected, Episode episode) {

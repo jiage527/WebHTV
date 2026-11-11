@@ -87,6 +87,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         setPreloadText();
         mBinding.autoPlayText.setText(getSwitch(PlayerSetting.isAutoPlay()));
         mBinding.autoChangeText.setText(getSwitch(PlayerSetting.isAutoChange()));
+        mBinding.failoverRoundsText.setText(String.valueOf(PlayerSetting.getFailoverRounds()));
         mBinding.backgroundText.setText(getSwitch(PlayerSetting.isBackgroundOn()));
         mBinding.audioDecodeText.setText(getSwitch(PlayerSetting.isAudioPrefer()));
         mBinding.audioPassThroughText.setText(getSwitch(PlayerSetting.isAudioPassThrough()));
@@ -131,6 +132,7 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
         mBinding.preloadPause.setOnClickListener(this::setPreloadPause);
         mBinding.autoPlay.setOnClickListener(this::setAutoPlay);
         mBinding.autoChange.setOnClickListener(this::setAutoChange);
+        mBinding.failoverRounds.setOnClickListener(this::setFailoverRounds);
         mBinding.render.setOnClickListener(this::setRender);
         mBinding.tunnel.setOnClickListener(this::setTunnel);
         mBinding.exo4kCompat.setOnClickListener(this::onPerformance);
@@ -364,6 +366,12 @@ public class SettingPlayerActivity extends BaseActivity implements UaListener, B
     private void setAutoChange(View view) {
         PlayerSetting.putAutoChange(!PlayerSetting.isAutoChange());
         mBinding.autoChangeText.setText(getSwitch(PlayerSetting.isAutoChange()));
+    }
+
+    private void setFailoverRounds(View view) {
+        // 0 → 1 → 2 → 3 → 0，与 OSD/设置的双向循环一致。
+        PlayerSetting.putFailoverRounds((PlayerSetting.getFailoverRounds() + 1) % 4);
+        mBinding.failoverRoundsText.setText(String.valueOf(PlayerSetting.getFailoverRounds()));
     }
 
     private void setRender(View view) {

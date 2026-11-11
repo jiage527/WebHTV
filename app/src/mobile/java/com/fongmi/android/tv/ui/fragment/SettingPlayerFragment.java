@@ -90,6 +90,7 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         setPreloadText();
         mBinding.autoPlayText.setText(getSwitch(PlayerSetting.isAutoPlay()));
         mBinding.autoChangeText.setText(getSwitch(PlayerSetting.isAutoChange()));
+        mBinding.failoverRoundsText.setText(String.valueOf(PlayerSetting.getFailoverRounds()));
         mBinding.audioDecodeText.setText(getSwitch(PlayerSetting.isAudioPrefer()));
         mBinding.audioPassThroughText.setText(getSwitch(PlayerSetting.isAudioPassThrough()));
         mBinding.videoDecodeText.setText(getSwitch(PlayerSetting.isVideoPrefer()));
@@ -134,6 +135,7 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
         mBinding.preloadPause.setOnClickListener(this::onPreloadPause);
         mBinding.autoPlay.setOnClickListener(this::setAutoPlay);
         mBinding.autoChange.setOnClickListener(this::setAutoChange);
+        mBinding.failoverRounds.setOnClickListener(this::setFailoverRounds);
         mBinding.render.setOnClickListener(this::setRender);
         mBinding.tunnel.setOnClickListener(this::setTunnel);
         mBinding.exo4kCompat.setOnClickListener(this::onPerformance);
@@ -413,6 +415,12 @@ public class SettingPlayerFragment extends BaseFragment implements UaListener, B
     private void setAutoChange(View view) {
         PlayerSetting.putAutoChange(!PlayerSetting.isAutoChange());
         mBinding.autoChangeText.setText(getSwitch(PlayerSetting.isAutoChange()));
+    }
+
+    private void setFailoverRounds(View view) {
+        // 0 → 1 → 2 → 3 → 0
+        PlayerSetting.putFailoverRounds((PlayerSetting.getFailoverRounds() + 1) % 4);
+        mBinding.failoverRoundsText.setText(String.valueOf(PlayerSetting.getFailoverRounds()));
     }
 
     private void setRender(View view) {

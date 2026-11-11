@@ -95,11 +95,15 @@ import com.fongmi.android.tv.impl.CustomTarget;
 import com.fongmi.android.tv.model.SiteViewModel;
 import com.fongmi.android.tv.playback.PlaybackEventCollector;
 import com.fongmi.android.tv.playback.PlaybackOrientation;
+import com.fongmi.android.tv.player.PlaybackTrace;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlayerManager;
 import com.fongmi.android.tv.player.engine.PlayerEngine;
 import com.fongmi.android.tv.player.gif.GifRecordController;
 import com.fongmi.android.tv.player.engine.PlaySpec;
+import com.fongmi.android.tv.player.failover.FailoverRetryPolicy;
+import com.fongmi.android.tv.player.failover.FailoverWatchdog;
+import com.fongmi.android.tv.player.intro.IntroSession;
 import com.fongmi.android.tv.player.karaoke.KaraokeController;
 import com.fongmi.android.tv.player.karaoke.KaraokePitchTrackGenerator;
 import com.fongmi.android.tv.player.karaoke.KaraokeResult;
@@ -334,6 +338,8 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private long playerStartTime;
     private boolean pendingLutImport;
     private boolean skipPausePiP;
+    /** T2-24 多源自动容灾看门狗：按秒采样当前线路并给出重试/换线路/换站源决策。 */
+    private FailoverWatchdog mFailover;
 
     private final ActivityResultLauncher<Intent> mLutDir = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null || result.getData().getData() == null) return;
@@ -645,6 +651,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         mR2 = this::setTraffic;
         mR3 = this::setOrient;
         mR4 = this::showEmpty;
+        mFailover = new FailoverWatchdog(new FailoverHost());
         mPiP = new PiP();
         checkDanmakuImg();
         setRecyclerView();
@@ -4875,6 +4882,87 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         refreshLyrics();
         // 章节可能在时长之前或之后到达，这里补一次时长让判定有机会用上它。
         syncIntroDuration();
+        armFailoverWatchdog();
+    }
+
+    /** T2-24：新线路就绪后启动容灾看门狗。 */
+    private void armFailoverWatchdog() {
+        if (mFailover == null) return;
+        mFailover.start(service() == null ? null : player());
+    }
+
+    /** T2-24：容灾决策的回调入口，只负责执行，不参与评分。 */
+    private final class FailoverHost implements FailoverWatchdog.Host {
+
+        @Override
+        public List<Flag> flags() {
+            return mFlagAdapter == null ? null : mFlagAdapter.getItems();
+        }
+
+        @Override
+        public int currentFlagIndex() {
+            if (mFlagAdapter == null) return -1;
+            List<Flag> items = mFlagAdapter.getItems();
+            for (int i = 0; i < items.size(); i++) if (items.get(i).isSelected()) return i;
+            return -1;
+        }
+
+        @Override
+        public boolean autoChangeEnabled() {
+            return PlayerSetting.isAutoChange();
+        }
+
+        @Override
+        public boolean hasNextSite() {
+            // 已有候选（搜索结果）直接换；否则若存在可搜索的其他站源，允许触发一次自动搜索。
+            if (mQuickAdapter != null && mQuickAdapter.getItemCount() > 0) return true;
+            for (Site site : VodConfig.get().getSites()) {
+                if (site.isSearchable() && !site.getKey().equals(getKey())) return true;
+            }
+            return false;
+        }
+
+        @Override
+        public int maxSameSourceRetries() {
+            return PlayerSetting.getFailoverRounds();
+        }
+
+        @Override
+        public String traceId() {
+            return player() == null ? PlaybackTrace.NONE : player().getPlaybackTraceId();
+        }
+
+        @Override
+        public String lineIdentity() {
+            Flag flag = getFlag();
+            Episode episode = getEpisode();
+            return (flag == null ? "" : flag.getFlag()) + "|" + (episode == null ? "" : episode.getUrl());
+        }
+
+        @Override
+        public void retrySameSource(long positionMs) {
+            Notify.show(R.string.play_switch_retry);
+            if (mHistory != null && positionMs > 0) mHistory.setPosition(positionMs);
+            onRefresh();
+        }
+
+        @Override
+        public void switchToFlag(int index, long positionMs) {
+            if (mFlagAdapter == null || index < 0 || index >= mFlagAdapter.getItemCount()) {
+                switchToNextSite();
+                return;
+            }
+            if (mHistory != null && positionMs > 0) mHistory.setPosition(positionMs);
+            Flag flag = mFlagAdapter.get(index);
+            Notify.show(getString(R.string.play_switch_flag, flag.getFlag()));
+            onItemClick(flag);
+        }
+
+        @Override
+        public void switchToNextSite() {
+            // 复用既有自动换站源阶梯：无候选时先搜索，有候选时直接取最优项。
+            checkSearch(true);
+        }
     }
 
     @Override
@@ -6023,6 +6111,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     @Override
     protected void onError(String msg) {
         recordPlayHealth(false, msg);
+        if (mFailover != null) mFailover.onError(msg);
         mBinding.swipeLayout.setEnabled(true);
         Track.delete(player().getKey());
         mClock.setCallback(null);
@@ -6903,6 +6992,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         if (mKaraoke != null) mKaraoke.release();
         mGifRecord.release();
         mClock.release();
+        if (mFailover != null) mFailover.stop();
         saveHistory(true);
         Timer.get().reset();
         DanmakuApi.cancel();
