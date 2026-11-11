@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.C;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 import com.fongmi.android.tv.App;
@@ -26,7 +27,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-@Entity
+// Index for the dominant HistoryDao access pattern:
+//   find(cid, createTime) -> WHERE cid=? AND createTime>=? ORDER BY createTime DESC LIMIT 60
+//   (the continue-watching list read on the way to the first screen)
+// Without it SQLite scans the whole table, which grows with every watched item.
+//
+// A (cid, key) index was measured and deliberately NOT added: `key` is the PRIMARY KEY, so
+// SQLite already has a unique autoindex on it. EXPLAIN QUERY PLAN shows that
+// find(cid, key) and delete(cid, key) match at most one row and keep using
+// sqlite_autoindex_History_1 in every case, so a second index would never be chosen and
+// would only cost write time and file size.
+@Entity(indices = {
+        @Index(value = {"cid", "createTime"})
+})
 public class History implements Diffable<History> {
 
     private static final long NEAR_END_MIN_MS = TimeUnit.SECONDS.toMillis(5);

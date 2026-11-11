@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.RelativeLayout;
 
 import androidx.annotation.NonNull;
@@ -36,6 +37,7 @@ import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.service.DLNARendererService;
 import com.fongmi.android.tv.service.PlaybackService;
 import com.fongmi.android.tv.setting.Setting;
+import com.fongmi.android.tv.startup.StartupBudget;
 import com.fongmi.android.tv.ui.base.BaseActivity;
 import com.fongmi.android.tv.ui.custom.FragmentStateManager;
 import com.fongmi.android.tv.ui.fragment.SettingEnhanceFragment;
@@ -51,6 +53,7 @@ import com.fongmi.android.tv.utils.UrlUtil;
 import com.fongmi.android.tv.utils.Util;
 import com.fongmi.android.tv.web.WebHomeChromeStartup;
 import com.fongmi.android.tv.web.WebHomeViewport;
+import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.net.OkHttp;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.gson.JsonObject;
@@ -71,10 +74,42 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
     private boolean wideWindow;
     private int currentPosition;
     private boolean returnVodFromEnhance;
+    private boolean deferredAfterFirstFrame;
+
+    /**
+     * T2-25：进入首帧后再做首屏看不到的启动工作。
+     * 直接写在 initView 里的这些工作（配置拉取、DLNA 服务、权限弹窗）都会占用首帧前的
+     * 主线程时间或网络等待，而首屏并不依赖它们。
+     */
+    private void runAfterFirstFrame() {
+        if (deferredAfterFirstFrame) return;
+        deferredAfterFirstFrame = true;
+        final View root = mBinding.getRoot();
+        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (root.getViewTreeObserver().isAlive()) root.getViewTreeObserver().removeOnPreDrawListener(this);
+                root.post(HomeActivity.this::startDeferredWork);
+                return true;
+            }
+        });
+    }
+
+    private void startDeferredWork() {
+        SpiderDebug.log("startup", "home first frame cost=%sms", System.currentTimeMillis() - App.time());
+        App.post(this::initConfig, StartupBudget.DEFER_AFTER_FIRST_FRAME_MS);
+        App.post(() -> PermissionUtil.requestFile(this, allGranted -> PermissionUtil.requestNotify(this)), 1800);
+        App.post(() -> {
+            if (Setting.isDlnaRenderer()) DLNARendererService.start(this);
+        }, 2500);
+    }
 
     @Override
     protected ViewBinding getBinding() {
-        return mBinding = ActivityHomeBinding.inflate(getLayoutInflater());
+        long start = System.currentTimeMillis();
+        ActivityHomeBinding binding = ActivityHomeBinding.inflate(getLayoutInflater());
+        SpiderDebug.log("startup", "home inflate cost=%sms at=%sms", System.currentTimeMillis() - start, System.currentTimeMillis() - App.time());
+        return mBinding = binding;
     }
 
     @Override
@@ -91,6 +126,7 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
 
     @Override
     protected void initView(Bundle savedInstanceState) {
+        SpiderDebug.log("startup", "home initView start cost=%sms", System.currentTimeMillis() - App.time());
         wideWindow = MobileWindow.isWide(this);
         returnVodFromEnhance = savedInstanceState != null && savedInstanceState.getBoolean(STATE_RETURN_VOD_FROM_ENHANCE);
         currentPosition = savedInstanceState == null ? 0 : savedInstanceState.getInt(STATE_CURRENT_POSITION, 0);
@@ -98,10 +134,9 @@ public class HomeActivity extends BaseActivity implements NavigationBarView.OnIt
         mChrome = new WebHomeChromeController(this, mBinding, this, savedInstanceState, WebHomeChromeStartup.restore(mStartupConfig));
         mBinding.getRoot().addOnLayoutChangeListener((view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> checkWindowShape(right - left, bottom - top));
         mBinding.navigation.setOnItemSelectedListener(this);
-        PermissionUtil.requestFile(this, allGranted -> PermissionUtil.requestNotify(this));
-        if (Setting.isDlnaRenderer()) DLNARendererService.start(this);
         initFragment(savedInstanceState);
-        initConfig();
+        SpiderDebug.log("startup", "home initView end cost=%sms", System.currentTimeMillis() - App.time());
+        runAfterFirstFrame();
     }
 
     @Override

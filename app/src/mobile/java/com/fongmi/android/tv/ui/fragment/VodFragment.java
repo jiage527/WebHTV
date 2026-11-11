@@ -88,6 +88,8 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     private String mChromeMode = WebHomeChrome.NORMAL;
     private int mHomeWebTopMargin;
     private Device pendingApkDevice;
+    /** T2-25: the first screen skeleton is shown at most once per fragment instance. */
+    private boolean mSkeletonShown;
 
     public static VodFragment newInstance() {
         return new VodFragment();
@@ -367,6 +369,25 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
 
     private void hideProgress() {
         mBinding.progress.getRoot().setVisibility(View.GONE);
+        hideSkeleton();
+    }
+
+    /**
+     * T2-25：首次进原生内容时用骨架屏代替空白，且只在真要走原生内容时铺。
+     *
+     * <p>只从 {@link #homeContent()} 调用（即确定要走原生列表的时刻），所以走网页首页
+     * 的分支不会先闪一下 vod 网格。后续刷新属于用户已见过内容之后的动作，靠
+     * {@code mSkeletonShown} 一次性标记不再重铺。
+     */
+    private void showSkeletonOnce() {
+        if (mSkeletonShown) return;
+        if (mWeb != null && mWeb.isVisible()) return;
+        mSkeletonShown = true;
+        mBinding.skeleton.getRoot().setVisibility(View.VISIBLE);
+    }
+
+    private void hideSkeleton() {
+        mBinding.skeleton.getRoot().setVisibility(View.GONE);
     }
 
     private void hideContent() {
@@ -376,6 +397,7 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     }
 
     private void showContent() {
+        hideSkeleton();
         mBinding.type.setVisibility(View.VISIBLE);
         updateTypeMoreVisible();
         mBinding.pager.setVisibility(View.VISIBLE);
@@ -384,6 +406,7 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
     private void homeContent() {
         requestNormalChrome();
         showProgress();
+        showSkeletonOnce();
         mBinding.homeWeb.setVisibility(View.GONE);
         updateToolbarMenu();
         clearPagerTypes();

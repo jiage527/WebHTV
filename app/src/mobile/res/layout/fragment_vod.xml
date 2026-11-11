@@ -100,6 +100,12 @@
         android:visibility="gone" />
 
     <include
+        android:id="@+id/skeleton"
+        layout="@layout/view_skeleton_vod"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:visibility="gone" />
+
+    <include
         android:id="@+id/progress"
         layout="@layout/view_progress"
         android:visibility="gone" />

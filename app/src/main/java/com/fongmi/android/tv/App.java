@@ -96,6 +96,9 @@ public class App extends Application implements Application.ActivityLifecycleCal
     public void onCreate() {
         super.onCreate();
         if (PlaybackRecoveryMonitor.isRecoveryProcess(this)) return;
+        // T2-25: app create is on the cold-start critical path, so each step is timed. Only the
+        // steps the first screen truly needs stay here; anything else is deferred.
+        SpiderDebug.log("startup", "app create start cost=%sms", System.currentTimeMillis() - time);
         PlaybackMemoryMonitor.process().initialize(this);
         PlaybackSystemConditionMonitor.process().initialize(this);
         Setting.applyLanguage();
@@ -106,9 +109,15 @@ public class App extends Application implements Application.ActivityLifecycleCal
             PreviousProcessExitLogger.log(this);
         }
         Notify.createChannel();
-        ProxySetting.apply();
-        DanmakuSearchListFocusFixer.start();
         registerActivityLifecycleCallbacks(this);
+        SpiderDebug.log("startup", "app create end cost=%sms", System.currentTimeMillis() - time);
+        // Proxy rules and the danmaku focus fixer are not needed to draw the first screen:
+        // the former only matters once a request is made, the latter only exists on TV.
+        post(() -> {
+            ProxySetting.apply();
+            DanmakuSearchListFocusFixer.start();
+            SpiderDebug.log("startup", "app deferred init cost=%sms", System.currentTimeMillis() - time);
+        });
         post(this::startBackgroundServices, 1200);
     }
 

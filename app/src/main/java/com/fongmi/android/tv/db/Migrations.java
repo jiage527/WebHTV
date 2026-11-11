@@ -64,4 +64,18 @@ public class Migrations {
             database.execSQL("CREATE INDEX IF NOT EXISTS `index_PlaybackDeleteTombstone_deletedAt` ON `PlaybackDeleteTombstone` (`deletedAt`)");
         }
     };
+
+    public static final Migration MIGRATION_37_38 = new Migration(37, 38) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            // Index for HistoryDao.find(cid, createTime), the continue-watching read on the way to
+            // the first screen. The name must match Room's generated one or the next schema
+            // validation fails.
+            //
+            // No (cid, key) index on purpose: `key` is the PRIMARY KEY, so SQLite's unique
+            // autoindex already serves every cid+key lookup (verified with EXPLAIN QUERY PLAN),
+            // meaning a second index would never be chosen and would only cost writes and size.
+            database.execSQL("CREATE INDEX IF NOT EXISTS `index_History_cid_createTime` ON `History` (`cid`, `createTime`)");
+        }
+    };
 }
