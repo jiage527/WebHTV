@@ -1,7 +1,6 @@
 package com.fongmi.android.tv.ui.dialog;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -33,6 +32,7 @@ import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PermissionUtil;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Task;
+import com.fongmi.android.tv.utils.ThemeColors;
 import com.github.catvod.crawler.SpiderDebug;
 import com.github.catvod.utils.Path;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
@@ -113,11 +113,11 @@ public final class WebDavBackupDialog {
         titleView = new TextView(context);
         titleView.setTextSize(16);
         titleView.setTypeface(Typeface.DEFAULT_BOLD);
-        titleView.setTextColor(Color.WHITE);
+        titleView.setTextColor(ThemeColors.onSurface(context));
         header.addView(titleView);
         statusView = new TextView(context);
         statusView.setTextSize(12);
-        statusView.setTextColor(0x99FFFFFF);
+        statusView.setTextColor(ThemeColors.secondary(context));
         statusView.setSingleLine(true);
         statusView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         header.addView(statusView);
@@ -207,7 +207,7 @@ public final class WebDavBackupDialog {
         TextView view = new TextView(context);
         view.setText(textRes);
         view.setTextSize(14);
-        view.setTextColor(0xCCFFFFFF);
+        view.setTextColor(ThemeColors.action(context));
         view.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
         view.setOnClickListener(click);
         return view;
@@ -518,18 +518,18 @@ public final class WebDavBackupDialog {
             row.setGravity(Gravity.CENTER_VERTICAL);
             int padding = ResUtil.dp2px(12);
             row.setPadding(padding, padding, padding, padding);
-            row.setBackgroundColor(0x11FFFFFF);
+            row.setBackgroundColor(ThemeColors.rowBackground(context));
 
             TextView label = new TextView(context);
             label.setTextSize(14);
-            label.setTextColor(Color.WHITE);
+            label.setTextColor(ThemeColors.onSurface(context));
             label.setSingleLine(true);
             label.setEllipsize(TextUtils.TruncateAt.MIDDLE);
             row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
             TextView size = new TextView(context);
             size.setTextSize(11);
-            size.setTextColor(0x88FFFFFF);
+            size.setTextColor(ThemeColors.detail(context));
             row.addView(size);
             return new Holder(row, label, size);
         }

@@ -1,7 +1,6 @@
 package com.fongmi.android.tv.ui.dialog;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
@@ -20,6 +19,7 @@ import com.fongmi.android.tv.setting.PlayQueue;
 import com.fongmi.android.tv.setting.PlayQueueStore;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
+import com.fongmi.android.tv.utils.ThemeColors;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -91,13 +91,13 @@ public final class PlayQueueDialog {
 
         titleView = new TextView(context);
         titleView.setTextSize(16);
-        titleView.setTextColor(Color.WHITE);
+        titleView.setTextColor(ThemeColors.onSurface(context));
         row.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
         // 循环模式做成一个可点的标签，点一下在「顺序 / 列表 / 单集」之间轮换。
         modeView = new TextView(context);
         modeView.setTextSize(13);
-        modeView.setTextColor(0xCCFFFFFF);
+        modeView.setTextColor(ThemeColors.action(context));
         modeView.setPadding(ResUtil.dp2px(10), ResUtil.dp2px(4), ResUtil.dp2px(10), ResUtil.dp2px(4));
         modeView.setOnClickListener(view -> {
             queue.setMode(PlayQueue.cycleMode(queue.mode()));
@@ -116,7 +116,7 @@ public final class PlayQueueDialog {
         TextView clear = new TextView(context);
         clear.setText(R.string.play_queue_clear);
         clear.setTextSize(14);
-        clear.setTextColor(0xCCFFFFFF);
+        clear.setTextColor(ThemeColors.action(context));
         clear.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
         clear.setOnClickListener(view -> confirmClear());
         row.addView(clear);
@@ -213,13 +213,13 @@ public final class PlayQueueDialog {
             name.setTextSize(15);
             name.setSingleLine(true);
             name.setEllipsize(TextUtils.TruncateAt.END);
-            name.setTextColor(Color.WHITE);
+            name.setTextColor(ThemeColors.onSurface(context));
             row.addView(name, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
             TextView remove = new TextView(context);
             remove.setText(R.string.play_queue_remove);
             remove.setTextSize(13);
-            remove.setTextColor(0xAAFFFFFF);
+            remove.setTextColor(ThemeColors.detail(context));
             row.addView(remove);
 
             return new Holder(row, name, remove);
@@ -231,7 +231,8 @@ public final class PlayQueueDialog {
             boolean current = position == queue.currentIndex();
             // 正在播放的那一项加前缀并高亮，否则用户分不清当前进度。
             holder.name.setText(current ? context.getString(R.string.play_queue_current) + " · " + entry.displayName() : entry.displayName());
-            holder.name.setTextColor(current ? 0xFF80D8FF : Color.WHITE);
+            // 正在播放的那一项：用主题的高亮色，而不是写死的浅蓝——写死色只在深色背景下好看。
+            holder.name.setTextColor(current ? ThemeColors.accent(context) : ThemeColors.onSurface(context));
             holder.itemView.setOnClickListener(view -> {
                 int index = holder.getBindingAdapterPosition();
                 if (index < 0 || index >= items.size()) return;

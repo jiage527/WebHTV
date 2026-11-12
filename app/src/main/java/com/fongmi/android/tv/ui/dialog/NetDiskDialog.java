@@ -1,7 +1,6 @@
 package com.fongmi.android.tv.ui.dialog;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -29,6 +28,7 @@ import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.ResUtil;
 import com.fongmi.android.tv.utils.Task;
+import com.fongmi.android.tv.utils.ThemeColors;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -118,12 +118,12 @@ public final class NetDiskDialog {
         titleView = new TextView(context);
         titleView.setTextSize(16);
         titleView.setTypeface(Typeface.DEFAULT_BOLD);
-        titleView.setTextColor(Color.WHITE);
+        titleView.setTextColor(ThemeColors.onSurface(context));
         column.addView(titleView);
 
         pathView = new TextView(context);
         pathView.setTextSize(12);
-        pathView.setTextColor(0x99FFFFFF);
+        pathView.setTextColor(ThemeColors.secondary(context));
         pathView.setSingleLine(true);
         pathView.setEllipsize(TextUtils.TruncateAt.MIDDLE);
         column.addView(pathView);
@@ -162,7 +162,7 @@ public final class NetDiskDialog {
         TextView view = new TextView(context);
         view.setText(textRes);
         view.setTextSize(14);
-        view.setTextColor(0xCCFFFFFF);
+        view.setTextColor(ThemeColors.action(context));
         view.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
         view.setOnClickListener(click);
         return view;
@@ -364,14 +364,14 @@ public final class NetDiskDialog {
         TextView label = new TextView(context);
         label.setText(labelRes);
         label.setTextSize(12);
-        label.setTextColor(0x99FFFFFF);
+        label.setTextColor(ThemeColors.secondary(context));
         label.setPadding(0, ResUtil.dp2px(10), 0, ResUtil.dp2px(2));
         parent.addView(label);
 
         TextView input = new TextView(context);
         input.setText(value == null ? "" : value);
         input.setTextSize(14);
-        input.setTextColor(Color.WHITE);
+        input.setTextColor(ThemeColors.onSurface(context));
         input.setSingleLine(true);
         parent.addView(input);
         return input;
@@ -381,14 +381,15 @@ public final class NetDiskDialog {
         TextView label = new TextView(context);
         label.setText(labelRes);
         label.setTextSize(12);
-        label.setTextColor(0x99FFFFFF);
+        label.setTextColor(ThemeColors.secondary(context));
         label.setPadding(0, ResUtil.dp2px(10), 0, ResUtil.dp2px(2));
         parent.addView(label);
 
         EditText input = new EditText(context);
         input.setText(value == null ? "" : value);
         input.setTextSize(14);
-        input.setTextColor(Color.WHITE);
+        input.setTextColor(ThemeColors.onSurface(context));
+        input.setHintTextColor(ThemeColors.detail(context));
         input.setInputType(inputType);
         input.setSingleLine(true);
         parent.addView(input);
@@ -414,18 +415,18 @@ public final class NetDiskDialog {
             row.setGravity(Gravity.CENTER_VERTICAL);
             int padding = ResUtil.dp2px(12);
             row.setPadding(padding, padding, padding, padding);
-            row.setBackgroundColor(0x11FFFFFF);
+            row.setBackgroundColor(ThemeColors.rowBackground(context));
 
             TextView label = new TextView(context);
             label.setTextSize(14);
-            label.setTextColor(Color.WHITE);
+            label.setTextColor(ThemeColors.onSurface(context));
             label.setSingleLine(true);
             label.setEllipsize(TextUtils.TruncateAt.MIDDLE);
             row.addView(label, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
 
             TextView size = new TextView(context);
             size.setTextSize(11);
-            size.setTextColor(0x88FFFFFF);
+            size.setTextColor(ThemeColors.detail(context));
             row.addView(size);
             return new Holder(row, label, size);
         }

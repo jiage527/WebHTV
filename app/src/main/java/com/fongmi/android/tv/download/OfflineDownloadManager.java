@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.media3.common.MimeTypes;
+import androidx.media3.common.util.Util;
 import androidx.media3.database.StandaloneDatabaseProvider;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
@@ -139,10 +140,29 @@ public final class OfflineDownloadManager {
         return true;
     }
 
+    /**
+     * 造下载请求。
+     *
+     * <p><b>customCacheKey 必须先问一句才能设。</b>Media3 对 HLS / SmoothStreaming 有硬性限制：
+     * 这两类内容的 {@code customCacheKey} 必须为 null，否则 {@code DownloadRequest} 的构造直接抛
+     * {@code IllegalArgumentException: customCacheKey must be null for type: 2}（规则见
+     * {@link OfflineDownloadCacheKey}，已从字节码核对）。真机上「播放页点下载就闪退」就是这里
+     * 无条件设 key 造成的——mp4 恰好不受限，所以只测 mp4 时看不出来。
+     *
+     * <p>不给 HLS 设 key 不影响离线播放：这类下载的缓存键本来就会退化成清单/分片自身的地址，
+     * 播放侧的 {@link OfflineDownloadCache#keyFor} 会在 id 不命中时回退到按地址查。
+     */
     private DownloadRequest buildRequest(OfflineDownloadRecord record) {
-        DownloadRequest.Builder builder = new DownloadRequest.Builder(record.id(), Uri.parse(record.url())).setCustomCacheKey(record.id());
+        Uri uri = Uri.parse(record.url());
         String mimeType = mimeTypeOf(record);
+        int contentType = Util.inferContentTypeForUriAndMimeType(uri, mimeType);
+        DownloadRequest.Builder builder = new DownloadRequest.Builder(record.id(), uri);
         if (!TextUtils.isEmpty(mimeType)) builder.setMimeType(mimeType);
+        if (OfflineDownloadCacheKey.allows(contentType)) {
+            builder.setCustomCacheKey(record.id());
+        } else {
+            SpiderDebug.log(TAG, "enqueue without cacheKey id=%s type=%d url=%s", record.id(), contentType, record.url());
+        }
         return builder.build();
     }
 
