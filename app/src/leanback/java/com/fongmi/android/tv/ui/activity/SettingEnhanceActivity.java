@@ -35,6 +35,7 @@ import com.fongmi.android.tv.ui.dialog.RemoteTrustDialog;
 import com.fongmi.android.tv.ui.dialog.ShellProxyDialog;
 import com.fongmi.android.tv.ui.dialog.SiteHealthDialog;
 import com.fongmi.android.tv.ui.dialog.ViewingRecordSyncDialog;
+import com.fongmi.android.tv.ui.dialog.WebDavBackupDialog;
 import com.fongmi.android.tv.ui.dialog.WebDavServerDialog;
 import com.fongmi.android.tv.ui.dialog.WebHomeExtensionDialog;
 import com.fongmi.android.tv.utils.LoginStateSync;
@@ -90,6 +91,7 @@ public class SettingEnhanceActivity extends BaseActivity {
         mBinding.remoteTrust.setOnClickListener(view -> RemoteTrustDialog.show(this, this::setText));
         mBinding.gitCloud.setOnClickListener(view -> GitCloudDialog.show(this, this::setText));
         mBinding.netDisk.setOnClickListener(view -> NetDiskDialog.show(this, (url, name) -> VideoActivity.start(this, url)));
+        mBinding.webdavBackup.setOnClickListener(view -> WebDavBackupDialog.show(this, this::setText));
         mBinding.webDavServer.setOnClickListener(view -> WebDavServerDialog.show(this, this::setText));
         mBinding.shellProxy.setOnClickListener(view -> ShellProxyDialog.show(this, this::setText));
         mBinding.shellProxy.setOnLongClickListener(v -> false);
@@ -110,6 +112,7 @@ public class SettingEnhanceActivity extends BaseActivity {
                 mBinding.webHomeExtension,
                 mBinding.gitCloud,
                 mBinding.netDisk,
+                mBinding.webdavBackup,
                 mBinding.remoteTrust,
                 mBinding.oneKeySync,
                 mBinding.loginState,
@@ -146,6 +149,7 @@ public class SettingEnhanceActivity extends BaseActivity {
         safeSet("remoteTrust", mBinding.remoteTrustText, () -> RemoteStore.summary(this));
         safeSet("gitCloud", mBinding.gitCloudText, () -> getString(R.string.git_cloud_account_count, GitCloudAccountStore.list().size()));
         safeSet("netDisk", mBinding.netDiskText, () -> getString(R.string.net_disk_account_count, NetDiskCredentialStore.get().size()));
+        safeSet("webdavBackup", mBinding.webdavBackupText, () -> getString(R.string.webdav_backup_summary, WebDavBackupDialog.storageCount()));
         safeSet("webDavServer", mBinding.webDavServerText, this::getWebDavText);
         setShellProxyText();
         setCustomCspText();
