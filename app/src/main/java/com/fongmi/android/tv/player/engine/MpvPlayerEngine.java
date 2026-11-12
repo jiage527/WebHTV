@@ -11,6 +11,7 @@ import androidx.media3.common.MediaItem;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.TrackGroup;
 import androidx.media3.common.Tracks;
 import androidx.media3.common.VideoSize;
 import androidx.media3.common.util.UnstableApi;
@@ -252,6 +253,33 @@ public class MpvPlayerEngine implements PlayerEngine {
     @Override
     public void resetTrack() {
         player.resetTrackSelection();
+    }
+
+    /**
+     * Points mpv at the subtitle the user just added.
+     *
+     * <p>Media3's mpv integration only applies {@code sub-add} at file-load time, and
+     * a subtitle added mid-playback arrives without an {@code initialSubtitleTrackId},
+     * so nothing selects it. The mpv track id comes from the media3 track id, which
+     * this integration builds as {@code "<type>:<mpv id>"}.
+     *
+     * <p>Direct surface output renders through {@code mediacodec_embed} with no OSD
+     * surface, so there is nowhere to draw a subtitle; that mode is left alone rather
+     * than silently switched mid-item.
+     */
+    @Override
+    public boolean selectTextTrack(TrackGroup group, int index) {
+        if (player == null || group == null || index < 0 || index >= group.length) return false;
+        if (isSurfaceDirect()) {
+            SpiderDebug.log("mpv", "subtitle select skipped: no osd surface in direct output");
+            return false;
+        }
+        String id = parseMpvTrackId(group.getFormat(index).id);
+        if (TextUtils.isEmpty(id)) return false;
+        initialSubtitleTrackId = id;
+        player.setInitialSubtitleTrackId(id);
+        player.setTrackSelection(C.TRACK_TYPE_TEXT, id);
+        return true;
     }
 
     @Override

@@ -9,6 +9,7 @@ import androidx.media3.common.MediaEdition;
 import androidx.media3.common.MediaMetadata;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
+import androidx.media3.common.TrackGroup;
 import androidx.media3.common.Tracks;
 
 import com.fongmi.android.tv.bean.Track;
@@ -67,6 +68,23 @@ public interface PlayerEngine {
     void setTrack(List<Track> tracks);
 
     void resetTrack();
+
+    /**
+     * Selects a text track that appeared after the media item was built.
+     *
+     * <p>The normal restore path cannot do this job. Adding a subtitle rebuilds the
+     * media item, that rebuild re-applies the preference saved when the item was
+     * launched, and a preference saved earlier cannot mention a subtitle that did
+     * not exist yet: it either disables the text renderer outright or pins text to
+     * the group known before. The new group is then never referenced, so nothing
+     * renders and nothing fails. This is the explicit selection that makes the new
+     * track win.
+     *
+     * <p>Engines with no external subtitle channel return false.
+     */
+    default boolean selectTextTrack(TrackGroup group, int index) {
+        return false;
+    }
 
     default void restoreVideoTrack() {
     }

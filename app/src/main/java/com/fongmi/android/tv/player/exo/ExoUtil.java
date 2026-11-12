@@ -74,6 +74,7 @@ import com.fongmi.android.tv.player.exo.ass.AssInput;
 import com.fongmi.android.tv.player.exo.ass.ExoAssSession;
 import com.fongmi.android.tv.player.exo.subtitle.ExoSubtitleSession;
 import com.fongmi.android.tv.player.lut.LutSetting;
+import com.fongmi.android.tv.player.subtitle.SubtitleMatchPolicy;
 import com.fongmi.android.tv.player.track.LangUtil;
 import com.fongmi.android.tv.setting.ExoPerformanceSetting;
 import com.fongmi.android.tv.setting.ExoFrameSchedulingExperimentSetting;
@@ -984,7 +985,8 @@ public class ExoUtil {
 
     private static MediaItem.SubtitleConfiguration buildSubConfig(Sub sub, int index) {
         MediaItem.SubtitleConfiguration.Builder builder = new MediaItem.SubtitleConfiguration.Builder(Uri.parse(UrlUtil.convert(sub.getUrl())))
-                .setLabel(sub.getName()).setMimeType(sub.getFormat()).setSelectionFlags(sub.getFlag()).setLanguage(sub.getLang());
+                .setLabel(sub.getName()).setMimeType(sub.getFormat()).setSelectionFlags(sub.getFlag())
+                .setLanguage(SubtitleMatchPolicy.languageTag(sub.getLang()));
         if (MimeTypes.TEXT_SSA.equals(sub.getFormat()))
             builder.setId(AssInput.EXTERNAL_ID_PREFIX + index);
         return builder.build();

@@ -94,6 +94,28 @@ public class TrackUtil {
         return info == null ? null : new TrackSelectionOverride(info.trackGroup.getMediaTrackGroup(), info.trackIndex);
     }
 
+    /**
+     * Selects one text track that was added after the media item was built.
+     *
+     * <p>Unlike {@link #setTrackSelection}, this does not start from a saved
+     * preference: an external subtitle picked during playback has no persisted
+     * {@link Track} row, so the caller already knows which group and index it wants.
+     * Text must also be re-enabled here, because a saved "subtitles off" row
+     * disables the whole track type and would otherwise swallow the new track.
+     */
+    public static void selectTextTrack(Player player, TrackGroup group, int index) {
+        if (player == null || group == null || index < 0 || index >= group.length) return;
+        TrackSelectionParameters.Builder builder = player.getTrackSelectionParameters().buildUpon();
+        if (builder instanceof DefaultTrackSelector.Parameters.Builder exoBuilder) {
+            exoBuilder.setExceedRendererCapabilitiesIfNecessary(true);
+            exoBuilder.setExceedVideoConstraintsIfNecessary(true);
+            exoBuilder.setExceedAudioConstraintsIfNecessary(true);
+        }
+        builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false);
+        builder.setOverrideForType(new TrackSelectionOverride(group, index));
+        player.setTrackSelectionParameters(builder.build());
+    }
+
     public static void setTrackSelection(Player player, List<Track> tracks) {
         Map<Integer, TrackGroup> mediaGroupMapByType = new HashMap<>();
         Map<Integer, Integer> selectedIndexMapByType = new HashMap<>();

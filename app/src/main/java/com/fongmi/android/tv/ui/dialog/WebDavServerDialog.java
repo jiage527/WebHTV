@@ -12,45 +12,64 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 /**
  * 「共享文件（WebDAV）」设置对话框。
  *
- * <p><b>为什么用多选列表而不是一个开关。</b>这里其实是两个独立意图：
+ * <p><b>为什么是三选一而不是一个开关。</b>这里其实是两个独立意图：
  * 「把文件开放出去」与「允许对方改我的文件」。用一个开关表达不了，用一个开关
- * 加一个二级确认也容易让人误以为「开启 = 全部放开」。多选列表把两件事平铺出来，
- * 勾哪个就是哪个。
+ * 加一个二级确认也容易让人误以为「开启 = 全部放开」。三选一把状态平铺出来，
+ * 选哪个就是哪个。
  *
- * <p><b>写入默认不勾。</b>多数人只想要「让对方来播我这儿的片子」，这只需只读；
- * 写入意味着对方能上传、覆盖与删除。默认勾上等于替用户做了一个他不知情的决定。
+ * <p><b>写入默认可选但不预选。</b>多数人只想要「让对方来播我这儿的片子」，这只需只读；
+ * 写入意味着对方能上传、覆盖与删除。默认替用户选上写入，等于做了一个他不知情的决定。
+ *
+ * <p><b>为什么从多选改成单选。</b>原先用 {@code setMultiChoiceItems}，两个选项默认都不勾，
+ * 而「只读」那个勾同时充当主开关——用户第一次点开、什么都没勾就点确定，程序判定为
+ * 「关闭共享」，于是弹出一句「已关闭文件共享」。用户的操作意图明明是「我要打开它」，
+ * 得到的却是一个否定结果，而且对话框正文（只说开启后能干什么）从没告诉他要先勾选。
+ * 用户实测反馈的正是这个现象。单选项没有「都不选」这个中立状态，点确定必然对应一个
+ * 明确的状态，歧义消失了。
  */
 public final class WebDavServerDialog {
+
+    /** 与单选项列表的下标一一对应。 */
+    private static final int OFF = 0;
+    private static final int READ_ONLY = 1;
+    private static final int WRITABLE = 2;
 
     private WebDavServerDialog() {
     }
 
     public static void show(Context context, Runnable onChanged) {
         boolean previousWritable = WebDavSetting.isWritable();
-        boolean[] checked = {WebDavSetting.isEnabled(), previousWritable};
+        int[] picked = {current()};
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.setting_webdav_server)
                 .setMessage(R.string.setting_webdav_server_summary)
-                .setMultiChoiceItems(new CharSequence[]{
+                .setSingleChoiceItems(new CharSequence[]{
+                        context.getString(R.string.setting_webdav_server_off),
                         context.getString(R.string.setting_webdav_server_readonly),
                         context.getString(R.string.setting_webdav_server_writable)
-                }, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
+                }, picked[0], (dialog, which) -> picked[0] = which)
                 .setNegativeButton(R.string.dialog_negative, null)
                 .setPositiveButton(R.string.dialog_positive, (dialog, which) -> {
-                    apply(context, checked[0], checked[1], previousWritable);
+                    apply(context, picked[0], previousWritable);
                     if (onChanged != null) onChanged.run();
                 })
                 .show();
     }
 
+    /** 当前状态对应的单选项下标。 */
+    private static int current() {
+        if (!WebDavSetting.isEnabled()) return OFF;
+        return WebDavSetting.isWritable() ? WRITABLE : READ_ONLY;
+    }
+
     /**
      * 落盘并提示结果。
      *
-     * <p>勾选顺序上「只读」是主开关、「可读写」是叠加权限，所以：
-     * 只读没勾就是关闭服务；只读勾了而可写没勾就是仅可读。
+     * <p>三选一里「仅可读」与「可读写」都表示开启服务，区别只在写入授权，
+     * 所以判断的是「选中项是否为关闭」，而不是「是否勾了某个框」。
      */
-    private static void apply(Context context, boolean readOnly, boolean writable, boolean previousWritable) {
-        if (!readOnly) {
+    private static void apply(Context context, int picked, boolean previousWritable) {
+        if (picked == OFF) {
             WebDavSetting.putEnabled(false);
             Notify.show(R.string.setting_webdav_server_off_toast);
             return;
@@ -61,9 +80,10 @@ public final class WebDavServerDialog {
             Notify.show(R.string.setting_webdav_server_permission);
             return;
         }
+        boolean writable = picked == WRITABLE;
         boolean writeJustEnabled = writable && !previousWritable;
         // 必须先落写入再落开启：putEnabled(false) 会顺带收回写入授权，顺序反了会把
-        // 刚给的可写权限立刻清掉（表现为「勾了可读写却还是只读」）。
+        // 刚给的可写权限立刻清掉（表现为「选了可读写却还是只读」）。
         WebDavSetting.putWritable(writable);
         WebDavSetting.putEnabled(true);
         if (writeJustEnabled) {

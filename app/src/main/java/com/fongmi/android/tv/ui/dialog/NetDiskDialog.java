@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.netdisk.NetDiskAccount;
+import com.fongmi.android.tv.netdisk.NetDiskAddress;
 import com.fongmi.android.tv.netdisk.NetDiskCodec;
 import com.fongmi.android.tv.netdisk.NetDiskCredentialStore;
 import com.fongmi.android.tv.netdisk.NetDiskEntry;
@@ -79,6 +80,8 @@ public final class NetDiskDialog {
     private NetDiskAccount browsing;
     private String currentPath = "";
     private boolean loading;
+    /** 保存成功后的回调；给 {@link #showEdit} 的调用方刷新列表用。 */
+    private Runnable onSaved;
 
     private NetDiskDialog(Context context, Listener listener) {
         this.context = context;
@@ -87,6 +90,24 @@ public final class NetDiskDialog {
 
     public static void show(Context context, Listener listener) {
         new NetDiskDialog(context, listener).show();
+    }
+
+    /**
+     * 直接打开某条存储的编辑表单。
+     *
+     * <p>给别的面板当入口用：{@link WebDavBackupDialog} 的账号列表需要能改一条已存的
+     * 账号，而字段定义、校验与「测试连接」都在本类里，重复一份必然走样。
+     *
+     * @param onSaved 保存成功后回调，让调用方刷新自己的列表
+     */
+    public static void showEdit(Context context, NetDiskAccount account, Runnable onSaved) {
+        if (account == null) return;
+        NetDiskDialog panel = new NetDiskDialog(context, (url, name) -> {
+        });
+        panel.onSaved = onSaved;
+        // 刻意不调 panel.show()：调用方（云备份面板）要的是编辑表单，不是本面板的
+        // 账号列表。弹两层窗口会让用户以为点错了。表单自己不依赖 dialog 字段。
+        panel.showEditForm(account);
     }
 
     private void show() {
@@ -133,6 +154,8 @@ public final class NetDiskDialog {
     // ------------------------------------------------------------------ 账号列表
 
     private void showAccounts() {
+        // showEdit() 借本类的表单来编辑账号时，本面板的列表并未创建，这里什么都不该做。
+        if (titleView == null || pathView == null || actionRow == null) return;
         browsing = null;
         currentPath = "";
         entries.clear();
@@ -146,6 +169,7 @@ public final class NetDiskDialog {
     }
 
     private void reloadActions() {
+        if (actionRow == null) return;
         actionRow.removeAllViews();
         if (browsing == null) {
             actionRow.addView(action(R.string.net_disk_add, view -> showEditForm(null)));
@@ -270,6 +294,8 @@ public final class NetDiskDialog {
                     NetDiskCredentialStore.save();
                     NetDiskSession.get().invalidate(draft.getId());
                     showAccounts();
+                    // 表单也可能是被别的面板（云备份）借去编辑账号的，那边要刷自己的列表。
+                    if (onSaved != null) onSaved.run();
                 })
                 .create();
         built.show();
@@ -307,11 +333,24 @@ public final class NetDiskDialog {
     private static void apply(NetDiskAccount account, EditText name, EditText host, EditText port,
                               EditText share, EditText root, EditText user, EditText password) {
         if (name != null) account.setName(name.getText().toString());
-        account.setHost(host.getText().toString());
+        String typedHost = host.getText().toString();
+        String typedRoot = root.getText().toString();
+        // 「服务器地址」允许用户直接粘整条网址（那是最自然的操作）。把它拆成主机、端口、
+        // 加密与路径前缀，否则整串会被当成主机名——旧实现拼出
+        // "http://https://dav.example.com/dav//影视"，主机名成了字面量 "https"。
+        NetDiskAddress.Parsed parsed = NetDiskAddress.parse(typedHost);
+        account.setHost(parsed.isEmpty() ? typedHost.trim() : parsed.host());
+        // 地址里写明了加密就走 TLS。旧实现从不设 secure，WebDAV 因此永远按 80 端口明文连，
+        // 而多数 WebDAV 服务（坚果云实测）对 80 端口返回 308 跳转。
+        if (parsed.hasScheme()) account.setSecure(parsed.secure());
         String portText = port.getText().toString().trim();
-        account.setPort(portText.isEmpty() ? 0 : safePort(portText));
+        int explicit = portText.isEmpty() ? 0 : safePort(portText);
+        // 地址里写了端口时以地址为准，表单里那个空着就跟着走。
+        account.setPort(explicit > 0 ? explicit : parsed.port());
         account.setShare(share.getText().toString());
-        account.setRoot(root.getText().toString());
+        // 地址里的路径前缀与服务端根目录必须合并：".../dav/" 里的 dav 是服务端给的根前缀，
+        // 用户填的「影视」是他自己的目录，只取一个都会连错地方。
+        account.setRoot(NetDiskAddress.mergeRoot(parsed.path(), typedRoot));
         account.setUsername(user.getText().toString());
         account.setPassword(password.getText().toString());
     }

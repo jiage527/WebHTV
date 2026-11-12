@@ -52,6 +52,9 @@ public final class SubtitleMatchPolicy {
     /** Display names for provider language markers, both OpenSubtitles ids and Chinese labels. */
     private static final Map<String, String> LANGUAGE_LABELS = buildLanguageLabels();
 
+    /** BCP-47 tags for the same markers, so a chosen subtitle carries a real language. */
+    private static final Map<String, String> LANGUAGE_TAGS = buildLanguageTags();
+
     private static final Pattern EPISODE_DIGITS = Pattern.compile("(\\d{1,4})");
     private static final Pattern SEASON_EPISODE = Pattern.compile("(?i)S(\\d{1,2})E(\\d{1,3})");
     private static final Pattern YEAR_SUFFIX = Pattern.compile("[（(]?\\s*(19|20)\\d{2}\\s*[)）]?$");
@@ -451,6 +454,90 @@ public final class SubtitleMatchPolicy {
         labels.put("韓語", "韩语");
         labels.put("韩文", "韩语");
         return Map.copyOf(labels);
+    }
+
+    private static Map<String, String> buildLanguageTags() {
+        Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("chi", "zh-Hans");
+        tags.put("zht", "zh-Hant");
+        tags.put("zhe", "zh-Hans");
+        tags.put("eng", "en");
+        tags.put("jpn", "ja");
+        tags.put("kor", "ko");
+        tags.put("spa", "es");
+        tags.put("fre", "fr");
+        tags.put("fra", "fr");
+        tags.put("ger", "de");
+        tags.put("deu", "de");
+        tags.put("rus", "ru");
+        tags.put("por", "pt");
+        tags.put("ita", "it");
+        tags.put("tha", "th");
+        tags.put("vie", "vi");
+        tags.put("ara", "ar");
+        tags.put("swe", "sv");
+        tags.put("dan", "da");
+        tags.put("nor", "no");
+        tags.put("fin", "fi");
+        tags.put("pol", "pl");
+        tags.put("tur", "tr");
+        tags.put("ind", "id");
+        tags.put("may", "ms");
+        tags.put("dut", "nl");
+        // SubHD publishes Chinese markers rather than ids, and the panel writes
+        // its own display label into Sub.lang for some sources.
+        tags.put("简体", "zh-Hans");
+        tags.put("繁体", "zh-Hant");
+        tags.put("繁體", "zh-Hant");
+        tags.put("双语", "zh-Hans");
+        tags.put("雙語", "zh-Hans");
+        tags.put("中文", "zh-Hans");
+        tags.put("简体中文", "zh-Hans");
+        tags.put("繁體中文", "zh-Hant");
+        tags.put("英语", "en");
+        tags.put("英語", "en");
+        tags.put("英文", "en");
+        tags.put("日语", "ja");
+        tags.put("日語", "ja");
+        tags.put("日文", "ja");
+        tags.put("韩语", "ko");
+        tags.put("韓語", "ko");
+        tags.put("韩文", "ko");
+        return Map.copyOf(tags);
+    }
+
+    /**
+     * The BCP-47 tag behind a provider language marker or a display label.
+     *
+     * <p>An external subtitle handed to the player needs a real language tag, not
+     * the label shown in the UI: the player scores text tracks against the
+     * device's preferred languages, and a Chinese display name matches none of
+     * them. With no score, the added subtitle only survives on the default-selection
+     * flag, so any matching embedded track outranks it and the user sees nothing.
+     *
+     * <p>Unknown markers return an empty string rather than the raw value. A value
+     * that is not a tag cannot earn a language score, and passing it through would
+     * put a display name where the player expects a tag.
+     */
+    public static String languageTag(String marker) {
+        String value = clean(marker);
+        if (value.isEmpty()) return "";
+        String tag = LANGUAGE_TAGS.get(value.toLowerCase(Locale.ROOT));
+        if (tag != null) return tag;
+        return looksLikeTag(value) ? value : "";
+    }
+
+    /** ASCII letters, digits and dashes, starting with a letter. */
+    private static boolean looksLikeTag(String value) {
+        boolean firstLetter = Character.isLetter(value.charAt(0)) && value.charAt(0) < 128;
+        if (!firstLetter) return false;
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            boolean allowed = c == '-' || c == '_'
+                    || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9';
+            if (!allowed) return false;
+        }
+        return true;
     }
 
     /** True when the wanted title and the release name could be compared directly. */

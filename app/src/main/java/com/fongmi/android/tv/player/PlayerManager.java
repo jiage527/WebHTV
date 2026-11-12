@@ -100,6 +100,8 @@ import com.fongmi.android.tv.player.mpv.MpvPreloadPolicy;
 import com.fongmi.android.tv.player.mpv.MpvResourcePressureController;
 import com.fongmi.android.tv.player.mpv.MpvVulkanBackendPolicy;
 import com.fongmi.android.tv.player.mpv.MpvResourcePressurePolicy;
+import com.fongmi.android.tv.player.subtitle.PendingSubtitleSelection;
+import com.fongmi.android.tv.player.subtitle.SubtitleMatchPolicy;
 import com.fongmi.android.tv.setting.DanmakuSetting;
 import com.fongmi.android.tv.setting.ExoPerformanceSetting;
 import com.fongmi.android.tv.setting.IjkPerformanceSetting;
@@ -259,6 +261,9 @@ public class PlayerManager implements ParseCallback {
     private boolean mpvAutoOutputFrameReady;
     private boolean mpvAutoOutputEvaluationScheduled;
     private boolean mpvExplicitSubtitlePreference;
+    private String pendingSubtitleLabel;
+    private String pendingSubtitleMimeType;
+    private String pendingSubtitleLanguage;
     private boolean mpvAutoGpuPinnedForSession;
     private boolean mpvAutoVulkanPinnedForItem;
     private boolean mpvAutoVulkanDisabledForItem;
@@ -1032,7 +1037,52 @@ public class PlayerManager implements ParseCallback {
 
     public void setSub(Sub sub) {
         if (spec != null) spec.setSub(sub);
+        rememberPendingSubtitle(sub);
         setMediaItem();
+    }
+
+    /**
+     * Remembers which subtitle should win once the rebuilt media item reports its
+     * tracks.
+     *
+     * <p>Adding a subtitle mid-playback rebuilds the media item, and the rebuild
+     * re-runs the persisted track restore. That restore was written for the item
+     * as it was launched: if it disabled text, or pinned text to the group that
+     * existed then, the newly added subtitle is never referenced and never shows.
+     * The label/mime/language recorded here are what the rebuilt track's
+     * {@code Format} will carry, so {@link PendingSubtitleSelection} can find it.
+     */
+    private void rememberPendingSubtitle(Sub sub) {
+        if (sub == null) {
+            clearPendingSubtitle();
+            return;
+        }
+        pendingSubtitleLabel = sub.getName();
+        pendingSubtitleMimeType = sub.getFormat();
+        pendingSubtitleLanguage = SubtitleMatchPolicy.languageTag(sub.getLang());
+    }
+
+    private void clearPendingSubtitle() {
+        pendingSubtitleLabel = null;
+        pendingSubtitleMimeType = null;
+        pendingSubtitleLanguage = null;
+    }
+
+    /**
+     * Makes a subtitle added during playback the selected text track.
+     *
+     * <p>Only Exo has an external subtitle channel here, and only Exo's persisted
+     * restore can lock text out; the other engines keep their existing behaviour.
+     */
+    private void selectPendingSubtitle(Tracks tracks) {
+        if (TextUtils.isEmpty(pendingSubtitleLabel)) return;
+        PendingSubtitleSelection.Match match = PendingSubtitleSelection.find(tracks,
+                pendingSubtitleLabel, pendingSubtitleMimeType, pendingSubtitleLanguage);
+        if (match == null) return;
+        String label = pendingSubtitleLabel;
+        clearPendingSubtitle();
+        if (!engine.selectTextTrack(match.group(), match.index())) return;
+        SpiderDebug.log("player", "subtitle select label=%s index=%d", label, match.index());
     }
 
     public void setFormat(String format) {
@@ -5301,6 +5351,7 @@ public class PlayerManager implements ParseCallback {
         prepareIjkRuntimeForUserPlayback();
         clearPendingSwitchRestore();
         clearDanmaku("start");
+        clearPendingSubtitle();
         this.spec = spec;
         pendingInitialStartPositionMs = positionMs > 0 ? positionMs : C.TIME_UNSET;
         prepareMpvOutputForNewItem();
@@ -5328,6 +5379,7 @@ public class PlayerManager implements ParseCallback {
         stopParse();
         clearPendingSwitchRestore();
         clearDanmaku("parse");
+        clearPendingSubtitle();
         spec = PlaySpec.fromParse(result, key, metadata, useParse);
         pendingInitialStartPositionMs = positionMs > 0 ? positionMs : C.TIME_UNSET;
         prepareMpvOutputForNewItem();
@@ -7752,6 +7804,10 @@ public class PlayerManager implements ParseCallback {
             if (!tracks.isEmpty() && !initTrack) {
                 playbackTrace.mark(PlaybackTrace.Stage.TRACKS, trackSummary(tracks));
                 restoreTrackSelection(Track.find(getKey()));
+                // A subtitle added during playback must win over the restore above:
+                // that restore re-applies the preference saved when this item was
+                // launched, which cannot mention a subtitle that did not exist yet.
+                selectPendingSubtitle(tracks);
                 if (engine instanceof MpvPlayerEngine mpv) {
                     mpv.completeInitialSubtitleTrackRestore();
                 }

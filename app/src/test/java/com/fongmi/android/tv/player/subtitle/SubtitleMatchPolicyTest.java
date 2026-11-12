@@ -231,4 +231,64 @@ public class SubtitleMatchPolicyTest {
         assertEquals("x.srt", item.getName());
         assertEquals("https://x/a.gz", item.getDownloadUrl());
     }
+
+    @Test
+    public void languageTagsTurnProviderMarkersIntoRealTags() {
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("chi"));
+        assertEquals("zh-Hant", SubtitleMatchPolicy.languageTag("zht"));
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("zhe"));
+        assertEquals("en", SubtitleMatchPolicy.languageTag("ENG"));
+        assertEquals("ja", SubtitleMatchPolicy.languageTag("jpn"));
+        assertEquals("ko", SubtitleMatchPolicy.languageTag("kor"));
+    }
+
+    @Test
+    public void languageTagsCoverTheChineseMarkersSubHdAndThePanelWrite() {
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("简体"));
+        assertEquals("zh-Hant", SubtitleMatchPolicy.languageTag("繁體"));
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("双语"));
+        // The search panel writes its own display label into the Sub entry, so the
+        // labels have to map back too.
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("简体中文"));
+        assertEquals("zh-Hant", SubtitleMatchPolicy.languageTag("繁體中文"));
+        assertEquals("en", SubtitleMatchPolicy.languageTag("英语"));
+        assertEquals("ja", SubtitleMatchPolicy.languageTag("日语"));
+        assertEquals("ko", SubtitleMatchPolicy.languageTag("韩语"));
+    }
+
+    @Test
+    public void languageTagsPassThroughValuesThatAlreadyLookLikeTags() {
+        assertEquals("en", SubtitleMatchPolicy.languageTag("en"));
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("zh-Hans"));
+        assertEquals("pt-BR", SubtitleMatchPolicy.languageTag("pt-BR"));
+        assertEquals("zh_TW", SubtitleMatchPolicy.languageTag("zh_TW"));
+    }
+
+    @Test
+    public void languageTagsDropMarkersThatAreNotTags() {
+        // A display name is not a tag: passing it through would put e.g. a Chinese
+        // label where the player expects a language, and the track would earn no
+        // language score anyway. Anything that is not shaped like a tag is dropped.
+        assertEquals("", SubtitleMatchPolicy.languageTag(null));
+        assertEquals("", SubtitleMatchPolicy.languageTag("  "));
+        assertEquals("", SubtitleMatchPolicy.languageTag("中文 / 英文"));
+        assertEquals("", SubtitleMatchPolicy.languageTag("简体/繁體"));
+        // A syntactically valid tag passes through even when it is not in the table,
+        // so providers using a code we do not know still reach the player intact.
+        assertEquals("xyz", SubtitleMatchPolicy.languageTag("xyz"));
+        assertEquals("th", SubtitleMatchPolicy.languageTag("th"));
+    }
+
+    @Test
+    public void languageLabelsAndTagsAgreeOnTheSameMarkers() {
+        // Both tables are keyed by the same provider markers, so a marker that has
+        // a display label must also have a tag: a label with no tag would reach the
+        // player as an untagged track.
+        assertEquals("简体中文", SubtitleMatchPolicy.languageLabel("chi"));
+        assertEquals("zh-Hans", SubtitleMatchPolicy.languageTag("chi"));
+        assertEquals("英语", SubtitleMatchPolicy.languageLabel("eng"));
+        assertEquals("en", SubtitleMatchPolicy.languageTag("eng"));
+        assertEquals("韩语", SubtitleMatchPolicy.languageLabel("kor"));
+        assertEquals("ko", SubtitleMatchPolicy.languageTag("kor"));
+    }
 }

@@ -22,6 +22,7 @@ import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.netdisk.NetDiskAccount;
 import com.fongmi.android.tv.netdisk.NetDiskCredentialStore;
 import com.fongmi.android.tv.netdisk.NetDiskEntry;
+import com.fongmi.android.tv.netdisk.NetDiskSession;
 import com.fongmi.android.tv.netdisk.NetDiskType;
 import com.fongmi.android.tv.netdisk.WebDavBackupClient;
 import com.fongmi.android.tv.netdisk.WebDavBackupError;
@@ -426,6 +427,50 @@ public final class WebDavBackupDialog {
                 .show();
     }
 
+    /**
+     * 账号列表页的长按菜单。
+     *
+     * <p><b>为什么要有它。</b>用户填错地址、密码或目录后，在这个面板里既改不了也删不掉，
+     * 只能从「网盘」入口绕过去，或者卸载重装。同一个列表在 {@link NetDiskDialog} 里是
+     * 有长按菜单的，两处行为不一致本身就说明这里是漏的。
+     *
+     * <p>「编辑」交给 {@link NetDiskDialog#showEdit(String, com.fongmi.android.tv.netdisk.NetDiskAccount)}
+     * ——账号的字段、校验、测试连接都在那边，这里只做入口。
+     */
+    private void showAccountMenu(String accountId) {
+        NetDiskAccount picked = NetDiskCredentialStore.get().get(accountId);
+        if (picked == null) return;
+        new MaterialAlertDialogBuilder(context)
+                .setItems(new CharSequence[]{
+                        context.getString(R.string.net_disk_edit),
+                        context.getString(R.string.net_disk_delete)
+                }, (dialog, which) -> {
+                    if (which == 0) editAccount(picked);
+                    else confirmDeleteAccount(accountId);
+                })
+                .show();
+    }
+
+    private void editAccount(NetDiskAccount picked) {
+        // 不关掉本面板：编辑表单盖在它上面，存完回来直接就能看到改好的名字。
+        NetDiskDialog.showEdit(context, picked, this::showAccounts);
+    }
+
+    /** 删除一条存储（不是删除云端的备份文件），并把它缓存的连接一起作废。 */
+    private void confirmDeleteAccount(String accountId) {
+        new MaterialAlertDialogBuilder(context)
+                .setMessage(R.string.net_disk_delete_confirm)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    NetDiskCredentialStore.get().remove(accountId);
+                    NetDiskCredentialStore.removePassword(accountId);
+                    NetDiskCredentialStore.save();
+                    NetDiskSession.get().invalidate(accountId);
+                    showAccounts();
+                })
+                .show();
+    }
+
     private void startDelete(String name) {
         final NetDiskAccount target = account;
         if (target == null) return;
@@ -559,7 +604,11 @@ public final class WebDavBackupDialog {
                 }
             });
             holder.row.setOnLongClickListener(view -> {
-                if (account != null) confirmDelete(entry.getPath());
+                // 两页共用同一个长按：账号页给「编辑存储 / 删除存储」，备份页给「删除这一份」。
+                // 此前账号页什么都不做（account == null 直接返回），用户反馈「长按添加的
+                // 文件夹也没有删除」——他编辑不了也删不掉已经填错的存储，只能卸载重来。
+                if (account == null) showAccountMenu(entry.getPath());
+                else confirmDelete(entry.getPath());
                 return true;
             });
         }

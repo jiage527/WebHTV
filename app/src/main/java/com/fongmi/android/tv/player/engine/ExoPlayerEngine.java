@@ -15,6 +15,7 @@ import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.Timeline;
+import androidx.media3.common.TrackGroup;
 import androidx.media3.common.Tracks;
 import androidx.media3.exoplayer.ExoPlaybackException;
 import androidx.media3.exoplayer.ExoPlayer;
@@ -606,6 +607,13 @@ public class ExoPlayerEngine implements PlayerEngine {
     public void resetTrack() {
         subtitleSession.reset();
         TrackUtil.reset(player);
+    }
+
+    @Override
+    public boolean selectTextTrack(TrackGroup group, int index) {
+        if (player == null || group == null) return false;
+        TrackUtil.selectTextTrack(player, group, index);
+        return true;
     }
 
     @Override
