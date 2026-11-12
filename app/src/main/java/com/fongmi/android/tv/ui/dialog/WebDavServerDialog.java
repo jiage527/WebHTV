@@ -56,9 +56,19 @@ public final class WebDavServerDialog {
                 .show();
     }
 
-    /** 当前状态对应的单选项下标。 */
+    /**
+     * 对话框打开时该预选哪一项。
+     *
+     * <p><b>关闭状态下预选「仅可读」，而不是预选「关」。</b>设置页那一行显示的是「关」，
+     * 用户点它就是想把它打开；如果预选项就是「关」，他点「确定」而没动选项时，
+     * {@code picked} 仍是关，于是收到一句「已关闭文件共享」——正是用户实测遇到的
+     * 「点确认之后还是关的」。预选「仅可读」让「确定」这个动作对应到「打开」，
+     * 与点进来的意图一致；真想关掉的人需要主动去选「关」，那是一次明确的动作，
+     * 不会被误触发。已在开启状态时仍如实预选当前状态，避免把用户设过的「可读写」
+     * 悄悄降级成只读。
+     */
     private static int current() {
-        if (!WebDavSetting.isEnabled()) return OFF;
+        if (!WebDavSetting.isEnabled()) return READ_ONLY;
         return WebDavSetting.isWritable() ? WRITABLE : READ_ONLY;
     }
 

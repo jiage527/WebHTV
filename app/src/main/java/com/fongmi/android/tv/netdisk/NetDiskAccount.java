@@ -65,8 +65,36 @@ public final class NetDiskAccount {
         this.host = host == null ? "" : host.trim();
     }
 
+    /**
+     * 实际要连的端口。
+     *
+     * <p><b>为什么要丢掉一部分存下来的端口值。</b>表单会在切换协议类型时把默认端口
+     * 自动填进端口框，而填的那一刻还不知道服务器地址里写的是 http 还是 https——
+     * 用户通常是先切类型、后粘地址。切到 WebDAV 时按明文算出 80 填进去，等地址里的
+     * {@code https} 被解析出来、{@code secure} 变成 true 时，这个 80 已经存进账号了。
+     * 于是拼出 {@code https://dav.jianguoyun.com:80/...}：把 TLS 建在明文端口上，
+     * 实测直接连不上（curl 返回 000），用户看到的只是「无法访问」。
+     *
+     * <p>因此「已启用加密、端口却恰好是明文默认端口」一律判为自动填充的残留，回落到
+     * 加密的默认端口。反方向（明文 + 加密默认端口）不处理：把明文服务放在 443 上是
+     * 真实存在的自建配置，不能替用户改写他明确写下的端口。SMB 与 FTP 的默认端口
+     * 不随加密变化，两个方向都相等，不会命中这条规则。
+     */
     public int getPort() {
-        return port > 0 ? port : getType().defaultPort(secure);
+        if (port > 0 && !isStalePlaintextDefault(port)) return port;
+        return getType().defaultPort(secure);
+    }
+
+    /**
+     * 这个端口是不是「切类型时按明文算出来的默认值」。
+     *
+     * <p>条件是三者同时成立：当前这一档要求加密、两端默认端口确实不同（只有 WebDAV
+     * 满足）、存下来的值正好是明文那一档的默认端口。
+     */
+    private boolean isStalePlaintextDefault(int value) {
+        if (!secure) return false;
+        int plaintext = getType().defaultPort(false);
+        return plaintext != getType().defaultPort(true) && value == plaintext;
     }
 
     public void setPort(int port) {

@@ -101,6 +101,58 @@ public final class NetDiskAddress {
         return left + "/" + right;
     }
 
+    /**
+     * 定出最终端口。
+     *
+     * <p><b>为什么不能直接用表单里那个数字。</b>端口框会被自动填上一个默认值，
+     * 而填它的那一刻还不知道地址里写的是 http 还是 https——用户往往是先切类型、
+     * 后粘地址。切类型时按「明文 WebDAV」算出 80 填进去，等地址里的 {@code https}
+     * 解析出来时这个 80 已经躺在框里了，于是拼出
+     * {@code https://dav.jianguoyun.com:80/dav/影视}：TLS 建在明文端口上，
+     * 实测直接连不上（curl 返回 000），而用户看到的只是「无法访问」。
+     *
+     * <p>所以「地址没写端口、但框里的值恰好是另一套传输方式的默认端口」时，
+     * 判定为自动填充的残留，返回 0 让调用方回落到当前 scheme 的默认端口。
+     * 用户手填的其它任何端口都原样保留。
+     *
+     * <p>SMB（445）与 FTP（21）两种传输的默认端口不随加密变化，
+     * {@code stale == wanted}，不会命中这条规则。
+     *
+     * @param typedPort   端口框里的值；空或非法时为 0
+     * @param addressPort 地址里写明的端口；没写时为 0
+     */
+    public static int resolvePort(NetDiskType type, int typedPort, int addressPort, boolean hasScheme, boolean secure) {
+        // 地址里写明的端口最权威：用户在那串网址里敲的端口就是他要连的端口。
+        if (addressPort > 0) return addressPort;
+        if (typedPort <= 0 || !hasScheme) return typedPort;
+        int wanted = type.defaultPort(secure);
+        int stale = type.defaultPort(!secure);
+        if (stale != wanted && typedPort == stale) return 0;
+        return typedPort;
+    }
+
+    /**
+     * 把「可能已经带上根目录」的路径还原成相对根目录的路径。
+     *
+     * <p><b>为什么需要它。</b>两个 WebDAV 客户端都把账号根目录拼进了 {@code base}
+     * （例如 {@code https://dav.jianguoyun.com/dav/影视}），而调用方传进来的路径
+     * 又往往是从账号根算起的完整路径（面板打开账号时传的正是 {@code account.getRoot()}，
+     * 即 {@code dav/影视}）。两者一叠加就变成 {@code /dav/影视/dav/影视/}，
+     * 服务端回 404，用户看到的是「点进去显示无法访问」——实测过这一组对照：
+     * {@code /dav/影视/} 返回 207，而 {@code /dav/影视/影视/} 返回 404。
+     *
+     * <p>这里在拼 URL 之前把重复的那一段剥掉，让「传相对路径」与「传根开始的全路径」
+     * 两种调用方式都能得到同一个正确地址。剥不掉就原样返回，不影响本来就传对的地方。
+     */
+    public static String stripRoot(String path, String root) {
+        String value = normalize(path);
+        String prefix = normalize(root);
+        if (prefix.isEmpty()) return value;
+        if (value.equals(prefix)) return "";
+        if (value.startsWith(prefix + "/")) return value.substring(prefix.length() + 1);
+        return value;
+    }
+
     /** URL 的 scheme，小写；没有或不像 scheme 时返回空串。 */
     static String schemeOf(String url) {
         if (url == null) return "";

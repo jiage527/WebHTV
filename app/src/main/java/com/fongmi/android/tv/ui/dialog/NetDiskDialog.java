@@ -344,9 +344,12 @@ public final class NetDiskDialog {
         // 而多数 WebDAV 服务（坚果云实测）对 80 端口返回 308 跳转。
         if (parsed.hasScheme()) account.setSecure(parsed.secure());
         String portText = port.getText().toString().trim();
-        int explicit = portText.isEmpty() ? 0 : safePort(portText);
-        // 地址里写了端口时以地址为准，表单里那个空着就跟着走。
-        account.setPort(explicit > 0 ? explicit : parsed.port());
+        // 端口框里可能留着一个「切类型时自动填进来的明文默认端口」（见 resolvePort 的
+        // 说明：地址是 https 而框里是 80 时，拼出来的 TLS 地址连不上）。地址里写明的
+        // 端口最优先，其次是用户手填的端口，再次才回到当前传输方式的默认端口。
+        int typedPort = portText.isEmpty() ? 0 : safePort(portText);
+        account.setPort(NetDiskAddress.resolvePort(account.getType(), typedPort,
+                parsed.port(), parsed.hasScheme(), parsed.secure()));
         account.setShare(share.getText().toString());
         // 地址里的路径前缀与服务端根目录必须合并：".../dav/" 里的 dav 是服务端给的根前缀，
         // 用户填的「影视」是他自己的目录，只取一个都会连错地方。

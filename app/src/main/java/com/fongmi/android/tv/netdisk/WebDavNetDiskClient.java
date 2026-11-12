@@ -50,18 +50,23 @@ public final class WebDavNetDiskClient implements NetDiskClient {
     }
 
     private String url(String path) {
+        // base 里已经含账号根目录，所以这里必须传相对根目录的路径。调用方（面板打开账号时）
+        // 传的却是从根算起的完整路径，叠加后变成 /dav/影视/dav/影视/，服务端回 404——
+        // 用户看到「点进去显示无法访问」。把重复的那段剥掉，让两种调用方式都对。
+        String relative = NetDiskAddress.stripRoot(path, account.getRoot());
         StringBuilder builder = new StringBuilder(base);
-        for (String segment : NetDiskCodec.split(path, NetDiskType.WEBDAV.separator())) {
+        for (String segment : NetDiskCodec.split(relative, NetDiskType.WEBDAV.separator())) {
             builder.append('/').append(NetDiskCodec.encodeSegment(segment));
         }
         // 目录要带结尾斜杠，否则不少服务端会 301 到别处或返回 404。
-        if (!path.isEmpty() && !path.endsWith(String.valueOf(NetDiskType.WEBDAV.separator()))) builder.append('/');
+        if (!relative.isEmpty() && !relative.endsWith(String.valueOf(NetDiskType.WEBDAV.separator()))) builder.append('/');
         return builder.toString();
     }
 
     private String fileUrl(String path) {
+        String relative = NetDiskAddress.stripRoot(path, account.getRoot());
         StringBuilder builder = new StringBuilder(base);
-        for (String segment : NetDiskCodec.split(path, NetDiskType.WEBDAV.separator())) {
+        for (String segment : NetDiskCodec.split(relative, NetDiskType.WEBDAV.separator())) {
             builder.append('/').append(NetDiskCodec.encodeSegment(segment));
         }
         return builder.toString();

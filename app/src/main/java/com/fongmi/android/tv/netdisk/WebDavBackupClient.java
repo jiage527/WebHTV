@@ -69,10 +69,23 @@ public final class WebDavBackupClient {
         return builder.toString();
     }
 
+    /**
+     * 把「可能已经带上账号根目录」的路径还原成相对根目录的路径。
+     *
+     * <p>{@link #buildBase()} 已经把这个账号的根目录拼进了 base，而调用方传进来的
+     * 目录多半是从账号根算起的完整路径（面板传的正是 {@code account.getRoot()}）。
+     * 两者叠加会请求 {@code /dav/影视/dav/影视/}，服务端回 404，用户看到的是
+     * 「测试连接无法访问」。实测对照：{@code /dav/影视/} 是 207，重复那层是 404。
+     */
+    private String relative(String path) {
+        return NetDiskAddress.stripRoot(path, account.getRoot());
+    }
+
     /** 目录 URL（带结尾斜杠，否则不少服务端会 301 或 404）。 */
     private String dirUrl(String path) {
+        String target = relative(path);
         StringBuilder builder = new StringBuilder(base);
-        for (String segment : NetDiskCodec.split(path, NetDiskType.WEBDAV.separator())) {
+        for (String segment : NetDiskCodec.split(target, NetDiskType.WEBDAV.separator())) {
             builder.append('/').append(NetDiskCodec.encodeSegment(segment));
         }
         builder.append('/');
@@ -81,8 +94,9 @@ public final class WebDavBackupClient {
 
     /** 文件 URL（不带结尾斜杠）。 */
     private String fileUrl(String path) {
+        String target = relative(path);
         StringBuilder builder = new StringBuilder(base);
-        for (String segment : NetDiskCodec.split(path, NetDiskType.WEBDAV.separator())) {
+        for (String segment : NetDiskCodec.split(target, NetDiskType.WEBDAV.separator())) {
             builder.append('/').append(NetDiskCodec.encodeSegment(segment));
         }
         return builder.toString();
@@ -154,7 +168,11 @@ public final class WebDavBackupClient {
      * 所以这里按层级依次创建，已存在的层级跳过 —— 重名目录再去 MKCOL 会得到 405。
      */
     public void mkdirs(String dir) throws Exception {
-        List<String> segments = NetDiskCodec.split(WebDavBackupStore.normalizeDir(dir), NetDiskType.WEBDAV.separator());
+        // 先剥掉账号根目录再逐级累加：dirUrl 自己也会剥一次，但逐级累加的中间路径
+        // （"dav"、"dav/影视"）并不同时以完整根目录开头，只在剥离前算就会拿
+        // ".../dav/影视/dav/" 去建目录，必然失败。
+        String target = relative(WebDavBackupStore.normalizeDir(dir));
+        List<String> segments = NetDiskCodec.split(target, NetDiskType.WEBDAV.separator());
         StringBuilder current = new StringBuilder();
         for (String segment : segments) {
             if (current.length() > 0) current.append(NetDiskType.WEBDAV.separator());

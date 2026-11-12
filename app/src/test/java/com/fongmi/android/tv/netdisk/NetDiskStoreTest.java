@@ -184,6 +184,53 @@ public class NetDiskStoreTest {
         assertEquals(443, account.getPort());
     }
 
+    /**
+     * 已启用加密时，被自动填进来的明文默认端口必须让位。
+     *
+     * <p>表单先切类型（按明文算出 80 填进端口框）、用户后粘地址（地址里是 https）。
+     * 那个 80 会被存进账号，拼出来的就是 {@code https://host:80/...} —— 把 TLS 建在
+     * 明文端口上。实测坚果云这种地址直接连不上（curl 返回 000），用户只看到「无法访问」。
+     */
+    @Test
+    public void stalePlaintextPortIsDroppedOnceTlsIsOn() {
+        NetDiskAccount account = NetDiskAccount.create(NetDiskType.WEBDAV);
+        account.setHost("dav.jianguoyun.com");
+        account.setPort(80);
+        account.setSecure(true);
+        assertEquals(443, account.getPort());
+    }
+
+    /**
+     * 手填的非默认端口在多写之后仍然要保留。
+     *
+     * <p>只有「恰好等于明文默认端口」才判为残留；8443 这类自建端口是用户的明确意图。
+     */
+    @Test
+    public void explicitPortSurvivesWhenTlsIsOn() {
+        NetDiskAccount account = NetDiskAccount.create(NetDiskType.WEBDAV);
+        account.setHost("nas.example.com");
+        account.setPort(8443);
+        account.setSecure(true);
+        assertEquals(8443, account.getPort());
+        account.setPort(443);
+        assertEquals(443, account.getPort());
+    }
+
+    /**
+     * 明文服务放在 443 上是真实存在的自建配置，不能替用户改写。
+     *
+     * <p>反方向（明文 + 加密默认端口）刻意不处理：443 明确写在端口框里，
+     * 覆盖它等于把用户能连上的配置改成连不上的。
+     */
+    @Test
+    public void plaintextOnTheTlsDefaultPortIsLeftAlone() {
+        NetDiskAccount account = NetDiskAccount.create(NetDiskType.WEBDAV);
+        account.setHost("nas.example.com");
+        account.setPort(443);
+        account.setSecure(false);
+        assertEquals(443, account.getPort());
+    }
+
     @Test
     public void displayNameFallsBackToHostAndShare() {
         NetDiskAccount account = NetDiskAccount.create(NetDiskType.SMB);
