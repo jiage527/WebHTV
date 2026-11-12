@@ -93,9 +93,28 @@ public final class OfflineDownloadStatus {
         return failureReason != 0 ? Phase.FAILED : Phase.PAUSED;
     }
 
+    /**
+     * 用户手动暂停某一条时用的停因。
+     *
+     * <p>Media3 的 {@code Download} 上只有一个 {@code STOP_REASON_NONE = 0}，其余取值由 App
+     * 自己定；0 表示「继续」，非 0 表示「停住」。取 1 是因为它没有别的含义，不会和
+     * 「等 WiFi 自动挂起」之类的内部停因撞上。
+     */
+    public static final int STOP_REASON_PAUSED = 1;
+
     /** 这个状态还要不要继续显示进度条。 */
     public static boolean showsProgress(Phase phase) {
         return phase == Phase.DOWNLOADING || phase == Phase.QUEUED || phase == Phase.PAUSED;
+    }
+
+    /** 「下载中」分页：还没下完的都算，包括排队、暂停和失败的。 */
+    public static boolean active(Phase phase) {
+        return phase != null && phase != Phase.COMPLETED;
+    }
+
+    /** 「已完成」分页：只有真的下完了才算。 */
+    public static boolean finished(Phase phase) {
+        return phase == Phase.COMPLETED;
     }
 
     /** 这个状态能不能删。正在删的不再重复删。 */
@@ -140,7 +159,7 @@ public final class OfflineDownloadStatus {
      * <p>顺序是按用户心里的事排的——正在下载的最关心，其次是下好的，最后才是停着的和
      * 出错的；同档内新的在前，这样刚点的那一条一定在顶上。
      */
-    public static void sort(List<OfflineDownloadRow> rows) {
+    public static <T extends OfflineDownloadRow> void sort(List<T> rows) {
         if (rows == null || rows.size() < 2) return;
         Collections.sort(rows, (left, right) -> {
             int byPhase = rank(left.phase()) - rank(right.phase());
@@ -175,9 +194,9 @@ public final class OfflineDownloadStatus {
     }
 
     /** 便捷方法：把一批行排序后返回副本，不改入参。 */
-    public static List<OfflineDownloadRow> sorted(List<OfflineDownloadRow> rows) {
+    public static <T extends OfflineDownloadRow> List<T> sorted(List<T> rows) {
         if (rows == null) return Collections.emptyList();
-        List<OfflineDownloadRow> copy = new ArrayList<>(rows);
+        List<T> copy = new ArrayList<>(rows);
         sort(copy);
         return copy;
     }

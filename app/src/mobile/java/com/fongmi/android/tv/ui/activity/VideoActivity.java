@@ -1243,7 +1243,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
      */
     private void applyDownloadButtonVisibility() {
         boolean available = PlayerButtonSetting.isVisible(PlayerButtonSetting.DOWNLOAD)
-                && player().isVod()
+                && player().isDownloadableStream()
                 && OfflineDownloadUrl.isDownloadable(player().getUrl());
         mBinding.control.action.download.setVisibility(available ? View.VISIBLE : View.GONE);
     }

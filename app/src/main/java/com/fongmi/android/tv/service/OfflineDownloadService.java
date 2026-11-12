@@ -18,6 +18,7 @@ import androidx.media3.exoplayer.scheduler.Scheduler;
 
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.download.OfflineDownloadManager;
+import com.fongmi.android.tv.download.OfflineDownloadStatus;
 import com.fongmi.android.tv.utils.Notify;
 
 import java.util.List;
@@ -63,6 +64,22 @@ public class OfflineDownloadService extends DownloadService {
     public static void resumeAll(Context context) {
         try {
             DownloadService.sendResumeDownloads(context, OfflineDownloadService.class, false);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /**
+     * 暂停/继续某一条。
+     *
+     * <p>Media3 的 {@code DownloadManager} 只有全局的 {@code pauseDownloads()}，单条要靠
+     * 「停因」表达：设成非 0 即停住，设回 0 即继续。理由见
+     * {@link com.fongmi.android.tv.download.OfflineDownloadStatus#STOP_REASON_PAUSED}。
+     */
+    public static void setPaused(Context context, @Nullable String id, boolean paused) {
+        if (id == null || id.isEmpty()) return;
+        try {
+            DownloadService.sendSetStopReason(context, OfflineDownloadService.class, id,
+                    paused ? OfflineDownloadStatus.STOP_REASON_PAUSED : Download.STOP_REASON_NONE, false);
         } catch (Throwable ignored) {
         }
     }

@@ -1613,4 +1613,9 @@
     <string name="offline_download_kind_dash">DASH 串流</string>
     <string name="offline_download_downloading_now">正在下載 %1$s</string>
     <string name="offline_download_not_downloading">這一條還沒下載完</string>
+    <string name="offline_download_tab_active">下載中</string>
+    <string name="offline_download_tab_finished">已完成</string>
+    <string name="offline_download_resume_one">繼續</string>
+    <string name="offline_download_path">檔案路徑</string>
+    <string name="offline_download_file_count">%1$d 個檔案</string>
 </resources>

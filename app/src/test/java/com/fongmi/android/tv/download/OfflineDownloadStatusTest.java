@@ -195,6 +195,49 @@ public class OfflineDownloadStatusTest {
         assertEquals(Arrays.asList("r", "u"), ids(rows));
     }
 
+    /**
+     * 分页谓词：只有真的下完才算「已完成」，其余（含失败）都留在「下载中」页。
+     *
+     * <p>失败的那条如果跑到已完成页去，用户会以为它下好了。
+     */
+    @Test
+    public void paginationPredicatesSplitOnCompletionOnly() {
+        assertTrue(OfflineDownloadStatus.finished(OfflineDownloadStatus.Phase.COMPLETED));
+        assertTrue(OfflineDownloadStatus.active(OfflineDownloadStatus.Phase.DOWNLOADING));
+        assertTrue(OfflineDownloadStatus.active(OfflineDownloadStatus.Phase.QUEUED));
+        assertTrue(OfflineDownloadStatus.active(OfflineDownloadStatus.Phase.PAUSED));
+        assertTrue(OfflineDownloadStatus.active(OfflineDownloadStatus.Phase.FAILED));
+        assertTrue(OfflineDownloadStatus.active(OfflineDownloadStatus.Phase.UNKNOWN));
+        assertFalse(OfflineDownloadStatus.finished(OfflineDownloadStatus.Phase.DOWNLOADING));
+        assertFalse(OfflineDownloadStatus.finished(OfflineDownloadStatus.Phase.FAILED));
+        // null 不能抛：面板刚建、索引还没读到时会传进来
+        assertFalse(OfflineDownloadStatus.active(null));
+        assertFalse(OfflineDownloadStatus.finished(null));
+    }
+
+    /**
+     * 单条暂停用的停因不能是 0 —— 0 在 Media3 里是 {@code STOP_REASON_NONE}，意思是「继续」。
+     * 写错了点「暂停」会变成「继续」，而且不会有任何报错。
+     */
+    @Test
+    public void singleRowPauseReasonIsNotNone() {
+        assertEquals(1, OfflineDownloadStatus.STOP_REASON_PAUSED);
+        assertFalse(OfflineDownloadStatus.STOP_REASON_PAUSED == 0);
+        // 用这个停因暂停后，状态必须落回 PAUSED（而不是被当成失败）
+        assertEquals(OfflineDownloadStatus.Phase.PAUSED,
+                OfflineDownloadStatus.phase(1, OfflineDownloadStatus.STOP_REASON_PAUSED, 0));
+    }
+
+    /** 泛型化之后，面板传自己的 Row 列表仍要能排序并保持元素类型。 */
+    @Test
+    public void sortKeepsTheCallersElementType() {
+        List<OfflineDownloadRow> rows = new ArrayList<>(Arrays.asList(
+                row("b", OfflineDownloadStatus.Phase.COMPLETED, 100),
+                row("a", OfflineDownloadStatus.Phase.DOWNLOADING, 100)));
+        List<OfflineDownloadRow> result = OfflineDownloadStatus.sorted(rows);
+        assertEquals(Arrays.asList("a", "b"), ids(result));
+    }
+
     private static OfflineDownloadRow row(String id, OfflineDownloadStatus.Phase phase, long createdAt) {
         return new OfflineDownloadRow() {
             @Override

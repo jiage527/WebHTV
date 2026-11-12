@@ -149,6 +149,30 @@ public final class OfflineDownloadCache {
     }
 
     /**
+     * 这条下载在缓存里落在磁盘上的文件绝对路径（去重、按位置升序）。
+     *
+     * <p>面板要显示「文件路径」，而 {@code SimpleCacheSpan.file} 正是唯一可信的来源——
+     * 文件名由 Media3 按缓存键与长度生成，分片目录也是它自己分的，不去猜。
+     */
+    public static List<String> files(Cache cache, String key) {
+        List<String> paths = new ArrayList<>();
+        for (Span span : spans(cache, key)) {
+            if (span.file() == null) continue;
+            String path = span.file().getAbsolutePath();
+            if (path == null || path.isEmpty()) continue;
+            if (!paths.contains(path)) paths.add(path);
+        }
+        return paths;
+    }
+
+    /** 按地址取文件路径；地址没有缓存时返回空表。 */
+    public static List<String> filesFor(Cache cache, String url) {
+        String key = keyFor(cache, url);
+        if (key == null) return new ArrayList<>();
+        return files(cache, key);
+    }
+
+    /**
      * 这个地址是否整段都已下好。
      *
      * <p>端点靠它决定「直接读本地」还是「老实回源」：缓存被删过一半时若还硬读本地，

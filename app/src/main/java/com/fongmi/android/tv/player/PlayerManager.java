@@ -38,6 +38,7 @@ import com.fongmi.android.tv.bean.Danmaku;
 import com.fongmi.android.tv.bean.Result;
 import com.fongmi.android.tv.bean.Sub;
 import com.fongmi.android.tv.bean.Track;
+import com.fongmi.android.tv.download.OfflineDownloadEligibility;
 import com.fongmi.android.tv.impl.ParseCallback;
 import com.fongmi.android.tv.player.codec.CodecCapabilityInspector;
 import com.fongmi.android.tv.player.engine.ExoPlayerEngine;
@@ -627,6 +628,29 @@ public class PlayerManager implements ParseCallback {
 
     public boolean isVod() {
         return engine.isVod();
+    }
+
+    /**
+     * 这条流能不能下载。
+     *
+     * <p>刻意不复用 {@link #isVod()}：它在 Exo/MPV 两个内核里都是「时长 &gt; 1 分钟」，
+     * 短于 1 分钟的片子、以及时长还没探到的 MP4 会被判成直播，下载按钮就不出现。
+     * 用户要的是「能播完的片子都能下」，而 1 分钟这条线回答不了这个问题。
+     *
+     * <p>这里改问三个各自独立的信号，规则与理由写在
+     * {@link com.fongmi.android.tv.download.OfflineDownloadEligibility#allows} 里。
+     */
+    public boolean isDownloadableStream() {
+        if (player == null || engine == null) return false;
+        try {
+            boolean live = player.isCurrentMediaItemLive();
+            boolean dynamic = player.isCurrentMediaItemDynamic();
+            long duration = player.getDuration();
+            boolean known = duration > 0 && duration != C.TIME_UNSET;
+            return OfflineDownloadEligibility.allows(live, dynamic, known);
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     public boolean haveTrack(int type) {

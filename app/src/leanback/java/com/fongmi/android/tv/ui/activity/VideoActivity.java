@@ -1040,8 +1040,9 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         mBinding.control.action.qualityEnhance.setVisibility(enhanceAvailable ? View.VISIBLE : View.GONE);
         // 直播与「指向本机代理」的地址都下不了，这两种情况下不显示下载按钮，
         // 免得用户点了才被告知不能下。判定与下载入口共用一处，避免两边说法不一。
+        // 这里刻意不用 player().isVod()：它是「时长 > 1 分钟」，短片会被当成直播而没了按钮。
         boolean downloadAvailable = PlayerButtonSetting.isVisible(PlayerButtonSetting.DOWNLOAD)
-                && player().isVod()
+                && player().isDownloadableStream()
                 && OfflineDownloadUrl.isDownloadable(player().getUrl());
         mBinding.control.action.download.setVisibility(downloadAvailable ? View.VISIBLE : View.GONE);
         updateCustomButtonVisibility();

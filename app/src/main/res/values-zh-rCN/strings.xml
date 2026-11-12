@@ -1629,4 +1629,9 @@
     <string name="offline_download_kind_dash">DASH 流</string>
     <string name="offline_download_downloading_now">正在下载 %1$s</string>
     <string name="offline_download_not_downloading">这一条还没下载完</string>
+    <string name="offline_download_tab_active">下载中</string>
+    <string name="offline_download_tab_finished">已完成</string>
+    <string name="offline_download_resume_one">继续</string>
+    <string name="offline_download_path">文件路径</string>
+    <string name="offline_download_file_count">%1$d 个文件</string>
 </resources>

@@ -1637,4 +1637,9 @@
     <string name="offline_download_kind_dash">DASH stream</string>
     <string name="offline_download_downloading_now">Downloading %1$s</string>
     <string name="offline_download_not_downloading">This is not downloaded yet</string>
+    <string name="offline_download_tab_active">Downloading</string>
+    <string name="offline_download_tab_finished">Completed</string>
+    <string name="offline_download_resume_one">Resume</string>
+    <string name="offline_download_path">File path</string>
+    <string name="offline_download_file_count">%1$d files</string>
 </resources>
