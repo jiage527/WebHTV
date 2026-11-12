@@ -58,6 +58,7 @@ import com.fongmi.android.tv.ui.dialog.FilterDialog;
 import com.fongmi.android.tv.ui.dialog.HistoryDialog;
 import com.fongmi.android.tv.ui.dialog.LinkDialog;
 import com.fongmi.android.tv.ui.dialog.OneKeySyncDialog;
+import com.fongmi.android.tv.ui.dialog.OfflineDownloadDialog;
 import com.fongmi.android.tv.ui.dialog.PushPlayDialog;
 import com.fongmi.android.tv.ui.dialog.PushPlayUrlDialog;
 import com.fongmi.android.tv.ui.dialog.ReceiveDialog;
@@ -342,6 +343,7 @@ public class VodFragment extends BaseFragment implements ConfigListener, SiteLis
         else if (item.getItemId() == R.id.push_apk) ApkPushDialog.create().listener(this::onApkDeviceSelected).show(requireActivity());
         else if (item.getItemId() == R.id.push_play) PushPlayDialog.create().listener(this::onPushPlayDeviceSelected).show(requireActivity());
         else if (item.getItemId() == R.id.enhance && homeActivity() != null) homeActivity().openEnhanceFromVod();
+        else if (item.getItemId() == R.id.downloads) OfflineDownloadDialog.show(requireActivity());
         else if (item.getItemId() == R.id.web_home_fullscreen) onWebHomeFullscreen();
         else return false;
         return true;
