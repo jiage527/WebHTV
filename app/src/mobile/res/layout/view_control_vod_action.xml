@@ -154,6 +154,11 @@
             android:text="@string/detail_episode" />
 
         <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/download"
+            style="@style/Control"
+            android:text="@string/offline_download_button" />
+
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/change2"
             style="@style/Control"
             android:text="@string/play_change" />

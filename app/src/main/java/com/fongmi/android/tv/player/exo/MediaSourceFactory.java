@@ -221,8 +221,7 @@ public class MediaSourceFactory implements MediaSource.Factory {
         else return defaultMediaSourceFactory.createMediaSource(mediaItem);
     }
 
-    private MediaSource createConcatenatingMediaSource(MediaItem mediaItem, String url) {
-        ConcatenatingMediaSource2.Builder builder = new ConcatenatingMediaSource2.Builder();
+    private MediaSource createConcatenatingMediaSource(MediaItem mediaItem, String url) {        ConcatenatingMediaSource2.Builder builder = new ConcatenatingMediaSource2.Builder();
         DefaultMediaSourceFactory sourceFactory = new DefaultMediaSourceFactory(getDataSourceFactory(),
                 Media3DiagnosticBridge.extractors(getExtractorsFactory(), mediaItem))
                 .setLoadOnlySelectedTracks(PlaybackPerformanceSetting.isLoadOnlySelectedTracksEnabled());

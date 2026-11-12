@@ -43,6 +43,7 @@ public class PlayerButtonSetting {
     public static final String PREV = "prev";
     public static final String NEXT = "next";
     public static final String EPISODES = "episodes";
+    public static final String DOWNLOAD = "download";
     public static final String FULLSCREEN = "fullscreen";
     public static final String CHANGE = "change";
 
@@ -73,6 +74,7 @@ public class PlayerButtonSetting {
             new Item(PREV, R.string.play_prev),
             new Item(NEXT, R.string.play_next),
             new Item(EPISODES, R.string.play_episodes),
+            new Item(DOWNLOAD, R.string.offline_download_button),
             new Item(FULLSCREEN, R.string.play_fullscreen),
             new Item(CHANGE, R.string.play_change));
 

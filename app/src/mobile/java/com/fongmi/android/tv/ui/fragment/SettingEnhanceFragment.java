@@ -33,6 +33,7 @@ import com.fongmi.android.tv.ui.dialog.DebugLogDialog;
 import com.fongmi.android.tv.ui.dialog.GitCloudDialog;
 import com.fongmi.android.tv.ui.dialog.LoginStateLearnDialog;
 import com.fongmi.android.tv.ui.dialog.NetDiskDialog;
+import com.fongmi.android.tv.ui.dialog.OfflineDownloadDialog;
 import com.fongmi.android.tv.ui.dialog.ManagePageDialog;
 import com.fongmi.android.tv.ui.dialog.OneKeySyncDialog;
 import com.fongmi.android.tv.ui.dialog.RemoteTrustDialog;
@@ -108,6 +109,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         mBinding.netDisk.setOnClickListener(view -> NetDiskDialog.show(requireContext(), (url, name) ->
                 VideoActivity.start(requireActivity(), url)));
         mBinding.webdavBackup.setOnClickListener(view -> WebDavBackupDialog.show(this, this::setText));
+        mBinding.offlineDownload.setOnClickListener(view -> OfflineDownloadDialog.show(requireActivity()));
         mBinding.shellProxy.setOnClickListener(view -> ShellProxyDialog.show(this, this::setText));
         mBinding.shellProxy.setOnLongClickListener(v -> false);
         mBinding.shellProxyConfig.setVisibility(View.GONE);
@@ -128,6 +130,7 @@ public class SettingEnhanceFragment extends BaseFragment {
                 mBinding.gitCloud,
                 mBinding.netDisk,
                 mBinding.webdavBackup,
+                mBinding.offlineDownload,
                 mBinding.remoteTrust,
                 mBinding.oneKeySync,
                 mBinding.loginState,
@@ -168,6 +171,7 @@ public class SettingEnhanceFragment extends BaseFragment {
         safeSet("gitCloud", mBinding.gitCloudText, () -> getString(R.string.git_cloud_account_count, GitCloudAccountStore.list().size()));
         safeSet("netDisk", mBinding.netDiskText, () -> getString(R.string.net_disk_account_count, NetDiskCredentialStore.get().size()));
         safeSet("webdavBackup", mBinding.webdavBackupText, () -> getString(R.string.webdav_backup_summary, WebDavBackupDialog.storageCount()));
+        safeSet("offlineDownload", mBinding.offlineDownloadText, () -> getString(R.string.offline_download_summary, OfflineDownloadDialog.count()));
         setShellProxyText();
         setCustomCspText();
         safeSet("loginState", mBinding.loginStateText, () -> {

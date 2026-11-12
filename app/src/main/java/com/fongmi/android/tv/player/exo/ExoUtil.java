@@ -61,6 +61,7 @@ import com.fongmi.android.tv.App;
 import com.fongmi.android.tv.BuildConfig;
 import com.fongmi.android.tv.bean.Drm;
 import com.fongmi.android.tv.bean.Sub;
+import com.fongmi.android.tv.download.OfflinePlaybackDataSource;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlaybackAutoContext;
 import com.fongmi.android.tv.player.PlaybackAutoContextStore;
@@ -292,7 +293,7 @@ public class ExoUtil {
     }
 
     public static MediaItem getMediaItem(PlaySpec spec, int decode) {
-        MediaItem.Builder builder = new MediaItem.Builder().setUri(spec.getUri());
+        MediaItem.Builder builder = new MediaItem.Builder().setUri(offlineUri(spec));
         builder.setSubtitleConfigurations(buildSubtitleConfigs(spec.getSubs()));
         builder.setDrmConfiguration(buildDrmConfig(spec.getDrm()));
         builder.setRequestMetadata(buildRequestMetadata(spec));
@@ -303,6 +304,27 @@ public class ExoUtil {
         builder.setMediaId(spec.getKey());
         builder.setDecode(decode);
         return builder.build();
+    }
+
+    /**
+     * 这一集如果已经离线下载好，就把地址换成指向本机离线端点的地址。
+     *
+     * <p><b>为什么换成 HTTP 地址，而不是走 Media3 的缓存键。</b>Media3 官方做法是
+     * 「下载与播放共用同一个 Cache、cacheKey 一致」，但那只对 Exo 有效：MPV 内核用的是
+     * {@code MpvPlayer}，它自己读 URI、不走 {@code MediaSourceFactory}，缓存键再好也白设
+     * （真机验证时正是如此——下载完整成功，关掉源站后 MPV 报「连接超时」）。
+     * 换成本机 HTTP 地址后，两个内核拿到的是同一种东西，行为一致。
+     *
+     * <p>这里改的是「交给播放器的地址」，命中不了就原样返回，播放照旧联网，
+     * 不会因为下载模块出问题而看不了。
+     */
+    private static Uri offlineUri(PlaySpec spec) {
+        String url = spec.getUrl();
+        if (TextUtils.isEmpty(url)) return spec.getUri();
+        String proxy = OfflinePlaybackDataSource.proxyUrl(url);
+        if (TextUtils.isEmpty(proxy)) return spec.getUri();
+        if (SpiderDebug.isEnabled()) SpiderDebug.log("offline-download", "play offline url=%s", url);
+        return Uri.parse(proxy);
     }
 
     public static String getMimeType(int errorCode) {

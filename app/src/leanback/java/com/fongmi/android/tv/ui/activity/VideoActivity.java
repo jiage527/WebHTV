@@ -82,6 +82,7 @@ import com.fongmi.android.tv.bean.Track;
 import com.fongmi.android.tv.bean.Vod;
 import com.fongmi.android.tv.databinding.ActivityVideoBinding;
 import com.fongmi.android.tv.db.AppDatabase;
+import com.fongmi.android.tv.download.OfflineDownloadUrl;
 import com.fongmi.android.tv.event.ConfigEvent;
 import com.fongmi.android.tv.event.RefreshEvent;
 import com.fongmi.android.tv.impl.CustomTarget;
@@ -139,6 +140,7 @@ import com.fongmi.android.tv.ui.dialog.ContentDialog;
 import com.fongmi.android.tv.ui.dialog.ControlDialog;
 import com.fongmi.android.tv.ui.dialog.DanmakuDialog;
 import com.fongmi.android.tv.ui.dialog.EpisodeListDialog;
+import com.fongmi.android.tv.ui.dialog.OfflineDownloadDialog;
 import com.fongmi.android.tv.ui.dialog.PlayQueueDialog;
 import com.fongmi.android.tv.ui.dialog.PanNetworkDiagnosticDialog;
 import com.fongmi.android.tv.ui.dialog.PlayerKernelDialog;
@@ -703,6 +705,11 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             onQueueAddAll();
             return true;
         });
+        mBinding.control.action.download.setOnClickListener(view -> onDownload());
+        mBinding.control.action.download.setOnLongClickListener(view -> {
+            onDownloadPanel();
+            return true;
+        });
         mBinding.control.action.discMenu.setOnClickListener(view -> {
             hideControl();
             openDiscMenu();
@@ -892,6 +899,7 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         addActionButton(PlayerButtonSetting.NEXT, mBinding.control.action.next);
         addActionButton(PlayerButtonSetting.PREV, mBinding.control.action.prev);
         addActionButton(PlayerButtonSetting.EPISODES, mBinding.control.action.episodes);
+        addActionButton(PlayerButtonSetting.DOWNLOAD, mBinding.control.action.download);
         addActionButton(PlayerButtonSetting.RESET, mBinding.control.action.reset);
         addActionButton(PlayerButtonSetting.CHANGE, mBinding.control.action.change2);
         addActionButton(PlayerButtonSetting.FULLSCREEN, mBinding.control.action.fullscreen);
@@ -1030,6 +1038,12 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
         boolean enhanceAvailable = player().isMpv()
                 && PlayerButtonSetting.isVisible(PlayerButtonSetting.QUALITY_ENHANCE);
         mBinding.control.action.qualityEnhance.setVisibility(enhanceAvailable ? View.VISIBLE : View.GONE);
+        // 直播与「指向本机代理」的地址都下不了，这两种情况下不显示下载按钮，
+        // 免得用户点了才被告知不能下。判定与下载入口共用一处，避免两边说法不一。
+        boolean downloadAvailable = PlayerButtonSetting.isVisible(PlayerButtonSetting.DOWNLOAD)
+                && player().isVod()
+                && OfflineDownloadUrl.isDownloadable(player().getUrl());
+        mBinding.control.action.download.setVisibility(downloadAvailable ? View.VISIBLE : View.GONE);
         updateCustomButtonVisibility();
         mBinding.control.action.cast.setVisibility(isFullscreen() ? View.GONE : View.VISIBLE);
         updateImmersiveAudioAction();
@@ -2707,6 +2721,29 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
             PlayQueueStore.markCurrent(getEpisode() == null ? null : getEpisode().getUrl());
             Notify.show(getString(R.string.play_queue_add_season_done, added));
         } else Notify.show(R.string.play_queue_unsupported);
+    }
+
+    /**
+     * 把当前正在播的这一集加入离线下载；长按打开下载面板。
+     *
+     * <p>与手机端同一套入口与判定（{@link OfflineDownloadUrl}），两端行为一致。
+     */
+    private void onDownload() {
+        OfflineDownloadDialog.enqueueCurrent(this, downloadTitle(), player().getUrl(), player().getHeaders());
+    }
+
+    private void onDownloadPanel() {
+        OfflineDownloadDialog.show(this);
+    }
+
+    /** 下载列表里的标题：剧名 + 集名，缺哪个用另一个。 */
+    private String downloadTitle() {
+        Episode item = getEpisode();
+        String episode = item == null || TextUtils.isEmpty(item.getName()) ? "" : item.getName();
+        String name = getName();
+        if (TextUtils.isEmpty(name)) return episode;
+        if (TextUtils.isEmpty(episode)) return name;
+        return name + " " + episode;
     }
 
     /**

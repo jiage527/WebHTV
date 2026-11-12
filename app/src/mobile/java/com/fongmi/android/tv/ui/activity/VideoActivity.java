@@ -88,6 +88,7 @@ import com.fongmi.android.tv.bean.Track;
 import com.fongmi.android.tv.bean.Vod;
 import com.fongmi.android.tv.databinding.ActivityVideoBinding;
 import com.fongmi.android.tv.db.AppDatabase;
+import com.fongmi.android.tv.download.OfflineDownloadUrl;
 import com.fongmi.android.tv.event.CastEvent;
 import com.fongmi.android.tv.event.ConfigEvent;
 import com.fongmi.android.tv.event.RefreshEvent;
@@ -151,6 +152,7 @@ import com.fongmi.android.tv.ui.dialog.EpisodeListDialog;
 import com.fongmi.android.tv.ui.dialog.PlayQueueDialog;
 import com.fongmi.android.tv.ui.dialog.InfoDialog;
 import com.fongmi.android.tv.ui.dialog.LutPanelDialog;
+import com.fongmi.android.tv.ui.dialog.OfflineDownloadDialog;
 import com.fongmi.android.tv.ui.dialog.PlayerKernelDialog;
 import com.fongmi.android.tv.ui.dialog.QuickSearchDialog;
 import com.fongmi.android.tv.ui.dialog.ReceiveDialog;
@@ -849,6 +851,11 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
             onQueueAddAll();
             return true;
         });
+        mBinding.control.action.download.setOnClickListener(view -> onDownload());
+        mBinding.control.action.download.setOnLongClickListener(view -> {
+            onDownloadPanel();
+            return true;
+        });
         mBinding.audioPlay.setOnClickListener(view -> checkPlay());
         mBinding.audioNext.setOnClickListener(view -> checkNext());
         mBinding.audioPrev.setOnClickListener(view -> checkPrev());
@@ -1067,6 +1074,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         addActionButton(PlayerButtonSetting.PREV, mBinding.control.action.prev);
         addActionButton(PlayerButtonSetting.NEXT, mBinding.control.action.next);
         addActionButton(PlayerButtonSetting.EPISODES, mBinding.control.action.episodes);
+        addActionButton(PlayerButtonSetting.DOWNLOAD, mBinding.control.action.download);
         addActionButton(PlayerButtonSetting.CHANGE, mBinding.control.action.change2);
         PlayerButtonSetting.applyOrder(mBinding.control.action.container, mActionButtons);
         setupCustomActionButtons();
@@ -1219,7 +1227,25 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         if (mActionButtons != null) PlayerButtonSetting.applyVisibility(mActionButtons);
         applyAbLoopButtonVisibility();
         applyQualityEnhanceButtonVisibility();
+        applyDownloadButtonVisibility();
         updateCustomButtonVisibility();
+    }
+
+    /**
+     * 下载按钮只在「点得动」的时候出现。
+     *
+     * <p>直播流没有「下完」的概念（一直在播），本机代理地址下下来是转发的响应——两者都下不了。
+     * 与其让用户点了收到一句「这个地址不能下载」，不如根本不显示这个按钮：用户看不到不需要
+     * 理解的失败。判定逻辑与下载入口共用 {@link OfflineDownloadUrl}，避免两边说法不一。
+     *
+     * <p>用户可以在「播放器按钮」设置里自己关掉它（{@code PlayerButtonSetting.DOWNLOAD}），
+     * 这里只在此基础上再收一层。
+     */
+    private void applyDownloadButtonVisibility() {
+        boolean available = PlayerButtonSetting.isVisible(PlayerButtonSetting.DOWNLOAD)
+                && player().isVod()
+                && OfflineDownloadUrl.isDownloadable(player().getUrl());
+        mBinding.control.action.download.setVisibility(available ? View.VISIBLE : View.GONE);
     }
 
     /**
@@ -3960,6 +3986,34 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     private void onQueue() {
         PlayQueueStore.markCurrent(player().getUrl());
         PlayQueueDialog.show(this, entry -> playQueueEntry(entry));
+    }
+
+    /**
+     * 把当前正在播的这一集加入离线下载。
+     *
+     * <p>长按打开下载面板（看队列、暂停、删除、直接播下好的），与其它按钮的长按习惯一致。
+     */
+    private void onDownload() {
+        OfflineDownloadDialog.enqueueCurrent(this, downloadTitle(), player().getUrl(), player().getHeaders());
+    }
+
+    private void onDownloadPanel() {
+        OfflineDownloadDialog.show(this);
+    }
+
+    /**
+     * 下载列表里显示的标题：剧名 + 集名。
+     *
+     * <p>只用集名（例如「第 03 集」）在列表里根本分不清是哪部剧；只用剧名则同一部剧的多集
+     * 看起来一模一样。两个都拿不到时返回空串，面板会退回显示地址。
+     */
+    private String downloadTitle() {
+        Episode item = getEpisode();
+        String episode = item == null || TextUtils.isEmpty(item.getName()) ? "" : item.getName();
+        String name = getName();
+        if (TextUtils.isEmpty(name)) return episode;
+        if (TextUtils.isEmpty(episode)) return name;
+        return name + " " + episode;
     }
 
     /** 播放队列里选中的条目：把它定为当前项并按普通剧集播放。 */
