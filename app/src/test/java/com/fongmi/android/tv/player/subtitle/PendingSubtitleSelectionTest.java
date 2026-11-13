@@ -86,4 +86,19 @@ public class PendingSubtitleSelectionTest {
         List<PendingSubtitleSelection.Candidate> tracks = List.of(candidate(null, SRT, "en"));
         assertEquals(-1, PendingSubtitleSelection.best(tracks, "x.srt", SRT, "en"));
     }
+
+    @Test
+    public void returnsMinusOneWhileTheSubtitleGroupHasNotArrivedYet() {
+        // A merged source reports tracks in waves: this is the first wave, which
+        // carries the media's own tracks and not the newly added subtitle. -1 is
+        // what tells the caller to keep the request and look again on the next
+        // callback instead of dropping it, so it must stay -1 rather than guess.
+        List<PendingSubtitleSelection.Candidate> firstWave = List.of(candidate("English", SRT, "en"));
+        assertEquals(-1, PendingSubtitleSelection.best(firstWave, "Inception.2010.srt", SRT, "zh-Hans"));
+        // ...and the same list plus the new group is what the later wave looks like.
+        List<PendingSubtitleSelection.Candidate> laterWave = List.of(
+                candidate("English", SRT, "en"),
+                candidate("Inception.2010.srt", SRT, "zh-Hans"));
+        assertEquals(1, PendingSubtitleSelection.best(laterWave, "Inception.2010.srt", SRT, "zh-Hans"));
+    }
 }

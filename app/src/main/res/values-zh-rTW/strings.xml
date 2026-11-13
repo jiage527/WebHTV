@@ -1459,6 +1459,10 @@
     <string name="play_queue_current">正在播放</string>
     <string name="play_queue_ended">已到佇列末尾</string>
     <string name="play_queue_unsupported">該條目無法加入佇列</string>
+    <string name="play_queue_empty_hint">佇列為空。用下面的按鈕把正在播放的這一條加進來，或把當前來源的整季加進來。</string>
+    <string name="play_queue_add_current">加當前</string>
+    <string name="play_queue_add_season">加整季</string>
+    <string name="play_queue_added_current">已把當前條目加入佇列</string>
     <string name="play_gif_record_cancelled">已取消錄製</string>
     <string name="subtitle_translate">字幕翻譯</string>
     <string name="subtitle_translate_language">目標語言</string>

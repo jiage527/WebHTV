@@ -1475,6 +1475,10 @@
     <string name="play_queue_current">正在播放</string>
     <string name="play_queue_ended">已到队列末尾</string>
     <string name="play_queue_unsupported">该条目无法加入队列</string>
+    <string name="play_queue_empty_hint">队列为空。用下面的按钮把正在播放的这一条加进来，或把当前源的整季加进来。</string>
+    <string name="play_queue_add_current">加当前</string>
+    <string name="play_queue_add_season">加整季</string>
+    <string name="play_queue_added_current">已把当前条目加入队列</string>
     <string name="play_gif_record_cancelled">已取消录制</string>
     <string name="subtitle_translate">字幕翻译</string>
     <string name="subtitle_translate_language">目标语言</string>

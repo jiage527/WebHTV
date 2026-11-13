@@ -7804,16 +7804,20 @@ public class PlayerManager implements ParseCallback {
             if (!tracks.isEmpty() && !initTrack) {
                 playbackTrace.mark(PlaybackTrace.Stage.TRACKS, trackSummary(tracks));
                 restoreTrackSelection(Track.find(getKey()));
-                // A subtitle added during playback must win over the restore above:
-                // that restore re-applies the preference saved when this item was
-                // launched, which cannot mention a subtitle that did not exist yet.
-                selectPendingSubtitle(tracks);
                 if (engine instanceof MpvPlayerEngine mpv) {
                     mpv.completeInitialSubtitleTrackRestore();
                 }
                 callback.onTracksChanged();
                 initTrack = true;
             }
+            // Outside the first-callback guard on purpose. A merged media source
+            // reports its tracks in waves: the callback that carries the main
+            // item's tracks usually arrives before the one that introduces the
+            // newly added external subtitle group. Running this only on the first
+            // callback meant the match found nothing and the request was dropped,
+            // which is why a second click was needed. It is a no-op with no
+            // pending subtitle, and clears the request once it has been applied.
+            selectPendingSubtitle(tracks);
             markStartupCompletion(player != null && player.getPlaybackState() == Player.STATE_READY, tracks);
             publishPlaybackTelemetry();
             applyLutForCurrentItem();

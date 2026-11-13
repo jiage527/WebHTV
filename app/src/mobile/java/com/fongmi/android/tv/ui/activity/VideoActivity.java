@@ -3985,7 +3985,25 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     /** 打开播放队列面板；点选某一项会直接切换到它。 */
     private void onQueue() {
         PlayQueueStore.markCurrent(player().getUrl());
-        PlayQueueDialog.show(this, entry -> playQueueEntry(entry));
+        PlayQueueDialog.show(this, new PlayQueueDialog.Listener() {
+
+            @Override
+            public void onPlayQueueEntry(PlayQueue.Entry entry) {
+                playQueueEntry(entry);
+            }
+
+            /** 面板里的「加当前」：复用与长按同一条路径，只把它是否成功回报给面板。 */
+            @Override
+            public boolean onAddCurrentToQueue() {
+                return addCurrentToQueue();
+            }
+
+            /** 面板里的「加整季」：同样复用长按的那条路径。 */
+            @Override
+            public int onAddSeasonToQueue() {
+                return addSeasonToQueue();
+            }
+        });
     }
 
     /**
@@ -4024,29 +4042,39 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     /**
-     * 把当前剧集加入队列。长按剧集按钮时用来快速加入，不必先打开队列面板。
+     * 把当前剧集加入队列，返回是否真的加进去了。
+     *
+     * <p>长按队列按钮与队列面板里的「加当前」共用这一条：两处若各写一份，迟早会出现
+     * 一边对齐了「当前项」、另一边没有的偏差。
      */
-    private void onQueueAddCurrent() {
+    private boolean addCurrentToQueue() {
         Episode item = getEpisode();
-        if (item == null || TextUtils.isEmpty(item.getUrl())) {
-            Notify.show(R.string.play_queue_unsupported);
-            return;
-        }
-        if (PlayQueueStore.add(item.getName(), item.getUrl())) {
-            // 对齐当前项，否则刚加入的这一集会被当成「还没开始」，连播时又从头播它自己。
-            PlayQueueStore.markCurrent(item.getUrl());
-            Notify.show(getString(R.string.play_queue_added, item.getName()));
-        } else Notify.show(R.string.play_queue_unsupported);
+        if (item == null || TextUtils.isEmpty(item.getUrl())) return false;
+        if (!PlayQueueStore.add(item.getName(), item.getUrl())) return false;
+        // 对齐当前项，否则刚加入的这一集会被当成「还没开始」，连播时又从头播它自己。
+        PlayQueueStore.markCurrent(item.getUrl());
+        return true;
     }
 
-    /** 把当前源的全部剧集加入队列，用于一次排好整季。 */
-    private void onQueueAddAll() {
-        Flag flag = getFlag();
-        List<Episode> episodes = flag == null ? mEpisodeAdapter.getItems() : flag.getEpisodes();
-        if (episodes == null || episodes.isEmpty()) {
+    /** 长按队列按钮：把当前剧集加入队列，并就地提示。 */
+    private void onQueueAddCurrent() {
+        Episode item = getEpisode();
+        if (!addCurrentToQueue() || item == null) {
             Notify.show(R.string.play_queue_unsupported);
             return;
         }
+        Notify.show(getString(R.string.play_queue_added, item.getName()));
+    }
+
+    /**
+     * 把当前源的全部剧集加入队列，返回真正加入的数量。
+     *
+     * <p>同样是长按与面板共用的那一份；0 既表示「没有可加的剧集」，也表示「全都已经在队列里」。
+     */
+    private int addSeasonToQueue() {
+        Flag flag = getFlag();
+        List<Episode> episodes = flag == null ? mEpisodeAdapter.getItems() : flag.getEpisodes();
+        if (episodes == null || episodes.isEmpty()) return 0;
         List<PlayQueue.Entry> entries = new ArrayList<>();
         for (Episode episode : episodes) {
             if (episode == null || TextUtils.isEmpty(episode.getUrl())) continue;
@@ -4056,8 +4084,15 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
         if (added > 0) {
             // 按正在播的那一集对齐当前项；整季入队时用户多半不在第一集。
             PlayQueueStore.markCurrent(getEpisode() == null ? null : getEpisode().getUrl());
-            Notify.show(getString(R.string.play_queue_add_season_done, added));
-        } else Notify.show(R.string.play_queue_unsupported);
+        }
+        return added;
+    }
+
+    /** 长按剧集按钮：把当前源的全部剧集加入队列，并就地提示。 */
+    private void onQueueAddAll() {
+        int added = addSeasonToQueue();
+        if (added > 0) Notify.show(getString(R.string.play_queue_add_season_done, added));
+        else Notify.show(R.string.play_queue_unsupported);
     }
 
     @Override

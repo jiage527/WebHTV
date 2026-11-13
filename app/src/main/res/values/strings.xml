@@ -1483,6 +1483,10 @@
     <string name="play_queue_current">Playing</string>
     <string name="play_queue_ended">Reached the end of the queue</string>
     <string name="play_queue_unsupported">This item cannot be queued</string>
+    <string name="play_queue_empty_hint">The queue is empty. Use the buttons below to add the playing item, or every episode of the current source.</string>
+    <string name="play_queue_add_current">Add playing item</string>
+    <string name="play_queue_add_season">Add all episodes</string>
+    <string name="play_queue_added_current">Added the playing item to the queue</string>
     <string name="play_gif_record_cancelled">Recording cancelled</string>
     <string name="subtitle_translate">Translate subtitle</string>
     <string name="subtitle_translate_language">Target language</string>

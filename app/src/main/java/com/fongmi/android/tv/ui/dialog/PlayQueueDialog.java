@@ -35,6 +35,11 @@ import java.util.List;
  *
  * <p>队列的顺位规则全部交给 {@link PlayQueue}，这里只负责把它的结果画出来，
  * 避免界面层再维护一份下标。
+ *
+ * <p><b>添加入口放在这里，而不是只挂在播放页按钮的长按上。</b>之前面板只有「清空队列」，
+ * 而「加入队列」全靠长按播放页的队列/剧集按钮——没有任何视觉提示，用户找不到，
+ * 只会觉得这个功能没做完。面板是用户唯一会主动打开来看队列的地方，所以「加当前」
+ * 与「加整季」两个按钮就放在这里；长按那两条路径保留，两者共用同一份实现。
  */
 public final class PlayQueueDialog {
 
@@ -42,6 +47,17 @@ public final class PlayQueueDialog {
 
         /** 用户在队列里点选了某一项，应当立即播放它。 */
         void onPlayQueueEntry(PlayQueue.Entry entry);
+
+        /**
+         * 把当前正在播的这一条加入队列。
+         *
+         * <p>「当前在播什么」只有播放页知道，所以这件事由调用方做，面板只负责给出入口。
+         * 加完返回 true 表示确实进去了，面板据此提示并刷新。
+         */
+        boolean onAddCurrentToQueue();
+
+        /** 把当前源的全部剧集加入队列；返回真正加入的数量，0 表示没得加。 */
+        int onAddSeasonToQueue();
     }
 
     private final Context context;
@@ -54,6 +70,7 @@ public final class PlayQueueDialog {
     private RecyclerView recyclerView;
     private TextView titleView;
     private TextView modeView;
+    private TextView emptyView;
 
     private PlayQueueDialog(Context context, Listener listener) {
         this.context = context;
@@ -73,6 +90,7 @@ public final class PlayQueueDialog {
         root.setPadding(padding, padding, padding, ResUtil.dp2px(8));
 
         root.addView(buildHeader());
+        root.addView(buildEmpty());
         recyclerView = new RecyclerView(context);
         recyclerView.setLayoutManager(new LinearLayoutManager(context));
         recyclerView.setAdapter(new QueueAdapter());
@@ -108,19 +126,65 @@ public final class PlayQueueDialog {
         return row;
     }
 
+    /**
+     * 空队列时的提示。
+     *
+     * <p>以前队列空着打开面板，只有标题和「清空队列」——看起来像坏了，用户也找不到
+     * 添加的地方（添加原本只挂在播放页按钮的长按上，没有任何视觉提示）。这里既解释
+     * 现状，也直接把添加入口放在眼前，而不是让用户去猜长按。
+     */
+    private TextView buildEmpty() {
+        emptyView = new TextView(context);
+        emptyView.setText(R.string.play_queue_empty_hint);
+        emptyView.setTextSize(13);
+        emptyView.setTextColor(ThemeColors.detail(context));
+        emptyView.setPadding(0, ResUtil.dp2px(8), 0, ResUtil.dp2px(8));
+        return emptyView;
+    }
     private View buildFooter() {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.END);
+        row.setGravity(Gravity.CENTER_VERTICAL);
 
-        TextView clear = new TextView(context);
-        clear.setText(R.string.play_queue_clear);
-        clear.setTextSize(14);
-        clear.setTextColor(ThemeColors.action(context));
-        clear.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
-        clear.setOnClickListener(view -> confirmClear());
-        row.addView(clear);
+        // 添加类动作用主色、放在左边；「清空」是破坏性操作，靠右并降到次要色，
+        // 避免和添加挨在一起被误点。
+        row.addView(action(R.string.play_queue_add_current, ThemeColors.accent(context), view -> addCurrent()));
+        row.addView(action(R.string.play_queue_add_season, ThemeColors.accent(context), view -> addSeason()));
+        View spacer = new View(context);
+        row.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
+        row.addView(action(R.string.play_queue_clear, ThemeColors.detail(context), view -> confirmClear()));
         return row;
+    }
+
+    private TextView action(int label, int color, View.OnClickListener listener) {
+        TextView view = new TextView(context);
+        view.setText(label);
+        view.setTextSize(14);
+        view.setTextColor(color);
+        view.setPadding(ResUtil.dp2px(12), ResUtil.dp2px(8), ResUtil.dp2px(12), ResUtil.dp2px(8));
+        view.setOnClickListener(listener);
+        return view;
+    }
+
+    /** 加入当前这一条。面板不自己判断「当前在播什么」，交给播放页回答。 */
+    private void addCurrent() {
+        if (listener.onAddCurrentToQueue()) {
+            refresh();
+            Notify.show(R.string.play_queue_added_current);
+        } else {
+            Notify.show(R.string.play_queue_unsupported);
+        }
+    }
+
+    /** 加入当前源的全部剧集。 */
+    private void addSeason() {
+        int added = listener.onAddSeasonToQueue();
+        if (added > 0) {
+            refresh();
+            Notify.show(context.getString(R.string.play_queue_add_season_done, added));
+        } else {
+            Notify.show(R.string.play_queue_unsupported);
+        }
     }
 
     private void confirmClear() {
@@ -147,6 +211,9 @@ public final class PlayQueueDialog {
         if (recyclerView != null && recyclerView.getAdapter() != null) recyclerView.getAdapter().notifyDataSetChanged();
         if (titleView != null) titleView.setText(context.getString(R.string.play_queue_title));
         if (modeView != null) modeView.setText(context.getString(modeLabel(queue.mode())));
+        // 空队列时列表没什么可看，换成一段带指引的说明；非空时把列表让出来。
+        if (emptyView != null) emptyView.setVisibility(queue.isEmpty() ? View.VISIBLE : View.GONE);
+        if (recyclerView != null) recyclerView.setVisibility(queue.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private static int modeLabel(String mode) {
