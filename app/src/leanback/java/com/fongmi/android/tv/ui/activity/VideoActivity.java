@@ -92,6 +92,7 @@ import com.fongmi.android.tv.playback.PlaybackEventCollector;
 import com.fongmi.android.tv.player.PlaybackTrace;
 import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlayerManager;
+import com.fongmi.android.tv.player.engine.MpvPlayerEngine;
 import com.fongmi.android.tv.player.failover.FailoverRetryPolicy;
 import com.fongmi.android.tv.player.failover.FailoverWatchdog;
 import com.fongmi.android.tv.player.gif.GifRecordController;
@@ -1123,12 +1124,14 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
     }
 
     /**
-     * Steps the upscale tier.
+     * 切换超分档位。
      *
-     * <p>The tier only changes render-stage options, so it is applied to the running session
-     * and playback continues untouched. Only when the live session cannot take it — TV direct
-     * output, or a player that is not up yet — does this fall back to the settings path, which
-     * reloads the media and therefore keeps the position and the playing state explicitly.
+     * <p>档位落在 {@code glsl-shaders} 的 Anime4K 着色器链上，整条链一次换掉、播放不中断：
+     * 这些 pass 靠 {@code //!HOOK}/{@code //!BIND} 前后衔接，只补差集会让共用的 pass 留在旧位置，
+     * 顺序一乱画面明显劣化。
+     *
+     * <p>渲染器跑不了着色器管线时（硬解直出 {@code mediacodec_embed}——电视端默认就是它）
+     * **把档位退回去并提示**，而不是让开关停在「已开启」而画面毫无变化。
      */
     private void onQualityEnhance() {
         if (!player().isMpv()) return;
@@ -1136,12 +1139,30 @@ public class VideoActivity extends PlaybackActivity implements CustomKeyDownVod.
                 com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.nextMode(
                         MpvQualityEnhanceSetting.getMode()));
         setQualityEnhance();
-        if (com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.modeNeedsWarning(
-                MpvQualityEnhanceSetting.getMode())) {
+        MpvPlayerEngine.SuperResolutionResult result = player().applySuperResolution();
+        if (result == MpvPlayerEngine.SuperResolutionResult.NEEDS_GPU_RENDERER) {
+            MpvQualityEnhanceSetting.putMode(
+                    com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.MODE_OFF);
+            setQualityEnhance();
+            showSuperResolutionNeedsGpu();
+            return;
+        }
+        if (result == MpvPlayerEngine.SuperResolutionResult.APPLIED
+                && com.fongmi.android.tv.player.mpv.MpvQualityEnhanceOption.modeNeedsWarning(
+                        MpvQualityEnhanceSetting.getMode())) {
             Notify.show(R.string.play_quality_enhance_heavy);
         }
+        // 内置缩放核与降噪仍然下发：它们在两条 GPU 管线上都有效，与着色器链互补。
         if (player().applyQualityEnhanceRuntime()) return;
         ConfigEvent.playerPerformance();
+    }
+
+    private void showSuperResolutionNeedsGpu() {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_WebHTV_LightDialog)
+                .setTitle(R.string.play_quality_enhance)
+                .setMessage(R.string.play_quality_enhance_needs_gpu)
+                .setPositiveButton(R.string.dialog_positive, null)
+                .show();
     }
 
     private void onLutChanged() {

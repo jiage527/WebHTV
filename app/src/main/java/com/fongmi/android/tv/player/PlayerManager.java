@@ -4865,6 +4865,25 @@ public class PlayerManager implements ParseCallback {
         return mpv.applyQualityEnhanceRuntime();
     }
 
+    /**
+     * 按当前档位挂载 / 卸下 Anime4K 超分链。
+     *
+     * <p>与 {@link #applyQualityEnhanceRuntime()} 的区别：那条改的是内置缩放核，随时可改；
+     * 这条要把着色器挂上渲染管线，所以要求当前渲染器真的在跑管线。
+     *
+     * @return 非 null 结果；非 MPV 内核时返回 {@code null}（调用方沿用各自内核的原路径）
+     */
+    @Nullable
+    public MpvPlayerEngine.SuperResolutionResult applySuperResolution() {
+        if (!isMpv() || !(engine instanceof MpvPlayerEngine mpv)) return null;
+        return mpv.applySuperResolution();
+    }
+
+    /** 当前是否具备跑超分着色器的条件（MPV 内核 + GPU 渲染管线）。 */
+    public boolean supportsSuperResolution() {
+        return isMpv() && engine instanceof MpvPlayerEngine mpv && mpv.supportsSuperResolution();
+    }
+
     private boolean rebuildAndRestartExo(String reason) {
         if (!isExo() || spec == null || TextUtils.isEmpty(spec.getUrl())) {
             return false;

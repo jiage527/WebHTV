@@ -27,6 +27,8 @@ import com.fongmi.android.tv.player.PlayerHelper;
 import com.fongmi.android.tv.player.PlaybackRoute;
 import com.fongmi.android.tv.player.PlaybackResourceClassifier;
 import com.fongmi.android.tv.player.PlaybackTrace;
+import com.fongmi.android.tv.player.anime4k.Anime4KShaderChain;
+import com.fongmi.android.tv.player.anime4k.Anime4KShaderStore;
 import com.fongmi.android.tv.player.codec.CodecCapabilityInspector;
 import com.fongmi.android.tv.player.exo.ExoUtil;
 import com.fongmi.android.tv.player.exo.TrackUtil;
@@ -409,6 +411,74 @@ public class MpvPlayerEngine implements PlayerEngine {
         return true;
     }
 
+    /** 超分档位下发的结果。区分「关掉」与「这台机器做不到」，调用方据此决定要不要提示用户。 */
+    public enum SuperResolutionResult {
+        /** 已生效（含「关闭档」成功卸下着色器）。 */
+        APPLIED,
+        /** 档位是关闭，无需挂载。 */
+        DISABLED,
+        /** 当前渲染器不跑着色器管线（典型是硬解直出 {@code mediacodec_embed}）。 */
+        NEEDS_GPU_RENDERER,
+        /** 着色器没能从安装包里落盘。 */
+        UNAVAILABLE,
+    }
+
+    /**
+     * 按当前档位挂载或卸下 Anime4K 超分链。
+     *
+     * <p>与 {@link #applyQualityEnhanceRuntime()} 的分工：那条走的是内置缩放核，随时可改；
+     * 这条走 {@code glsl-shaders}，需要着色器文件已落盘，且要求渲染器跑的是着色器管线。
+     *
+     * <p>渲染器不支持时**不改档位**并如实返回 {@link SuperResolutionResult#NEEDS_GPU_RENDERER}：
+     * 让开关停在「已开启」而画面毫无变化，正是用户最初抱怨的那个现象。
+     */
+    public SuperResolutionResult applySuperResolution() {
+        if (player == null) return SuperResolutionResult.UNAVAILABLE;
+        int mode = MpvQualityEnhanceSetting.getMode();
+        if (!Anime4KShaderChain.needsShaders(mode)) {
+            player.setAnime4KShaders(List.of());
+            SpiderDebug.log("player-engine", "super resolution off");
+            return SuperResolutionResult.DISABLED;
+        }
+        String vo = currentVideoOutput();
+        if (!MpvQualityEnhanceOption.isSupported(vo)) {
+            SpiderDebug.log("player-engine", "super resolution skipped vo=%s (no shader pipeline)", vo);
+            return SuperResolutionResult.NEEDS_GPU_RENDERER;
+        }
+        List<String> paths = Anime4KShaderStore.pathsFor(mode);
+        if (paths.isEmpty()) {
+            SpiderDebug.log("player-engine", "super resolution shader files unavailable mode=%d", mode);
+            return SuperResolutionResult.UNAVAILABLE;
+        }
+        player.setAnime4KShaders(paths);
+        SpiderDebug.log("player-engine", "super resolution applied vo=%s tier=%s passes=%d",
+                vo, Anime4KShaderChain.tierName(mode), paths.size());
+        return SuperResolutionResult.APPLIED;
+    }
+
+    /** 当前渲染器是否可能跑着色器管线（用于 UI 提示，不一定每次都重新落盘校验）。 */
+    public boolean supportsSuperResolution() {
+        return player != null && MpvQualityEnhanceOption.isSupported(currentVideoOutput());
+    }
+
+    /**
+     * 播放器被重建后把超分链补回去（新 player 的链是空的）。
+     *
+     * <p>只认传进来的这个 player，**不能**用 {@link #currentVideoOutput()}：那个读的是
+     * {@code player} 字段，而本方法在 {@code buildPlayer} 里、字段赋值<b>之前</b>就被调用，
+     * 首次构造时该字段还是 null。此刻也还没有任何媒体装载，mpv 尚未发布 vo，
+     * 所以这里只在「已经能看出渲染器不支持」时提前退出，其余留给
+     * {@code applyShaderPipeline(true)} 在初始化完成后挂载。
+     */
+    private void restoreSuperResolution(MpvPlayer player) {
+        int mode = MpvQualityEnhanceSetting.getMode();
+        if (player == null || !Anime4KShaderChain.needsShaders(mode)) return;
+        String observed = player.getObservedCurrentVideoOutput();
+        if (!observed.isEmpty() && !MpvQualityEnhanceOption.isSupported(observed)) return;
+        List<String> paths = Anime4KShaderStore.pathsFor(mode);
+        if (!paths.isEmpty()) player.setAnime4KShaders(paths);
+    }
+
     /**
      * The video output in use right now.
      *
@@ -416,6 +486,7 @@ public class MpvPlayerEngine implements PlayerEngine {
      * only a guess for the first frames, before mpv has published anything.
      */
     private String currentVideoOutput() {
+        if (player == null) return "";
         String observed = player.getObservedCurrentVideoOutput();
         if (!observed.isEmpty()) return observed;
         if (isSurfaceDirect()) return "mediacodec_embed";
@@ -1061,6 +1132,7 @@ public class MpvPlayerEngine implements PlayerEngine {
         }
         player.setVideoSizeProbeListener(videoSizeProbeListener);
         player.addListener(listener);
+        restoreSuperResolution(player);
         return player;
     }
 

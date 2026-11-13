@@ -236,7 +236,8 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
     private boolean discNavigationActive;
     private boolean isoTrackListDumped;
     private long isoMetadataListenerSessionId = -1;
-    private String appliedLutShaderPath;
+    private List<String> anime4kShaderPaths = List.of();
+    private List<String> appliedShaderPaths = List.of();
     private PlaybackParameters playbackParameters;
     private PlaybackException playerError;
     private Tracks currentTracks;
@@ -5819,22 +5820,50 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
         return ": " + recentLogs.get(recentLogs.size() - 1);
     }
 
+    /**
+     * 把 Anime4K 超分链挂到渲染管线上。
+     *
+     * <p>整条链一次换掉，不做差集：这些 pass 靠 {@code //!HOOK}/{@code //!BIND} 前后衔接，
+     * 只补差集会让共用的 pass 留在旧位置，顺序一乱画面明显劣化。
+     *
+     * @param paths 已落盘的绝对路径，顺序即渲染顺序；空表表示关闭超分
+     */
+    public void setAnime4KShaders(@Nullable List<String> paths) {
+        anime4kShaderPaths = paths == null ? List.of() : new ArrayList<>(paths);
+        applyShaderPipeline(false);
+    }
+
+    public List<String> getAnime4KShaders() {
+        return List.copyOf(anime4kShaderPaths);
+    }
+
+    /**
+     * 重算整条着色器链并同步到 mpv。
+     *
+     * <p>链的组成：先是超分链（Anime4K，顺序敏感），最后是 LUT。LUT 放最后是有意的——
+     * 它是色彩映射，应该作用在超分之后的结果上。
+     *
+     * <p>不用 {@code change-list set} 整串下发：{@code glsl-shaders} 是 path list 选项，
+     * 在 Unix 上用 {@code :} 分隔，而绝对路径本身可能含 {@code :}，拼接有歧义风险。
+     * 逐条 {@code remove}/{@code append} 与既有 LUT 代码同一套写法，语义明确。
+     */
     private void applyShaderPipeline(boolean force) {
         if (!initialized) return;
-        String target = lutShader == null ? "" : lutShader.getPath();
-        if (!force && TextUtils.equals(appliedLutShaderPath, target)) return;
-        if (!TextUtils.isEmpty(appliedLutShaderPath)) {
-            String optionKey = MpvLutShader.getPreviewOptionKey(appliedLutShaderPath);
-            if (!optionKey.isEmpty()) safeCommand(new String[]{"change-list", "glsl-shader-opts", "del", optionKey});
-            safeCommand(new String[]{"change-list", "glsl-shaders", "remove", appliedLutShaderPath});
-            SpiderDebug.log("mpv", "shader remove lut=%s", appliedLutShaderPath);
+        String lutPath = lutShader == null ? "" : lutShader.getPath();
+        List<String> desired = new ArrayList<>(anime4kShaderPaths);
+        if (!TextUtils.isEmpty(lutPath)) desired.add(lutPath);
+        if (!force && desired.equals(appliedShaderPaths)) return;
+        for (String path : appliedShaderPaths) {
+            if (TextUtils.equals(path, lutPath)) {
+                String optionKey = MpvLutShader.getPreviewOptionKey(path);
+                if (!optionKey.isEmpty()) safeCommand(new String[]{"change-list", "glsl-shader-opts", "del", optionKey});
+            }
+            safeCommand(new String[]{"change-list", "glsl-shaders", "remove", path});
         }
-        if (!TextUtils.isEmpty(target)) {
-            if (lutShader != null && lutShader.isPreview()) setLutPreviewProgress(0f);
-            safeCommand(new String[]{"change-list", "glsl-shaders", "append", target});
-            SpiderDebug.log("mpv", "shader append lut=%s", target);
-        }
-        appliedLutShaderPath = target;
+        if (!TextUtils.isEmpty(lutPath) && lutShader != null && lutShader.isPreview()) setLutPreviewProgress(0f);
+        for (String path : desired) safeCommand(new String[]{"change-list", "glsl-shaders", "append", path});
+        appliedShaderPaths = desired;
+        SpiderDebug.log("mpv", "shader chain applied anime4k=%d lut=%s", anime4kShaderPaths.size(), TextUtils.isEmpty(lutPath) ? "no" : "yes");
     }
 
     private void postToMain(Runnable runnable) {

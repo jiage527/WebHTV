@@ -58,9 +58,10 @@
     <string name="play_scale">Default</string>
     <string name="play_lut">LUT</string>
     <string name="play_quality_enhance">Upscale</string>
-    <string name="play_quality_enhance_light">Upscale · Light</string>
-    <string name="play_quality_enhance_strong">Upscale · Strong</string>
-    <string name="play_quality_enhance_heavy">Heavy quality enhancement is on; switch back to Light or Off if playback stutters</string>
+    <string name="play_quality_enhance_light">Upscale · Efficiency</string>
+    <string name="play_quality_enhance_strong">Upscale · Quality</string>
+    <string name="play_quality_enhance_heavy">Heavy upscaling is on; switch back to Efficiency or Off if playback stutters</string>
+    <string name="play_quality_enhance_needs_gpu">Upscaling needs the gpu or gpu-next video renderer, because it runs as a GPU shader. Hardware direct output (mediacodec_embed) cannot use it. Switch the renderer in playback settings.</string>
     <string name="play_config">Config</string>
     <string name="play_cast">Cast</string>
     <string name="play_change">Change</string>

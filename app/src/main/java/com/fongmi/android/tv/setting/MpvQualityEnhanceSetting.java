@@ -46,8 +46,8 @@ public final class MpvQualityEnhanceSetting {
      */
     public static String getModeText() {
         return switch (getMode()) {
-            case MpvQualityEnhanceOption.MODE_LIGHT -> "轻度";
-            case MpvQualityEnhanceOption.MODE_STRONG -> "强化";
+            case MpvQualityEnhanceOption.MODE_LIGHT -> "效率档";
+            case MpvQualityEnhanceOption.MODE_STRONG -> "质量档";
             default -> "关闭";
         };
     }

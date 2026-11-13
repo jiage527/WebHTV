@@ -997,13 +997,16 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
      * 切到高负载档位时就地提示一次。
      *
      * <p>提示出现在「做出选择」的瞬间，而不是藏在帮助页里——用户不必先去读说明
-     * 才知道自己刚踩了性能代价。已处于高负载时反复点「关闭/轻度」不再提示。
+     * 才知道自己刚踩了性能代价。已处于高负载时反复点「关闭/效率档」不再提示。
+     *
+     * <p>文案走资源而不是就地写死：写死的那份在改成「效率档/质量档」之后就成了旧措辞，
+     * 而且英文界面下会突然冒出一句中文。
      */
     private void warnQualityEnhance() {
         if (!MpvQualityEnhanceOption.needsPerformanceWarning(
                 MpvQualityEnhanceSetting.getMode(),
                 MpvQualityEnhanceSetting.getDenoise())) return;
-        Notify.show("已开启高负载画质增强，设备卡顿时请改回轻度或关闭");
+        Notify.show(R.string.play_quality_enhance_heavy);
     }
 
     private String formatSeconds(int milliseconds) {
