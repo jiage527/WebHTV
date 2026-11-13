@@ -4845,6 +4845,26 @@ public class PlayerManager implements ParseCallback {
         rebuildAndRestartMpv(null, "performance-settings-changed");
     }
 
+    /**
+     * Applies the upscale tier to the running MPV session without restarting playback.
+     *
+     * <p>The tiers only touch render-stage options, which mpv re-reads every frame, so the
+     * streamlined path is available whenever MPV is the active kernel. The full settings
+     * path reloads the media, which is the behaviour this exists to avoid: the reload drops
+     * the demuxer buffer and every decoded frame, so the picture restarts from the beginning
+     * before seeking back.
+     *
+     * @return {@code true} when the live session took the change; {@code false} when the
+     * caller has to fall back to the reload path
+     */
+    public boolean applyQualityEnhanceRuntime() {
+        if (!isMpv() || spec == null || TextUtils.isEmpty(spec.getUrl())
+                || !(engine instanceof MpvPlayerEngine mpv)) {
+            return false;
+        }
+        return mpv.applyQualityEnhanceRuntime();
+    }
+
     private boolean rebuildAndRestartExo(String reason) {
         if (!isExo() || spec == null || TextUtils.isEmpty(spec.getUrl())) {
             return false;

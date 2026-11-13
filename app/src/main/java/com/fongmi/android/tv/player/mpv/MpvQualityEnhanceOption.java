@@ -58,12 +58,28 @@ public final class MpvQualityEnhanceOption {
     /** 走 GPU 渲染的 vo 才能生效。 */
     private static final List<String> GPU_VO = List.of("gpu", "gpu-next");
 
+    /** {@code --sharpen} 唯一有效的 vo。 */
+    private static final String UNSHARP_VO = "gpu";
+
     private MpvQualityEnhanceOption() {
     }
 
     /** 该 vo 是否经过本机 GPU 着色器管线（决定增强选项是否有效）。 */
     public static boolean isSupported(String vo) {
         return vo != null && GPU_VO.contains(vo.trim().toLowerCase(Locale.ROOT));
+    }
+
+    /**
+     * 该 vo 是否支持 {@code --sharpen}（unsharp mask）。
+     *
+     * <p><b>为什么必须区分。</b>mpv 文档对 {@code --sharpen} 明确标注「(Only for {@code --vo=gpu})」；
+     * 对 {@code vo_gpu_next.c} 全文检索 {@code unsharp}/{@code sharpen} <b>零命中</b>——
+     * gpu-next 从不读这个选项。它只在旧 {@code vo=gpu} 路径上被挂成渲染 hook
+     * （{@code video/out/gpu/video.c} 的 {@code unsharp_hook}）。给 gpu-next 发它，
+     * mpv 不会报错、不会提示，只是什么也不做——正是「开关开了、画面没变」的来源之一。
+     */
+    public static boolean isUnsharpSupported(String vo) {
+        return vo != null && UNSHARP_VO.equals(vo.trim().toLowerCase(Locale.ROOT));
     }
 
     /**
@@ -81,34 +97,49 @@ public final class MpvQualityEnhanceOption {
 
         if (mode != MODE_OFF) {
             boolean strong = mode == MODE_STRONG;
-            // ewa_lanczossharp 是 libplacebo 内置的高质量 EWA 缩放器：
-            // 比默认的 bilinear/spline36 明显更锐利，且不像 .hook 那样需要额外资源。
-            options.put("scale", strong ? "ewa_lanczossharp" : "spline36");
-            // 色度平面同样受益；用较高的质量档避免色边。
-            options.put("cscale", strong ? "ewa_lanczossharp" : "spline36");
-            // 抗振铃：抑制锐化后常见的边缘光环。
+            // 真正的梯度在这两行。轻度与强化必须落在**同一族、不同锐度**的核上，
+            // 差别才稳定可见：曾经用过的 spline36 与强化档的 ewa_lanczossharp 分属两族，
+            // 轻度档的画面其实和 mpv 默认的 lanczos **看不出区别**——这正是「开着没效果」。
+            // 现在轻度用 ewa_lanczos（EWA 族基础档，边缘比 lanczos 干净），
+            // 强化用 ewa_lanczossharp（同族锐化档，mpv 的 high-quality profile 用它）。
+            // 两者在 gpu 与 gpu-next 下都有效。
+            //
+            // 为什么不再写 scaler-resizes-only=no / correct-downscaling=yes /
+            // sigmoid-upscaling=yes：这三条在 gl_video_opts_def 里的默认值**本来就是**
+            // true/true/true。写出来只是把默认值重抄一遍——其中 scaler-resizes-only=no
+            // 还把默认改掉了，于是 1:1 显示时也走重型核：**收益只出现在需要缩放的场景，
+            // 代价却付在所有场景**，这正是「开着没效果、设备却更吃力」的来源。
+            options.put("scale", strong ? "ewa_lanczossharp" : "ewa_lanczos");
+            // 色度平面同样受益；用同一档核避免色边。
+            options.put("cscale", strong ? "ewa_lanczossharp" : "ewa_lanczos");
+            // 抗振铃：抑制锐化后常见的边缘光环。mpv 默认是 0（不抑制），
+            // 所以这两条是真实生效的改动，不是重抄默认值。
             options.put("scale-antiring", strong ? "0.7" : "0.5");
             options.put("cscale-antiring", strong ? "0.7" : "0.5");
-            // 下采样也用高质量核，避免「播放时忽清晰忽模糊」。
+            // 下采样核：默认是 hermite，这里换成 mitchell（更平滑、振铃更少）。
             options.put("dscale", "mitchell");
-            // 只在放大时启用锐利核：缩小时用它可以避免过度振铃。
-            options.put("correct-downscaling", "yes");
-            options.put("scaler-resizes-only", "no");
-            if (strong) {
-                // sharpen 是 unsharp mask 锐化（随包 so 中存在该选项名与 "unsharp masking" 文本）。
+            if (isUnsharpSupported(vo)) {
+                // unsharp mask 锐化只在 vo=gpu 存在。给 gpu-next 发它是纯粹的假动作，
+                // 见 isUnsharpSupported 的说明。
                 // 0.5 以上在小屏上会明显出现白边，故上限定在 0.5。
-                options.put("sharpen", "0.5");
-                options.put("sigmoid-upscaling", "yes");
-            } else {
-                options.put("sharpen", "0.2");
+                options.put("sharpen", strong ? "0.5" : "0.2");
+            }
+            if (strong) {
+                // 放大核的模糊系数（kernel blur）。<1 更锐、>1 更柔，mpv 默认 0
+                // （= 用该核自己推荐的系数）。这一条是<b>放大时</b>唯一不依赖 vo 的
+                // 锐化手段：它属于卷积核参数，gpu 与 gpu-next 都会读
+                // （gpu 见 video/out/gpu/video.c 的 kernel.blur 赋值，gpu-next 见
+                // vo_gpu_next.c 的 map_scaler）。
+                // 文档明确提醒「别低于 0.5，建议落在 0.8–1.2」，故取 0.9 这个保守值。
+                options.put("scale-blur", "0.9");
+                options.put("cscale-blur", "0.9");
             }
         }
 
         if (denoise != DENOISE_OFF) {
-            // deband 是 libplacebo 的色带消除。注意：随包 mpv 只暴露了顶层 `deband`
-            // 开关，deband-iterations / deband-threshold / deband-range / deband-grain
-            // 这些子选项在 so 里均<b>不存在</b>（已逐项核对，命中 0），
-            // 顶层选项接受 `yes`/`no`；带参数的写法在这里不可用。
+            // deband 是 libplacebo 的色带消除。顶层选项接受 `yes`/`no`；
+            // 带参数的写法（deband-iterations 等）由 mpv 配置系统另行拼接，
+            // 本类只发顶层开关。
             options.put("deband", "yes");
             // 时间抖动避免色带在运动中「闪烁」；这是 mpv 自己的选项（非 libplacebo 参数）。
             options.put("temporal-dither", "yes");

@@ -69,37 +69,89 @@ public class MpvQualityEnhanceOptionTest {
     }
 
     @Test
-    public void lightModeUsesModerateScalerAndMildSharpen() {
+    public void lightModeUsesTheSofterEwaKernel() {
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceOption.MODE_LIGHT,
                 MpvQualityEnhanceOption.DENOISE_OFF,
                 "gpu-next");
-        assertEquals("spline36", options.get("scale"));
-        assertEquals("spline36", options.get("cscale"));
-        assertEquals("0.2", options.get("sharpen"));
-        assertFalse(options.containsKey("sigmoid-upscaling"));
+        assertEquals("ewa_lanczos", options.get("scale"));
+        assertEquals("ewa_lanczos", options.get("cscale"));
+        // gpu-next 不读 --sharpen，发它只会让人以为「开了却没变」。
+        assertFalse(options.containsKey("sharpen"));
+        // 内核模糊系数只给强化档，轻度档不该带上。
+        assertFalse(options.containsKey("scale-blur"));
     }
 
     @Test
-    public void strongModeUsesSharpScalerAndStrongerSharpen() {
+    public void theTwoTiersPickDifferentKernelsOfTheSameFamily() {
+        // 这一条钉住「轻度」与「强化」真的不一样。曾经轻度用 spline36、强化用
+        // ewa_lanczossharp，两族核的画面差别小到用户看不出——「开着没效果」的直接来源。
+        Map<String, String> light = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_LIGHT, MpvQualityEnhanceOption.DENOISE_OFF, "gpu-next");
+        Map<String, String> strong = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_STRONG, MpvQualityEnhanceOption.DENOISE_OFF, "gpu-next");
+        assertFalse(light.get("scale").equals(strong.get("scale")));
+    }
+
+    @Test
+    public void strongModeUsesTheSharpenedEwaKernel() {
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceOption.MODE_STRONG,
                 MpvQualityEnhanceOption.DENOISE_OFF,
                 "gpu-next");
         assertEquals("ewa_lanczossharp", options.get("scale"));
         assertEquals("ewa_lanczossharp", options.get("cscale"));
-        assertEquals("0.5", options.get("sharpen"));
-        assertEquals("yes", options.get("sigmoid-upscaling"));
+        assertFalse(options.containsKey("sharpen"));
+        // 放大核的模糊系数是强化档唯一不依赖 vo 的锐化手段，必须真的发出去。
+        assertEquals("0.9", options.get("scale-blur"));
+        assertEquals("0.9", options.get("cscale-blur"));
+    }
+
+    @Test
+    public void sharpenIsSentOnPlainGpuButNotOnGpuNext() {
+        // vo_gpu_next.c 全文检索 unsharp/sharpen 零命中：这个选项只在旧 vo=gpu 上存在。
+        // 同一个档位在两个管线上的选项集不同，是这组断言要保住的事实。
+        Map<String, String> gpu = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_LIGHT, MpvQualityEnhanceOption.DENOISE_OFF, "gpu");
+        Map<String, String> next = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_LIGHT, MpvQualityEnhanceOption.DENOISE_OFF, "gpu-next");
+        assertEquals("0.2", gpu.get("sharpen"));
+        assertFalse(next.containsKey("sharpen"));
+    }
+
+    @Test
+    public void isUnsharpSupportedOnlyAcceptsPlainGpu() {
+        assertTrue(MpvQualityEnhanceOption.isUnsharpSupported("gpu"));
+        assertTrue(MpvQualityEnhanceOption.isUnsharpSupported(" GPU "));
+        assertFalse(MpvQualityEnhanceOption.isUnsharpSupported("gpu-next"));
+        assertFalse(MpvQualityEnhanceOption.isUnsharpSupported("mediacodec_embed"));
+        assertFalse(MpvQualityEnhanceOption.isUnsharpSupported(null));
+        assertFalse(MpvQualityEnhanceOption.isUnsharpSupported("  "));
     }
 
     @Test
     public void strongModeNeverExceedsSharpenCap() {
         // 锐化超过 0.5 在小屏上会出现明显白边，这里把上限钉住。
+        // 用 gpu 而不是 gpu-next：后者根本不发这个选项。
+        Map<String, String> options = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_STRONG,
+                MpvQualityEnhanceOption.DENOISE_OFF,
+                "gpu");
+        assertTrue(Double.parseDouble(options.get("sharpen")) <= 0.5);
+    }
+
+    @Test
+    public void defaultsAreNeverRestated() {
+        // 这三条在 gl_video_opts_def 里的默认值本来就是 true/true/true。
+        // 写出来只是重抄默认值；其中 scaler-resizes-only=no 还把默认改掉了，
+        // 让 1:1 显示时也走重型核——收益只在缩放场景，代价付在所有场景。
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceOption.MODE_STRONG,
                 MpvQualityEnhanceOption.DENOISE_OFF,
                 "gpu-next");
-        assertTrue(Double.parseDouble(options.get("sharpen")) <= 0.5);
+        assertFalse(options.containsKey("scaler-resizes-only"));
+        assertFalse(options.containsKey("correct-downscaling"));
+        assertFalse(options.containsKey("sigmoid-upscaling"));
     }
 
     @Test
@@ -135,16 +187,21 @@ public class MpvQualityEnhanceOptionTest {
     }
 
     @Test
-    public void neverEmitsOptionNamesMissingFromBundledMpv() {
+    public void neverEmitsTheseAbsentOptionNames() {
         // 这些名字在随包 libmpv.so（双 ABI）的选项名表里确认不存在。
         // mpv 对未知选项不报错、不提示，只是静默忽略，所以必须由测试拦住。
+        //
+        // 注意 deband 的四个子选项早已从这份清单里拿掉：它们是 mpv 配置系统运行时
+        // 用「父名 + '-' + 子字段名」拼出来的，字面串本来就不会出现在二进制里
+        // （video.c 的 OPT_SUBSTRUCT(deband_opts, deband_conf)；options.rst 正式文档化了
+        // --deband-iterations / --deband-threshold / --deband-range / --deband-grain）。
+        // 仅有「名字在二进制里找不到」不足以判定选项不存在。
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceOption.MODE_STRONG,
                 MpvQualityEnhanceOption.DENOISE_STRONG,
                 "gpu-next");
         for (String forbidden : new String[]{
-                "deband-iterations", "deband-threshold", "deband-range", "deband-grain",
-                "user-shaders", "unsharp", "hqdn3d", "atadenoise"}) {
+                "user-shaders", "unsharp", "hqdn3d", "atadenoise", "scaler-lut-size"}) {
             assertFalse("不应发出随包 mpv 不存在的选项: " + forbidden,
                     options.containsKey(forbidden));
         }
@@ -162,9 +219,9 @@ public class MpvQualityEnhanceOptionTest {
     }
 
     private static final java.util.Set<String> ALLOWED = java.util.Set.of(
-            "scale", "cscale", "dscale", "scale-antiring", "cscale-antiring",
-            "correct-downscaling", "scaler-resizes-only", "sharpen",
-            "sigmoid-upscaling", "deband", "temporal-dither", "dither-size-fruit");
+            "scale", "cscale", "scale-blur", "cscale-blur", "dscale",
+            "scale-antiring", "cscale-antiring", "sharpen",
+            "deband", "temporal-dither", "dither-size-fruit");
 
     @Test
     public void noEmptyKeysOrValues() {
@@ -255,7 +312,7 @@ public class MpvQualityEnhanceOptionTest {
                 MpvQualityEnhanceOption.MODE_LIGHT,
                 MpvQualityEnhanceOption.DENOISE_LIGHT,
                 "gpu-next");
-        assertEquals("spline36", both.get("scale"));
+        assertEquals("ewa_lanczos", both.get("scale"));
         assertEquals("yes", both.get("deband"));
     }
 

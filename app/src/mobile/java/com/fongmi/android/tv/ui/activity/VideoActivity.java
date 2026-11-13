@@ -1273,8 +1273,12 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
     }
 
     /**
-     * Steps the upscale tier and reloads MPV through the established settings
-     * path, which keeps the position and the playing state.
+     * Steps the upscale tier.
+     *
+     * <p>The tier only changes render-stage options, so it is applied to the running session
+     * and playback continues untouched. Only when the live session cannot take it — TV direct
+     * output, or a player that is not up yet — does this fall back to the settings path, which
+     * reloads the media and therefore keeps the position and the playing state explicitly.
      */
     private void onQualityEnhance() {
         if (!player().isMpv()) return;
@@ -1286,6 +1290,7 @@ public class VideoActivity extends PlaybackActivity implements Clock.Callback, C
                 MpvQualityEnhanceSetting.getMode())) {
             Notify.show(R.string.play_quality_enhance_heavy);
         }
+        if (player().applyQualityEnhanceRuntime()) return;
         ConfigEvent.playerPerformance();
     }
 

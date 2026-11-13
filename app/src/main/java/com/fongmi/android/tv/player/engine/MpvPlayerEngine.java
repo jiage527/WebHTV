@@ -368,6 +368,60 @@ public class MpvPlayerEngine implements PlayerEngine {
         return surfaceDirect;
     }
 
+    /**
+     * Applies the current upscale / sharpen / denoise tiers to the running session.
+     *
+     * <p>These options live in mpv's {@code gl_video_conf}, which is re-read every frame, so
+     * they can be changed while the media keeps playing. Going through the config instead
+     * would mean rebuilding the player, and a rebuild re-reads the stream and drops the
+     * demuxer buffer and every decoded frame.
+     *
+     * @return {@code true} when the live session accepted the change, so the caller must not
+     * rebuild; {@code false} when the caller has to fall back to the reload path
+     */
+    public boolean applyQualityEnhanceRuntime() {
+        if (player == null) return false;
+        String vo = currentVideoOutput();
+        if (!MpvQualityEnhanceOption.isSupported(vo)) {
+            // TV direct output ({@code mediacodec_embed}) never runs the shader pipeline, so
+            // there is nothing to write. Report "not handled" and let the caller keep the old
+            // path, which already logs why the switch looks inert.
+            return false;
+        }
+        if (MpvQualityEnhanceOption.isUnsharpSupported(vo)) {
+            // The unsharp filter only exists in the old vo=gpu pipeline, so the same tier
+            // means different things on the two GPU pipelines. Record which one is live, so
+            // a "no visible change" report can be told apart from "the option was dropped".
+            SpiderDebug.log("player-engine", "mpv quality enhance runtime vo=%s unsharp=yes", vo);
+        }
+        Map<String, String> options = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceSetting.getMode(),
+                MpvQualityEnhanceSetting.getDenoise(),
+                vo);
+        MpvPlayer.MpvQualityEnhanceApplyResult result = player.applyQualityEnhanceOptions(options);
+        if (!result.complete()) {
+            SpiderDebug.log("player-engine", "mpv quality enhance runtime failed vo=%s supported=%s applied=%s",
+                    vo, result.supported(), result.applied());
+            return false;
+        }
+        SpiderDebug.log("player-engine", "mpv quality enhance runtime vo=%s written=%d restored=%d %s",
+                vo, result.written(), result.restored(), MpvQualityEnhanceOption.describe(options));
+        return true;
+    }
+
+    /**
+     * The video output in use right now.
+     *
+     * <p>mpv's reported value is preferred because it is the truth; the configured values are
+     * only a guess for the first frames, before mpv has published anything.
+     */
+    private String currentVideoOutput() {
+        String observed = player.getObservedCurrentVideoOutput();
+        if (!observed.isEmpty()) return observed;
+        if (isSurfaceDirect()) return "mediacodec_embed";
+        return vulkanRenderer || decode != HARD ? "gpu-next" : "gpu";
+    }
+
     public boolean hasSubmittedVideoFrame() {
         return player.hasSubmittedVideoFrame();
     }

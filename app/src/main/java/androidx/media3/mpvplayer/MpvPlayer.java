@@ -50,6 +50,7 @@ import com.fongmi.android.tv.player.PlaybackTrace;
 import com.fongmi.android.tv.player.PreloadPausePolicy;
 import com.fongmi.android.tv.player.cache.DiskCacheCapacityPolicy;
 import com.fongmi.android.tv.player.cache.PlaybackDiskBufferStore;
+import com.fongmi.android.tv.player.mpv.MpvQualityEnhanceRuntime;
 import com.fongmi.android.tv.player.engine.PlayerCacheState;
 import com.fongmi.android.tv.player.iso.IsoSessionManager;
 import com.fongmi.android.tv.player.lut.MpvLutShader;
@@ -286,6 +287,13 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
     private boolean initialTrackSelectionGateRequested;
     private boolean initialTrackSelectionGateActive;
     private String initialSubtitleTrackId;
+    /**
+     * Original values of the render options this session has overwritten, keyed by option
+     * name. Held so that turning the quality-enhance tiers off can put the session back the
+     * way the user's own mpv.conf had it, instead of permanently replacing their scaler.
+     */
+    private final Object qualityEnhanceLock = new Object();
+    private Map<String, String> qualityEnhanceOriginal = Map.of();
     private boolean pendingOsdSurfaceAttach;
     private volatile long pendingOsdSurfaceRequestId;
     private long pendingSurfaceLoadGeneration = C.INDEX_UNSET;
@@ -5368,6 +5376,106 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
             return value == null ? fallback : value;
         } catch (Throwable ignored) {
             return fallback;
+        }
+    }
+
+    public MpvQualityEnhanceApplyResult applyQualityEnhanceOptions(
+            Map<String, String> target) {
+        return applyQualityEnhanceOptions(target, this::readRuntimeOption);
+    }
+
+    /**
+     * Applies render-stage options on the live session instead of rebuilding the player.
+     *
+     * <p>The quality-enhance tiers used to be delivered only through
+     * {@code MpvPlayerConfig} at construction time, so switching a tier meant tearing the
+     * player down and starting the media again: the stream was re-read, the demuxer buffer
+     * and every decoded frame were dropped, and the user watched the video reload from the
+     * beginning before seeking back. None of that is required for this group of options:
+     * they live in mpv's {@code gl_video_conf}, whose {@code change_flags} is
+     * {@code UPDATE_VIDEO}, and {@code vo_gpu_next.c} picks up changes every frame through
+     * {@code m_config_cache_update()} followed by {@code update_render_options()}.
+     *
+     * <p>Every write is checked against the native return value, because these options fail
+     * silently: an unknown name or an out-of-range value is accepted by the API and simply
+     * has no effect.
+     *
+     * @param target option names and values to make effective; empty turns the feature off
+     * @param read   reads a current native value; may return {@code null} when unavailable
+     * @return the result, including whether the live session accepted every write
+     */
+    public MpvQualityEnhanceApplyResult applyQualityEnhanceOptions(
+            Map<String, String> target,
+            java.util.function.Function<String, String> read) {
+        synchronized (qualityEnhanceLock) {
+            if (!initialized || released) {
+                return new MpvQualityEnhanceApplyResult(false, false, 0, 0);
+            }
+            MpvQualityEnhanceRuntime.Plan plan = MpvQualityEnhanceRuntime.plan(
+                    qualityEnhanceOriginal,
+                    target,
+                    read == null ? null : read::apply);
+            if (plan.isEmpty()) {
+                return new MpvQualityEnhanceApplyResult(true, true, 0, 0);
+            }
+            boolean restored = applyQualityEnhanceWrites(plan.restore());
+            boolean written = applyQualityEnhanceWrites(plan.writes());
+            if (written) qualityEnhanceOriginal = plan.bookkeeping();
+            return new MpvQualityEnhanceApplyResult(true, written, plan.writes().size(), plan.restore().size());
+        }
+    }
+
+    /** True when a live option write path is available on this session. */
+    public boolean isQualityEnhanceRuntimeReady() {
+        return initialized && !released;
+    }
+
+    /**
+     * Reads a current option value so that overwritten options can be put back.
+     *
+     * @return the value, or {@code null} when the property cannot be read
+     */
+    public String readRuntimeOption(String name) {
+        if (!initialized || released || name == null || name.isBlank()) return null;
+        try {
+            String value = mpvGetPropertyString(name);
+            return value == null || value.isEmpty() ? null : value;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /** Drops the bookkeeping without touching native state (used when the session is rebuilt). */
+    public void clearQualityEnhanceBookkeeping() {
+        synchronized (qualityEnhanceLock) {
+            qualityEnhanceOriginal = Map.of();
+        }
+    }
+
+    private boolean applyQualityEnhanceWrites(List<MpvQualityEnhanceRuntime.Entry> entries) {
+        boolean accepted = true;
+        for (MpvQualityEnhanceRuntime.Entry entry : entries) {
+            boolean ok = setRuntimeStringChecked(entry.name(), entry.value());
+            accepted &= ok;
+            if (!ok && shouldCollectDebugDetails()) {
+                PlaybackTrace.log("mpv", playbackTraceId,
+                        "action=quality-enhance-write result=failed option=%s value=%s",
+                        entry.name(), entry.value());
+            }
+        }
+        return accepted;
+    }
+
+    /** Outcome of {@link #applyQualityEnhanceOptions}. */
+    public record MpvQualityEnhanceApplyResult(
+            boolean supported,
+            boolean applied,
+            int written,
+            int restored) {
+
+        /** The live session took every write. */
+        public boolean complete() {
+            return supported && applied;
         }
     }
 
