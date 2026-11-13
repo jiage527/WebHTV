@@ -92,10 +92,35 @@ public final class MpvQualityEnhanceOption {
      * 保证「关闭」与旧版本行为<b>逐字节一致</b>。
      */
     public static Map<String, String> build(int mode, int denoise, String vo) {
+        return build(mode, denoise, vo, false);
+    }
+
+    /**
+     * 生成增强选项，并指明超分着色器链是否正在同一个 vo 上运行。
+     *
+     * <p><b>为什么要这个开关（实测得出，不是推测）。</b>在本机挂上 Anime4K 后读回的日志是：
+     * <pre>
+     * shader chain applied anime4k=7
+     * mpv quality enhance runtime vo=gpu-next written=5 scale=ewa_lanczos scale-antiring=0.5 ...
+     * </pre>
+     * 也就是<b>两套处理同时在跑</b>：Anime4K 先用神经网络把画面重建到 2 倍，紧接着本类的
+     * {@code scale}/{@code scale-blur}/{@code sharpen} 又把结果重采样一遍。后者把前者刚补出来的
+     * 边缘细节抹平了一部分，于是「效率档 vs 质量档」在同一帧上的像素差只有 <b>0.028%</b>
+     * （同一档位连拍的噪声底是 0）。这既是「两档看不出差别」的直接原因，也让档位差异变得
+     * 无法归因。
+     *
+     * <p>所以超分开启时本类只保留与着色器无关的部分（降噪/去色带/抖动），把缩放交给着色器
+     * 链自己决定——这与 Kazumi 的做法一致：它挂上 Anime4K 后不再改 {@code scale}。
+     *
+     * @param anime4kActive 超分着色器链当前是否已挂载生效
+     */
+    public static Map<String, String> build(int mode, int denoise, String vo, boolean anime4kActive) {
         Map<String, String> options = new LinkedHashMap<>();
         if (!isSupported(vo)) return options;
 
-        if (mode != MODE_OFF) {
+        // 超分着色器在跑时，缩放/锐化必须让位：它自己会做重建与放大，再叠一层内置核等于
+        // 把结果又模糊一遍。见方法 javadoc 里那次 0.028% 的实测。
+        if (mode != MODE_OFF && !anime4kActive) {
             boolean strong = mode == MODE_STRONG;
             // 真正的梯度在这两行。轻度与强化必须落在**同一族、不同锐度**的核上，
             // 差别才稳定可见：曾经用过的 spline36 与强化档的 ewa_lanczossharp 分属两族，

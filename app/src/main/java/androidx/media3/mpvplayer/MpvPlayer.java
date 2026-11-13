@@ -5838,6 +5838,17 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
     }
 
     /**
+     * mpv 当前是否真的挂着超分着色器链。
+     *
+     * <p>刻意读 {@code appliedShaderPaths} 而不是 {@code anime4kShaderPaths}：前者是「mpv 已经接受
+     * 并持有的」，后者只是「我们想让它持有的」。内置缩放核要不要让位取决于前者——链没挂上却
+     * 把缩放核撤了，就等于两边都没有，画面反而更差。
+     */
+    public boolean hasAnime4KShaders() {
+        return !appliedShaderPaths.isEmpty() && !anime4kShaderPaths.isEmpty();
+    }
+
+    /**
      * 重算整条着色器链并同步到 mpv。
      *
      * <p>链的组成：先是超分链（Anime4K，顺序敏感），最后是 LUT。LUT 放最后是有意的——
@@ -5853,17 +5864,66 @@ public final class MpvPlayer extends SimpleBasePlayer implements MPVLib.EventObs
         List<String> desired = new ArrayList<>(anime4kShaderPaths);
         if (!TextUtils.isEmpty(lutPath)) desired.add(lutPath);
         if (!force && desired.equals(appliedShaderPaths)) return;
+        int failures = 0;
         for (String path : appliedShaderPaths) {
             if (TextUtils.equals(path, lutPath)) {
                 String optionKey = MpvLutShader.getPreviewOptionKey(path);
-                if (!optionKey.isEmpty()) safeCommand(new String[]{"change-list", "glsl-shader-opts", "del", optionKey});
+                if (!optionKey.isEmpty() && commandOrLog(new String[]{"change-list", "glsl-shader-opts", "del", optionKey}) < 0) failures++;
             }
-            safeCommand(new String[]{"change-list", "glsl-shaders", "remove", path});
+            if (commandOrLog(new String[]{"change-list", "glsl-shaders", "remove", path}) < 0) failures++;
         }
         if (!TextUtils.isEmpty(lutPath) && lutShader != null && lutShader.isPreview()) setLutPreviewProgress(0f);
-        for (String path : desired) safeCommand(new String[]{"change-list", "glsl-shaders", "append", path});
+        for (String path : desired) if (commandOrLog(new String[]{"change-list", "glsl-shaders", "append", path}) < 0) failures++;
         appliedShaderPaths = desired;
-        SpiderDebug.log("mpv", "shader chain applied anime4k=%d lut=%s", anime4kShaderPaths.size(), TextUtils.isEmpty(lutPath) ? "no" : "yes");
+        String nativeChain = readNativeShaderChain();
+        SpiderDebug.log("mpv", "shader chain applied anime4k=%d lut=%s failures=%d native=%s",
+                anime4kShaderPaths.size(), TextUtils.isEmpty(lutPath) ? "no" : "yes", failures, describeShaderChain(nativeChain));
+    }
+
+    /**
+     * 下发一条 mpv 命令并把它真的返回码记进诊断日志。
+     *
+     * <p>着色器相关命令以前走 {@link #safeCommand}（{@code try { mpvCommand } catch (Throwable ignored) {}}），
+     * 异常和返回值都被吞掉。而 mpv 处理 {@code glsl-shaders} 失败时**不会报错也不会回滚**——
+     * 编译不过的着色器被静默跳过，画面照旧。于是「命令发了」和「着色器跑了」在日志里长得一模一样，
+     * 这正是无法判定超分是否生效的根因。
+     *
+     * @return mpv 的返回码（{@code <0} 表示失败或抛异常）
+     */
+    private int commandOrLog(String[] command) {
+        try {
+            int result = mpvCommand(command);
+            if (result < 0) {
+                SpiderDebug.log("mpv", "shader command rejected result=%d op=%s", result,
+                        command.length > 2 ? command[1] + " " + command[2] : String.join(" ", command));
+            }
+            return result;
+        } catch (Throwable error) {
+            SpiderDebug.log("mpv", "shader command threw %s", error.getClass().getSimpleName());
+            return -1;
+        }
+    }
+
+    /**
+     * 读回 mpv 实际持有的 {@code glsl-shaders} 链。
+     *
+     * <p>这是唯一能证明「写进去的和 mpv 认下的是一回事」的证据：mpv 会丢弃不存在的路径，
+     * 读回来少一条就说明有一条没落地。
+     */
+    public String readNativeShaderChain() {
+        return stringProperty("glsl-shaders", "");
+    }
+
+    /** 把着色器链压成「条数 + 文件名们」，避免整条绝对路径刷屏。 */
+    private static String describeShaderChain(String chain) {
+        if (TextUtils.isEmpty(chain)) return "empty";
+        List<String> names = new ArrayList<>();
+        for (String entry : chain.split(File.pathSeparator)) {
+            if (TextUtils.isEmpty(entry)) continue;
+            int slash = entry.lastIndexOf('/');
+            names.add(slash < 0 ? entry : entry.substring(slash + 1));
+        }
+        return names.size() + ":" + TextUtils.join(",", names);
     }
 
     private void postToMain(Runnable runnable) {

@@ -27,4 +27,7 @@
     <color name="white_80">#CCFFFFFF</color>
     <color name="white_90">#E6FFFFFF</color>
 
+    <!-- 应用图标自适应背景：取自定义图标外环的平均色，与前景圆形无缝衔接 -->
+    <color name="ic_launcher_background">#042E54</color>
+
 </resources>

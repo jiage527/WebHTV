@@ -187,6 +187,60 @@ public class MpvQualityEnhanceOptionTest {
     }
 
     @Test
+    public void anime4kActiveDropsScalerOptionsButKeepsDenoise() {
+        // 真机日志同时打出过 shader chain applied anime4k=7 与
+        // mpv quality enhance runtime written=5 scale=ewa_lanczos，两套在抢同一条管线。
+        // 着色器已经在做放大与修线，再叠内置缩放核只会互相抵消；但降噪（deband/dither）
+        // 是着色器完全不碰的环节，必须留着，否则「开超分就把降噪弄没了」。
+        Map<String, String> withoutShaders = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_STRONG,
+                MpvQualityEnhanceOption.DENOISE_STRONG,
+                "gpu-next",
+                false);
+        Map<String, String> withShaders = MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_STRONG,
+                MpvQualityEnhanceOption.DENOISE_STRONG,
+                "gpu-next",
+                true);
+        assertFalse("默认重载应当等同于 anime4kActive=false", withoutShaders.isEmpty());
+        for (String dropped : new String[]{
+                "scale", "cscale", "dscale", "scale-blur", "cscale-blur",
+                "scale-antiring", "cscale-antiring", "sharpen"}) {
+            assertFalse("超分在跑时不应再发缩放/锐化选项: " + dropped,
+                    withShaders.containsKey(dropped));
+        }
+        assertEquals("yes", withShaders.get("deband"));
+        assertEquals("yes", withShaders.get("temporal-dither"));
+        assertEquals("8", withShaders.get("dither-size-fruit"));
+    }
+
+    @Test
+    public void anime4kActiveAtOffModeChangesNothing() {
+        // 超分关闭时第 4 个参数必须完全不起作用，否则「关了超分档位却还留着半套设置」。
+        assertTrue(MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_OFF,
+                MpvQualityEnhanceOption.DENOISE_OFF,
+                "gpu-next",
+                true).isEmpty());
+        assertEquals(MpvQualityEnhanceOption.build(
+                        MpvQualityEnhanceOption.MODE_OFF,
+                        MpvQualityEnhanceOption.DENOISE_LIGHT,
+                        "gpu-next",
+                        false),
+                MpvQualityEnhanceOption.build(
+                        MpvQualityEnhanceOption.MODE_OFF,
+                        MpvQualityEnhanceOption.DENOISE_LIGHT,
+                        "gpu-next",
+                        true));
+        // 硬解直出依旧是整套不发（着色器管线根本不存在）。
+        assertTrue(MpvQualityEnhanceOption.build(
+                MpvQualityEnhanceOption.MODE_STRONG,
+                MpvQualityEnhanceOption.DENOISE_STRONG,
+                "mediacodec_embed",
+                true).isEmpty());
+    }
+
+    @Test
     public void neverEmitsTheseAbsentOptionNames() {
         // 这些名字在随包 libmpv.so（双 ABI）的选项名表里确认不存在。
         // mpv 对未知选项不报错、不提示，只是静默忽略，所以必须由测试拦住。

@@ -399,7 +399,9 @@ public class MpvPlayerEngine implements PlayerEngine {
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceSetting.getMode(),
                 MpvQualityEnhanceSetting.getDenoise(),
-                vo);
+                vo,
+                // 同上：链在跑就把缩放核让给着色器，否则会把 Anime4K 的结果重采样一遍。
+                player.hasAnime4KShaders());
         MpvPlayer.MpvQualityEnhanceApplyResult result = player.applyQualityEnhanceOptions(options);
         if (!result.complete()) {
             SpiderDebug.log("player-engine", "mpv quality enhance runtime failed vo=%s supported=%s applied=%s",
@@ -451,9 +453,30 @@ public class MpvPlayerEngine implements PlayerEngine {
             return SuperResolutionResult.UNAVAILABLE;
         }
         player.setAnime4KShaders(paths);
-        SpiderDebug.log("player-engine", "super resolution applied vo=%s tier=%s passes=%d",
-                vo, Anime4KShaderChain.tierName(mode), paths.size());
+        // 读回 mpv 真正持有的链再判定成败。mpv 会静默丢弃打不存在的路径，也会静默跳过编译
+        // 不过的 pass，所以「命令发出去了」不能当作「着色器在跑」——只有读回来还能对上才算落地。
+        String native_chain = player.readNativeShaderChain();
+        int landed = countChainEntries(native_chain);
+        SpiderDebug.log("player-engine",
+                "super resolution applied vo=%s tier=%s requested=%d landed=%d native=%s",
+                vo, Anime4KShaderChain.tierName(mode), paths.size(), landed, native_chain);
+        if (landed < paths.size()) {
+            SpiderDebug.log("player-engine",
+                    "super resolution NOT fully mounted mode=%d requested=%d landed=%d",
+                    mode, paths.size(), landed);
+            return SuperResolutionResult.UNAVAILABLE;
+        }
         return SuperResolutionResult.APPLIED;
+    }
+
+    /** 数一条 {@code glsl-shaders} 链里有多少个非空条目。 */
+    private static int countChainEntries(String chain) {
+        if (chain == null || chain.isEmpty()) return 0;
+        int count = 0;
+        for (String entry : chain.split(java.io.File.pathSeparator)) {
+            if (!entry.isEmpty()) count++;
+        }
+        return count;
     }
 
     /** 当前渲染器是否可能跑着色器管线（用于 UI 提示，不一定每次都重新落盘校验）。 */
@@ -1279,7 +1302,11 @@ public class MpvPlayerEngine implements PlayerEngine {
         Map<String, String> options = MpvQualityEnhanceOption.build(
                 MpvQualityEnhanceSetting.getMode(),
                 MpvQualityEnhanceSetting.getDenoise(),
-                vo);
+                vo,
+                // 超分链若已在 mpv 里跑着，内置缩放核必须让位：它会把 Anime4K 刚补出来的边缘
+                // 又重采样一遍，实测两档像素差只剩 0.028%。问的是 mpv 的实际状态而不是我们的
+                // 意图——链没挂上时仍按旧行为写核，免得两套都没有。
+                player.hasAnime4KShaders());
         if (options.isEmpty()) return;
         for (Map.Entry<String, String> entry : options.entrySet()) {
             builder.option(entry.getKey(), entry.getValue());
