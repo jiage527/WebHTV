@@ -1,12 +1,21 @@
 package com.fongmi.android.tv.ui.dialog;
 
 import android.content.Context;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.TextView;
 
 import com.fongmi.android.tv.R;
 import com.fongmi.android.tv.server.Server;
 import com.fongmi.android.tv.setting.Setting;
 import com.fongmi.android.tv.utils.Notify;
+import com.fongmi.android.tv.utils.ResUtil;
+import com.fongmi.android.tv.utils.ThemeColors;
 import com.fongmi.android.tv.webdav.WebDavSetting;
+import com.fongmi.android.tv.webdav.WebDavShareOption;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 /**
@@ -20,56 +29,110 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
  * <p><b>写入默认可选但不预选。</b>多数人只想要「让对方来播我这儿的片子」，这只需只读；
  * 写入意味着对方能上传、覆盖与删除。默认替用户选上写入，等于做了一个他不知情的决定。
  *
- * <p><b>为什么从多选改成单选。</b>原先用 {@code setMultiChoiceItems}，两个选项默认都不勾，
- * 而「只读」那个勾同时充当主开关——用户第一次点开、什么都没勾就点确定，程序判定为
- * 「关闭共享」，于是弹出一句「已关闭文件共享」。用户的操作意图明明是「我要打开它」，
- * 得到的却是一个否定结果，而且对话框正文（只说开启后能干什么）从没告诉他要先勾选。
- * 用户实测反馈的正是这个现象。单选项没有「都不选」这个中立状态，点确定必然对应一个
- * 明确的状态，歧义消失了。
+ * <p><b>为什么自己搭选项视图，而不是用 {@code setSingleChoiceItems}。</b>这条是本次
+ * 故障的根。{@code AlertController.setupContent} 的字节码是：
+ * <pre>
+ *   59: getfield mMessage;  ifnull 76     // message == null 才去装那个列表
+ *   62: mMessageView.setText(mMessage)
+ *   73: goto 155                          // 设完正文就 return，列表根本没装
+ * </pre>
+ * 也就是说 {@code setMessage(...)} 与 {@code setSingleChoiceItems(...)} 同时用时，
+ * 选项会被静默丢掉——对话框只剩标题、正文和两个按钮。用户点开只看到一段说明，
+ * 没有可选项，于是每次「确定」都写回预选值，表现为「只能变成仅可读、点多少次都没变化」。
+ * 自己用 {@code setView} 搭选项，渲染不再依赖 builder 的内部布局，正文也一并放进自建视图里，
+ * 不再调用 {@code setMessage}。
  */
 public final class WebDavServerDialog {
-
-    /** 与单选项列表的下标一一对应。 */
-    private static final int OFF = 0;
-    private static final int READ_ONLY = 1;
-    private static final int WRITABLE = 2;
 
     private WebDavServerDialog() {
     }
 
     public static void show(Context context, Runnable onChanged) {
         boolean previousWritable = WebDavSetting.isWritable();
-        int[] picked = {current()};
+        WebDavShareOption[] options = WebDavShareOption.values();
+        RadioGroup group = buildOptions(context, options,
+                WebDavShareOption.preselect(WebDavSetting.isEnabled(), previousWritable));
         new MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.setting_webdav_server)
-                .setMessage(R.string.setting_webdav_server_summary)
-                .setSingleChoiceItems(new CharSequence[]{
-                        context.getString(R.string.setting_webdav_server_off),
-                        context.getString(R.string.setting_webdav_server_readonly),
-                        context.getString(R.string.setting_webdav_server_writable)
-                }, picked[0], (dialog, which) -> picked[0] = which)
+                .setView(wrap(context, group))
                 .setNegativeButton(R.string.dialog_negative, null)
                 .setPositiveButton(R.string.dialog_positive, (dialog, which) -> {
-                    apply(context, picked[0], previousWritable);
+                    apply(context, checked(group), previousWritable);
                     if (onChanged != null) onChanged.run();
                 })
                 .show();
     }
 
     /**
-     * 对话框打开时该预选哪一项。
+     * 把三个候选项搭成单选列表。
      *
-     * <p><b>关闭状态下预选「仅可读」，而不是预选「关」。</b>设置页那一行显示的是「关」，
-     * 用户点它就是想把它打开；如果预选项就是「关」，他点「确定」而没动选项时，
-     * {@code picked} 仍是关，于是收到一句「已关闭文件共享」——正是用户实测遇到的
-     * 「点确认之后还是关的」。预选「仅可读」让「确定」这个动作对应到「打开」，
-     * 与点进来的意图一致；真想关掉的人需要主动去选「关」，那是一次明确的动作，
-     * 不会被误触发。已在开启状态时仍如实预选当前状态，避免把用户设过的「可读写」
-     * 悄悄降级成只读。
+     * <p>用 {@code RadioGroup} 而不是 {@code ListView}：这里没有滚动、没有复用需求，
+     * 而 {@code RadioGroup} 自带「同组内只能选一个 + 显示选中态」，正是这份交互要的全部。
      */
-    private static int current() {
-        if (!WebDavSetting.isEnabled()) return READ_ONLY;
-        return WebDavSetting.isWritable() ? WRITABLE : READ_ONLY;
+    private static RadioGroup buildOptions(Context context, WebDavShareOption[] options, WebDavShareOption selected) {
+        RadioGroup group = new RadioGroup(context);
+        group.setOrientation(RadioGroup.VERTICAL);
+        for (WebDavShareOption option : options) {
+            RadioButton button = new RadioButton(context);
+            button.setId(View.generateViewId());
+            button.setText(label(context, option));
+            button.setTextSize(15);
+            button.setTextColor(ThemeColors.onSurface(context));
+            button.setTag(option);
+            button.setPadding(0, ResUtil.dp2px(6), 0, ResUtil.dp2px(6));
+            group.addView(button);
+            if (option == selected) group.check(button.getId());
+        }
+        return group;
+    }
+
+    /** 说明文字 + 选项，一起交给 {@code setView}；正文不再走 {@code setMessage}（原因见类注释）。 */
+    private static View wrap(Context context, RadioGroup group) {
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int padding = ResUtil.dp2px(20);
+        root.setPadding(padding, ResUtil.dp2px(8), padding, ResUtil.dp2px(8));
+        TextView summary = new TextView(context);
+        summary.setText(R.string.setting_webdav_server_summary);
+        summary.setTextSize(13);
+        summary.setTextColor(ThemeColors.secondary(context));
+        root.addView(summary, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = ResUtil.dp2px(12);
+        root.addView(group, params);
+        return root;
+    }
+
+    private static CharSequence label(Context context, WebDavShareOption option) {
+        switch (option) {
+            case READ_ONLY:
+                return context.getString(R.string.setting_webdav_server_readonly);
+            case WRITABLE:
+                return context.getString(R.string.setting_webdav_server_writable);
+            default:
+                return context.getString(R.string.setting_webdav_server_off);
+        }
+    }
+
+    /**
+     * 读出当前选中项。
+     *
+     * <p>靠按钮上挂的 {@code tag} 反查，而不是靠下标位置：下标一旦与
+     * {@link WebDavShareOption} 的顺序脱钩就会静默写错状态，而 tag 是建的时候就绑死的。
+     * 一个都没选中（理论上不该发生，因为构建时总会 {@code check} 一项）时按 {@link WebDavShareOption#OFF}
+     * 处理——宁可当成没开，也不要凭空把服务打开。
+     */
+    private static WebDavShareOption checked(RadioGroup group) {
+        int id = group.getCheckedRadioButtonId();
+        for (int index = 0; index < group.getChildCount(); index++) {
+            View child = group.getChildAt(index);
+            if (child.getId() == id && child.getTag() instanceof WebDavShareOption) {
+                return (WebDavShareOption) child.getTag();
+            }
+        }
+        return WebDavShareOption.OFF;
     }
 
     /**
@@ -78,8 +141,8 @@ public final class WebDavServerDialog {
      * <p>三选一里「仅可读」与「可读写」都表示开启服务，区别只在写入授权，
      * 所以判断的是「选中项是否为关闭」，而不是「是否勾了某个框」。
      */
-    private static void apply(Context context, int picked, boolean previousWritable) {
-        if (picked == OFF) {
+    private static void apply(Context context, WebDavShareOption picked, boolean previousWritable) {
+        if (!picked.allowed()) {
             WebDavSetting.putEnabled(false);
             Notify.show(R.string.setting_webdav_server_off_toast);
             return;
@@ -90,7 +153,7 @@ public final class WebDavServerDialog {
             Notify.show(R.string.setting_webdav_server_permission);
             return;
         }
-        boolean writable = picked == WRITABLE;
+        boolean writable = picked.writable();
         boolean writeJustEnabled = writable && !previousWritable;
         // 必须先落写入再落开启：putEnabled(false) 会顺带收回写入授权，顺序反了会把
         // 刚给的可写权限立刻清掉（表现为「选了可读写却还是只读」）。
