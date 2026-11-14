@@ -9,9 +9,9 @@
         <item name="android:windowAnimationStyle">@style/NoAnim</item>
     </style>
 
-    <style name="Theme.Splash" parent="Theme.Base">
-        <item name="android:windowBackground">@drawable/startup_window_background</item>
-    </style>
+    <!-- 启动窗口不再放 WebHTV 海报图（冷启动会一闪而过，用户要求去掉）；
+         Theme.Base 本身就是 @color/black，这里不再覆盖 windowBackground。 -->
+    <style name="Theme.Splash" parent="Theme.Base" />
 
     <style name="Theme.App" parent="Theme.Base" />
 

@@ -6,8 +6,10 @@
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
     </style>
 
+    <!-- 启动窗口只是一层纯色：原来这里是 WebHTV 海报图，冷启动时会一闪而过，
+         用户要求去掉。黑色与首页壁纸（深蓝插画）的外缘同色，过渡看不出来。 -->
     <style name="Theme.Splash" parent="Theme.Base">
-        <item name="android:windowBackground">@drawable/mobile_startup_window_background</item>
+        <item name="android:windowBackground">@color/black</item>
     </style>
 
     <style name="Theme.App" parent="Theme.Base" />
