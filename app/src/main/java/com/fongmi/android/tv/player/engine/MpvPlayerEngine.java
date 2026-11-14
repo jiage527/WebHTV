@@ -1306,7 +1306,13 @@ public class MpvPlayerEngine implements PlayerEngine {
                 // 超分链若已在 mpv 里跑着，内置缩放核必须让位：它会把 Anime4K 刚补出来的边缘
                 // 又重采样一遍，实测两档像素差只剩 0.028%。问的是 mpv 的实际状态而不是我们的
                 // 意图——链没挂上时仍按旧行为写核，免得两套都没有。
-                player.hasAnime4KShaders());
+                //
+                // 注意必须先判空：buildConfig() 是在 buildPlayer() 里**创建新 player 之前**
+                // 调的，首次构造时字段 player 还是 null，直接解引用会 NPE，崩在
+                // PlaybackService.onCreate（P14 引入，P19 修）。没有旧 player 时按档位预判，
+                // 因为新 player 建好后 restoreSuperResolution() 就会把链挂上。
+                player != null ? player.hasAnime4KShaders()
+                        : Anime4KShaderChain.needsShaders(MpvQualityEnhanceSetting.getMode()));
         if (options.isEmpty()) return;
         for (Map.Entry<String, String> entry : options.entrySet()) {
             builder.option(entry.getKey(), entry.getValue());
