@@ -88,10 +88,12 @@ public class Setting {
     public static final int WALL_MIDNIGHT_MOON = 34;
     public static final int WALL_CYAN_CRYSTAL = 35;
     public static final int WALL_LAVENDER_CRYSTAL = 36;
+    // 自定义品牌背景（用户提供的深蓝插画），作为出厂默认壁纸
+    public static final int WALL_BRAND = 40;
     public static final int WALL_GREEN = 1;
 
     private static final int[] DEFAULT_WALLS = {
-            WALL_DREAM_PURPLE, WALL_LAVENDER_CRYSTAL, WALL_PASTEL_PRISM, WALL_ROSE_VEIL, WALL_VIOLET_SMOKE,
+            WALL_BRAND, WALL_DREAM_PURPLE, WALL_LAVENDER_CRYSTAL, WALL_PASTEL_PRISM, WALL_ROSE_VEIL, WALL_VIOLET_SMOKE,
             WALL_NEON_BERRY, WALL_MIDNIGHT_MOON, WALL_NEON_CYBER, WALL_DEEP_SPACE_GLASS, WALL_GRAPHITE_SMOKE,
             WALL_DAYLIGHT_MINIMAL, WALL_SKY_MINT, WALL_POLAR_LIGHT_GLASS, WALL_GLASS_GRADIENT, WALL_CRYSTAL_SKY,
             WALL_BLUE_SILK, WALL_CYAN_CRYSTAL, WALL_MINT_GLACIER, WALL_AURORA_GLASS, WALL_DEEP_SEA,
@@ -156,8 +158,21 @@ public class Setting {
     }
 
     public static int getWall() {
-        int wall = Prefers.getInt("wall", WALL_DREAM_PURPLE);
-        return wall == WALL_GREEN || isLegacyColorWall(wall) ? WALL_DREAM_PURPLE : wall;
+        int wall = Prefers.getInt("wall", WALL_BRAND);
+        wall = migrateWallBrand(wall);
+        return wall == WALL_GREEN || isLegacyColorWall(wall) ? WALL_BRAND : wall;
+    }
+
+    /**
+     * 旧版本把「出厂默认」直接写进了设置（wall=22 梦幻紫霞），只改 getWall() 的默认值对已装过的机器无效。
+     * 这里做一次性迁移：还停在旧出厂默认的机器改成品牌壁纸；用户自己选过的其它壁纸（含自定义图片）不动。
+     */
+    private static int migrateWallBrand(int wall) {
+        if (Prefers.getBoolean("wall_brand_migrated", false)) return wall;
+        Prefers.put("wall_brand_migrated", true);
+        if (wall != WALL_DREAM_PURPLE) return wall;
+        Prefers.put("wall", WALL_BRAND);
+        return WALL_BRAND;
     }
 
     public static void putWall(int wall) {
@@ -208,6 +223,7 @@ public class Setting {
     }
 
     public static int getBuiltInWallColor(int wall) {
+        if (wall == WALL_BRAND) return 0xFF2D9CD2;
         if (wall == WALL_AURORA_GLASS) return 0xFF2B8ECB;
         if (wall == WALL_SUNSET_PRISM) return 0xFFB65B88;
         if (wall == WALL_MINT_GLACIER) return 0xFF55BCA8;
@@ -239,6 +255,7 @@ public class Setting {
     }
 
     public static String getBuiltInWallName(int wall) {
+        if (wall == WALL_BRAND) return "我的影视";
         if (wall == WALL_AURORA_GLASS) return "蓝紫流光";
         if (wall == WALL_SUNSET_PRISM) return "珊瑚暮色";
         if (wall == WALL_MINT_GLACIER) return "薄荷星云";
