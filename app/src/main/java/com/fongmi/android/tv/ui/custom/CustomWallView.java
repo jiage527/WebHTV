@@ -1,6 +1,7 @@
 package com.fongmi.android.tv.ui.custom;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.ColorDrawable;
@@ -54,6 +55,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
     private ExoPlayer player;
     private final Runnable refreshRunnable = this::refresh;
     private boolean observerAdded;
+    private int lastOrientation = Configuration.ORIENTATION_UNDEFINED;
     private boolean motionEnabled = true;
 
     public CustomWallView(@NonNull Context context, @Nullable AttributeSet attrs) {
@@ -69,6 +71,7 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         if (isInEditMode()) return;
+        lastOrientation = getResources().getConfiguration().orientation;
         boolean loadedPlaceholder = false;
         if (binding == null) {
             binding = ViewWallBinding.inflate(LayoutInflater.from(getContext()), this, true);
@@ -82,6 +85,20 @@ public class CustomWallView extends FrameLayout implements DefaultLifecycleObser
         removeCallbacks(refreshRunnable);
         if (loadedPlaceholder && isStaticBuiltInWall()) theme();
         else post(refreshRunnable);
+    }
+
+    @Override
+    protected void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (isInEditMode()) return;
+        if (newConfig.orientation == lastOrientation) return;
+        lastOrientation = newConfig.orientation;
+        // 内置壁纸的横竖两版是两份资源（drawable-port / drawable-nodpi）。Activity 声明了
+        // configChanges 自行处理旋转、不会重建，所以这里的 ImageView 仍挂着上一方向的图，
+        // 旋转后会被 centerCrop 裁成一团。旋转即重载一次。
+        if (!isStaticBuiltInWall()) return;
+        removeCallbacks(refreshRunnable);
+        post(refreshRunnable);
     }
 
     @Override
