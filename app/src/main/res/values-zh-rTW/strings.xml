@@ -1623,4 +1623,7 @@
     <string name="offline_download_resume_one">繼續</string>
     <string name="offline_download_path">檔案路徑</string>
     <string name="offline_download_file_count">%1$d 個檔案</string>
+    <string name="contact_qq_title">聯絡作者</string>
+    <string name="contact_qq">QQ：%1$s</string>
+    <string name="contact_qq_copy">複製 QQ</string>
 </resources>

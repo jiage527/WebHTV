@@ -42,14 +42,17 @@ import com.fongmi.android.tv.ui.dialog.WebHomeExtensionDialog;
 import com.fongmi.android.tv.utils.LoginStateSync;
 import com.fongmi.android.tv.utils.Notify;
 import com.fongmi.android.tv.utils.PermissionUtil;
+import com.fongmi.android.tv.utils.Util;
 import com.fongmi.android.tv.web.ext.WebHomeExtensionRegistry;
 import com.fongmi.android.tv.webdav.WebDavSetting;
 import com.github.catvod.crawler.SpiderDebug;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class SettingEnhanceActivity extends BaseActivity {
 
     private static final String URL_GITHUB = Github.getProjectUrl();
-    private static final String URL_CNB = "https://cnb.cool/fish2035/ext";
+    /** 作者联系方式：这个图标不再跳外部站点，改成弹出 QQ 号，方便用户找到人。 */
+    private static final String CONTACT_QQ = "1913223463";
 
     private ActivitySettingEnhanceBinding mBinding;
 
@@ -77,7 +80,7 @@ public class SettingEnhanceActivity extends BaseActivity {
     @Override
     protected void initEvent() {
         mBinding.githubRepo.setOnClickListener(view -> openRepo(URL_GITHUB));
-        mBinding.cnbRepo.setOnClickListener(view -> openRepo(URL_CNB));
+        mBinding.cnbRepo.setOnClickListener(view -> showContact());
         mBinding.driveCheck.setOnClickListener(this::setDriveCheck);
         mBinding.debugLog.setOnClickListener(this::setDebugLog);
         mBinding.siteHealthSort.setOnClickListener(view -> SiteHealthDialog.show(this, this::setText));
@@ -277,6 +280,16 @@ public class SettingEnhanceActivity extends BaseActivity {
         } catch (Exception e) {
             Notify.show(R.string.manage_page_no_browser);
         }
+    }
+
+    /** 弹出作者 QQ：可读、可复制（电视端遥控器也能选中"复制"）。 */
+    private void showContact() {
+        new MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_WebHTV_LightDialog)
+                .setTitle(R.string.contact_qq_title)
+                .setMessage(getString(R.string.contact_qq, CONTACT_QQ))
+                .setPositiveButton(R.string.dialog_positive, null)
+                .setNeutralButton(R.string.contact_qq_copy, (dialog, which) -> Util.copy(CONTACT_QQ))
+                .show();
     }
 
     @Override

@@ -1647,4 +1647,7 @@
     <string name="offline_download_resume_one">Resume</string>
     <string name="offline_download_path">File path</string>
     <string name="offline_download_file_count">%1$d files</string>
+    <string name="contact_qq_title">Contact</string>
+    <string name="contact_qq">QQ: %1$s</string>
+    <string name="contact_qq_copy">Copy QQ</string>
 </resources>
