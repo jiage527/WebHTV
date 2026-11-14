@@ -19,6 +19,7 @@ public final class PlaybackPerformanceUiPolicy {
             PlaybackPerformanceCatalog.MPV_RENDER,
             PlaybackPerformanceCatalog.MPV_VULKAN_BACKEND,
             PlaybackPerformanceCatalog.MPV_HWDEC,
+            PlaybackPerformanceCatalog.MPV_DECODE,
             PlaybackPerformanceCatalog.MPV_FRAME_RATE,
             PlaybackPerformanceCatalog.MPV_OPTION_PRIORITY,
             PlaybackPerformanceCatalog.AUDIO_PASSTHROUGH,

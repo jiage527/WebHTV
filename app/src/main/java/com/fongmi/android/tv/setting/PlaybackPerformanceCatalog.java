@@ -38,6 +38,7 @@ public final class PlaybackPerformanceCatalog {
     public static final String MPV_RENDER = "mpv_render";
     public static final String MPV_VULKAN_BACKEND = "mpv_vulkan_backend";
     public static final String MPV_HWDEC = "mpv_hwdec";
+    public static final String MPV_DECODE = "mpv_decode";
     public static final String MPV_SYNC = "mpv_sync";
     public static final String MPV_FRAME_DROP = "mpv_frame_drop";
     public static final String MPV_INTERPOLATION = "mpv_interpolation";
@@ -128,6 +129,7 @@ public final class PlaybackPerformanceCatalog {
         options.add(option(MPV_OUTPUT, BASIC, "输出模式", "怎么选：保持“自动”（默认）最省心；电视播放4K且不需要MPV字幕/LUT/shader/滤镜时会在确认设备支持当前视频后自动用“电视直出”，这是当前最低GPU开销、最优先保证流畅的路径。需要MPV完整图像处理选“GPU渲染”；自动判断不正确时可手动选“电视直出”。代价：电视直出不经过OpenGL/Vulkan，MPV原生字幕和GPU滤镜不可用。"));
         options.add(option(MPV_RENDER, BASIC, "渲染后端", "怎么选：GPU渲染模式先选 OpenGL，兼容性最好；确认设备 Vulkan 驱动稳定且需要 gpu-next/libplacebo 时再选 Vulkan。电视直出时本参数不参与视频输出，切换也不会变快。代价：Vulkan可能更高效，也可能因驱动问题卡顿、黑屏并自动回退OpenGL。"));
         options.add(option(MPV_VULKAN_BACKEND, BASIC, "Vulkan 视频路径", "怎么选：仅在渲染后端为 Vulkan 且使用 MediaCodec 硬解时生效，默认 direct。direct 直接采样 AHardwareBuffer，转换步骤少；如果设备出现 GPU 负载逐渐升高、卡顿或驱动兼容问题，可改用 legacy。legacy 使用旧版三输出 compute conversion；stable 使用四输出有界 fence 池，适合 direct 不兼容且 legacy 存在同步问题时尝试。选择“播放性能优先”时本选项覆盖 mpv.conf；选择“mpv.conf优先”时，android-vulkan-aimagereader-backend 等同名配置覆盖本选项。切换后需要重新进入播放。"));
+        options.add(option(MPV_DECODE, BASIC, "默认解码", "怎么选：保持“硬解”（默认）跟现在一样，起播就有硬件加速；只有在硬解花屏、绿屏、崩溃或某些片源解不出来时才改成“软解”。软解每次起播都用 CPU 解码，4K、10bit、HDR 会明显掉帧，电视上不建议；但它不占硬件解码器，可以同时开 MPV 的 GPU 滤镜与超分。代价：软解时“硬解路径”整项不生效，播放器里那个解码按钮仍可临时切回来。"));
         options.add(option(MPV_HWDEC, BASIC, "硬解路径", "怎么选：保持“自动回退”（默认）；它先试 mediacodec 零拷贝，失败再试兼容复制。电视4K追求最高流畅可选“零拷贝优先”；只有零拷贝黑屏、崩溃或解码异常时选“兼容复制”。代价：兼容复制会复制每帧，4K 10bit内存带宽开销大，可能明显卡顿。"));
         options.add(option(MPV_FRAME_RATE, BASIC, "帧率匹配", "怎么选：电影、剧集在电视上保持“仅无缝”（默认），可减少24/25fps抖动；切换后黑屏、闪屏或电视刷新率异常时关闭。代价：仅无缝不会强制切换不兼容模式，旧Android自动忽略。"));
         options.add(option(MPV_OPTION_PRIORITY, BASIC, "参数优先级", "怎么选：普通用户选“播放性能优先”（默认），界面中的缓存、硬解、同步、丢帧和HLS设置才能可靠生效；只有明确维护了mpv.conf并希望同名配置覆盖界面时选“mpv.conf优先”。选错会出现“界面改了但实际被配置文件覆盖”。"));

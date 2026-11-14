@@ -576,6 +576,7 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
             case PlaybackPerformanceCatalog.MPV_RENDER -> mpvRenderText();
             case PlaybackPerformanceCatalog.MPV_VULKAN_BACKEND -> MpvPerformanceSetting.getVulkanBackendText();
             case PlaybackPerformanceCatalog.MPV_HWDEC -> MpvPerformanceSetting.getHwdecText();
+            case PlaybackPerformanceCatalog.MPV_DECODE -> MpvPerformanceSetting.getDecodeDefaultText();
             case PlaybackPerformanceCatalog.MPV_FRAME_RATE -> MpvPerformanceSetting.getFrameRateText();
             case PlaybackPerformanceCatalog.MPV_HLS_BITRATE -> MpvPerformanceSetting.getHlsBitrateText();
             case PlaybackPerformanceCatalog.MPV_REBUFFER -> formatSeconds(MpvPerformanceSetting.getRebufferMs());
@@ -688,6 +689,10 @@ public final class PlaybackPerformanceDialog extends DialogFragment {
             };
             case PlaybackPerformanceCatalog.MPV_HWDEC -> () -> {
                 MpvPerformanceSetting.putHwdecMode((MpvPerformanceSetting.getHwdecMode() + 1) % 3);
+                refresh();
+            };
+            case PlaybackPerformanceCatalog.MPV_DECODE -> () -> {
+                MpvPerformanceSetting.putDecodeDefault((MpvPerformanceSetting.getDecodeDefault() + 1) % 2);
                 refresh();
             };
             case PlaybackPerformanceCatalog.MPV_FRAME_RATE -> () -> {

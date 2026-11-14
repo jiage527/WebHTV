@@ -62,6 +62,7 @@ public class PlaybackPerformanceUiPolicyTest {
                         PlaybackPerformanceCatalog.MPV_RENDER,
                         PlaybackPerformanceCatalog.MPV_VULKAN_BACKEND,
                         PlaybackPerformanceCatalog.MPV_HWDEC,
+                        PlaybackPerformanceCatalog.MPV_DECODE,
                         PlaybackPerformanceCatalog.MPV_FRAME_RATE,
                         PlaybackPerformanceCatalog.MPV_OPTION_PRIORITY,
                         PlaybackPerformanceCatalog.AUDIO_PASSTHROUGH,
@@ -99,6 +100,19 @@ public class PlaybackPerformanceUiPolicyTest {
                 assertTrue(option.description().length() >= 40);
             }
         }
+    }
+
+    @Test
+    public void mpvDecodeDefaultIsOnlyOfferedForMpv() {
+        assertTrue(ids(PlaybackPerformanceUiPolicy
+                .splitForKernel(PlayerSetting.MPV, false).common()).contains(
+                PlaybackPerformanceCatalog.MPV_DECODE));
+        assertFalse(ids(PlaybackPerformanceCatalog.forKernel(
+                PlayerSetting.EXO, false)).contains(
+                PlaybackPerformanceCatalog.MPV_DECODE));
+        assertFalse(ids(PlaybackPerformanceCatalog.forKernel(
+                PlayerSetting.IJK, false)).contains(
+                PlaybackPerformanceCatalog.MPV_DECODE));
     }
 
     @Test

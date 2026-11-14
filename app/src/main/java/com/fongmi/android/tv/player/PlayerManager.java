@@ -352,7 +352,9 @@ public class PlayerManager implements ParseCallback {
             }
         };
         this.playerType = PlayerSetting.getPlayer();
-        this.engine = buildEngine(playerType, PlayerEngine.HARD);
+        // MPV 可以在「播放性能」里选默认解码方式；EXO / IJK 照旧从硬解起播。
+        this.engine = buildEngine(playerType, MpvPerformanceSetting.initialDecode(
+                playerType, PlayerEngine.HARD, PlayerEngine.SOFT));
         this.player = engine.getPlayer();
     }
 
@@ -4945,6 +4947,15 @@ public class PlayerManager implements ParseCallback {
     }
 
     private void prepareMpvOutputForNewItem() {
+        // 「默认解码」每次起播都按设置来；播放器里那个解码按钮只算本次临时切换。
+        if (engine instanceof MpvPlayerEngine mpvDefault) {
+            int desired = MpvPerformanceSetting.initialDecode(
+                    playerType, PlayerEngine.HARD, PlayerEngine.SOFT);
+            if (mpvDefault.getDecode() != desired) {
+                mpvDefault.setDecode(desired);
+                if (SpiderDebug.isEnabled()) SpiderDebug.log("player", "mpv decode follows default=%d", desired);
+            }
+        }
         resetMpvOutputEvaluationState();
         mpvSurfaceFallbackTried = false;
         List<Track> persistedTracks = Track.find(getKey());

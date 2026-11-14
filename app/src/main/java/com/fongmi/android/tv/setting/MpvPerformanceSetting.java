@@ -11,6 +11,9 @@ public final class MpvPerformanceSetting {
     public static final int HWDEC_AUTO = 0;
     public static final int HWDEC_DIRECT = 1;
     public static final int HWDEC_COPY = 2;
+    /** MPV 自己的默认解码方式：与播放器里那个临时按钮不同，这里选完会一直生效。 */
+    public static final int DECODE_HARD = 0;
+    public static final int DECODE_SOFT = 1;
     public static final int SYNC_AUDIO = 0;
     public static final int SYNC_DISPLAY_RESAMPLE = 1;
     public static final int FRAME_DROP_OUTPUT = 0;
@@ -38,6 +41,7 @@ public final class MpvPerformanceSetting {
 
     private static final String KEY_OUTPUT_MODE = "perf_mpv_output_mode";
     private static final String KEY_HWDEC = "perf_mpv_hwdec";
+    private static final String KEY_DECODE_DEFAULT = "perf_mpv_decode_default";
     private static final String KEY_SYNC = "perf_mpv_sync";
     private static final String KEY_FRAME_DROP = "perf_mpv_frame_drop";
     private static final String KEY_INTERPOLATION = "perf_mpv_interpolation";
@@ -112,6 +116,40 @@ public final class MpvPerformanceSetting {
             case HWDEC_COPY -> "兼容复制";
             default -> "自动回退";
         };
+    }
+
+    /**
+     * MPV 的默认解码方式。
+     *
+     * <p>播放器里那个「解码」按钮只在本次播放生效（{@code PlayerManager.switchDecode}），
+     * 退出重进又回到硬解。这里选的是每次起播时用的默认值，跟着设置一直保存。
+     */
+    public static int getDecodeDefault() {
+        return clamp(Prefers.getInt(KEY_DECODE_DEFAULT, DECODE_HARD), DECODE_HARD, DECODE_SOFT);
+    }
+
+    public static void putDecodeDefault(int value) {
+        int mode = clamp(value, DECODE_HARD, DECODE_SOFT);
+        Prefers.put(KEY_DECODE_DEFAULT, mode);
+        // 选“硬解”等于回到出厂默认，不该记为“用户改过”。
+        PlaybackPerformanceSetting.setOverride(
+                PlaybackPerformanceCatalog.MPV_DECODE,
+                mode != DECODE_HARD);
+    }
+
+    public static String getDecodeDefaultText() {
+        return getDecodeDefault() == DECODE_SOFT ? "软解" : "硬解";
+    }
+
+    /**
+     * 起播时该用哪种解码。
+     *
+     * <p>只有 MPV 内核吃这个偏好；EXO / IJK 仍旧按调用方给的硬解起播，
+     * 免得一个内核的设置影响到别的内核。
+     */
+    public static int initialDecode(int kernel, int hard, int soft) {
+        if (kernel != PlayerSetting.MPV) return hard;
+        return getDecodeDefault() == DECODE_SOFT ? soft : hard;
     }
 
     public static int getSyncMode() {
