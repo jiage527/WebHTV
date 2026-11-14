@@ -4,6 +4,15 @@ import com.fongmi.android.tv.BuildConfig;
 
 public class Github {
 
+    /**
+     * 二开项目自己的公开地址。
+     *
+     * 设置页「增强功能」里那个 GitHub 图标原来跳的是上游更新源仓库（BuildConfig.UPDATE_REPO_URL），
+     * 点进去看到的是别人的主页。这里单独给一个常量：图标只负责「我的项目主页」，
+     * 与更新源（UPDATE_GITHUB_REPO / UPDATE_CNB_BASE，决定版本检查从哪拉）互不影响。
+     */
+    public static final String PROJECT_URL = "https://github.com/jiage527/WebHTV";
+
     private static final String GITHUB_LATEST = "https://github.com/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/latest/download";
     private static final String GITHUB_RELEASE = "https://github.com/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/download";
     private static final String GITHUB_API = "https://api.github.com/repos/" + BuildConfig.UPDATE_GITHUB_REPO + "/releases/tags";
@@ -13,6 +22,11 @@ public class Github {
 
     public static String getRepoUrl() {
         return BuildConfig.UPDATE_REPO_URL;
+    }
+
+    /** 设置页 GitHub 图标的目标地址（二开项目主页），用途见 {@link #PROJECT_URL}。 */
+    public static String getProjectUrl() {
+        return PROJECT_URL;
     }
 
     public static String getCnbAsset(String name) {

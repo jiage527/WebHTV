@@ -53,7 +53,7 @@ import com.google.gson.JsonObject;
 
 public class SettingEnhanceFragment extends BaseFragment {
 
-    private static final String URL_GITHUB = Github.getRepoUrl();
+    private static final String URL_GITHUB = Github.getProjectUrl();
     private static final String URL_CNB = "https://cnb.cool/fish2035/ext";
 
     private FragmentSettingEnhanceBinding mBinding;
